@@ -151,6 +151,44 @@ tr.row-wrong   td:last-child { color: var(--red); font-weight: 600; }
   background: linear-gradient(90deg, var(--yellow), var(--green));
 }
 
+.signals-controls {
+  display: flex;
+  gap: 16px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+}
+.signals-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.approach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.approach-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.approach-card h3 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  color: var(--accent);
+}
+.approach-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.approach-card li { margin: 4px 0; }
+
 footer { color: var(--muted); padding: 24px 0; }
 footer a { color: var(--accent); }
 

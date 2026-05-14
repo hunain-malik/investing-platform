@@ -1,13 +1,13 @@
-"""Backtesting engine.
+"""Backtesting engine — per-horizon, per-regime.
 
-Picks random (ticker, cutoff_date) samples. For each sample, runs the full
-indicator + pattern + ensemble pipeline using ONLY data up to the cutoff
-(no look-ahead), then compares the prediction to the actual forward N-day
-return. Aggregates per-pattern and per-ensemble accuracy.
+Picks random (ticker, cutoff_date) samples. For each sample, fires all
+patterns and tests every requested horizon, comparing the ensemble's
+direction to the actual N-day forward return.
 
-The output feeds two things:
-  1. The dashboard's scoreboard (so you can see hit rates).
-  2. Pattern weight updates (so the ensemble can rewire toward what works).
+Each sample is tagged with the market regime that prevailed at the cutoff
+(bull / bear / choppy / unknown) so accuracy can be sliced by regime. Each
+sample also stores the fired patterns and their directions so methodologies
+can be evaluated in post-processing without re-running the data fetch.
 """
 
 from __future__ import annotations
@@ -22,7 +22,8 @@ import pandas as pd
 from .data import fetch_history_cached, forward_return, slice_until
 from .indicators import compute_all
 from .patterns import detect_all
-from .signals import combine
+from .regime import load_spy, regime_at
+from .signals import combine, weights_for_horizon
 
 log = logging.getLogger(__name__)
 
@@ -32,12 +33,13 @@ class BacktestSample:
     ticker: str
     cutoff: pd.Timestamp
     horizon_days: int
+    regime: str
     fired_patterns: list[str]
     pattern_directions: dict[str, str]
     ensemble_direction: str
     ensemble_confidence: float
     forward_return_pct: float
-    actual_label: str  # "up", "down", or "flat"
+    actual_label: str
     ensemble_correct: bool
 
     def to_dict(self) -> dict[str, Any]:
@@ -45,6 +47,7 @@ class BacktestSample:
             "ticker": self.ticker,
             "cutoff": self.cutoff.strftime("%Y-%m-%d"),
             "horizon_days": self.horizon_days,
+            "regime": self.regime,
             "fired_patterns": self.fired_patterns,
             "pattern_directions": self.pattern_directions,
             "ensemble_direction": self.ensemble_direction,
@@ -63,30 +66,25 @@ def _label_return(ret_pct: float, up_threshold: float, down_threshold: float) ->
     return "flat"
 
 
-def run_sample(
+def _run_one(
     ticker: str,
+    df_full: pd.DataFrame,
     cutoff: pd.Timestamp,
-    horizon_days: int,
-    weights: dict[str, float],
+    horizon: int,
+    regime: str,
+    weights_h: dict[str, float],
     up_threshold: float,
     down_threshold: float,
 ) -> BacktestSample | None:
-    """Run a single backtest sample. Returns None if data is insufficient."""
-    try:
-        df_full = fetch_history_cached(ticker)
-    except Exception as e:  # noqa: BLE001
-        log.warning("could not fetch %s: %s", ticker, e)
-        return None
-
     df_until = slice_until(df_full, cutoff)
-    if len(df_until) < 252:  # need at least 1 year of indicator runway
+    if len(df_until) < 252:
         return None
 
     df_ind = compute_all(df_until)
     fired = detect_all(df_ind, idx=-1)
-    direction, confidence = combine(fired, weights)
+    direction, confidence = combine(fired, weights_h)
 
-    ret = forward_return(df_full, cutoff, horizon_days)
+    ret = forward_return(df_full, cutoff, horizon)
     if ret is None:
         return None
 
@@ -96,7 +94,8 @@ def run_sample(
     return BacktestSample(
         ticker=ticker,
         cutoff=cutoff,
-        horizon_days=horizon_days,
+        horizon_days=horizon,
+        regime=regime,
         fired_patterns=[p.name for p in fired],
         pattern_directions={p.name: p.direction for p in fired},
         ensemble_direction=direction,
@@ -110,7 +109,7 @@ def run_sample(
 def run_batch(
     universe: list[str],
     horizons: list[int],
-    weights: dict[str, float],
+    weights_per_horizon: dict[str, dict[int, float]],
     n_samples: int,
     history_years: int,
     min_data_days: int,
@@ -118,12 +117,11 @@ def run_batch(
     down_threshold: float,
     seed: int | None = None,
 ) -> list[BacktestSample]:
-    """Run n_samples random backtest samples across `universe` and `horizons`."""
     rng = random.Random(seed)
     samples: list[BacktestSample] = []
     max_horizon = max(horizons)
 
-    # Pre-fetch all tickers once so the loop is fast.
+    # Pre-fetch all tickers once
     histories: dict[str, pd.DataFrame] = {}
     for ticker in universe:
         try:
@@ -136,13 +134,19 @@ def run_batch(
         log.error("no tickers with enough history")
         return samples
 
+    # Load SPY once for regime tagging
+    try:
+        spy = load_spy()
+    except Exception as e:  # noqa: BLE001
+        log.warning("could not load SPY for regime detection: %s", e)
+        spy = None
+
     attempts = 0
     max_attempts = n_samples * 4
     while len(samples) < n_samples and attempts < max_attempts:
         attempts += 1
         ticker = rng.choice(eligible)
         df = histories[ticker]
-        # valid cutoff range: needs min_data_days behind it AND max_horizon ahead of it
         first_valid = min_data_days
         last_valid = len(df) - max_horizon - 1
         if last_valid <= first_valid:
@@ -150,13 +154,13 @@ def run_batch(
         cutoff_idx = rng.randint(first_valid, last_valid)
         cutoff = df.index[cutoff_idx]
         horizon = rng.choice(horizons)
-        sample = run_sample(
-            ticker=ticker,
-            cutoff=cutoff,
-            horizon_days=horizon,
-            weights=weights,
-            up_threshold=up_threshold,
-            down_threshold=down_threshold,
+
+        regime = regime_at(spy, cutoff) if spy is not None else "unknown"
+        weights_h = weights_for_horizon(weights_per_horizon, horizon)
+
+        sample = _run_one(
+            ticker, df, cutoff, horizon, regime,
+            weights_h, up_threshold, down_threshold,
         )
         if sample is not None:
             samples.append(sample)
@@ -168,12 +172,46 @@ def run_batch(
 # ---------------------- Aggregation ----------------------
 
 
-def aggregate_pattern_accuracy(samples: list[BacktestSample]) -> dict[str, dict]:
-    """For each pattern, count how often its directional vote matched the actual move.
+def aggregate_pattern_accuracy_per_horizon(
+    samples: list[BacktestSample],
+) -> dict[str, dict[int, dict]]:
+    """For each (pattern, horizon), how often did this pattern's vote match actual?
 
-    A pattern's "correct" rate is computed standalone — when this pattern fired
-    with direction X, how often was the actual label X?
+    Returns {pattern: {horizon: {fires, correct, raw_accuracy, shrunk_accuracy, ...}}}
     """
+    stats: dict[str, dict[int, dict]] = {}
+    for s in samples:
+        for pat_name, pat_dir in s.pattern_directions.items():
+            d = stats.setdefault(pat_name, {}).setdefault(s.horizon_days, {
+                "fires": 0, "correct": 0, "by_up": 0, "by_down": 0,
+            })
+            d["fires"] += 1
+            if pat_dir == "up":
+                d["by_up"] += 1
+            elif pat_dir == "down":
+                d["by_down"] += 1
+            if pat_dir == s.actual_label and pat_dir in ("up", "down"):
+                d["correct"] += 1
+
+    out: dict[str, dict[int, dict]] = {}
+    for pat, hd in stats.items():
+        out[pat] = {}
+        for h, d in hd.items():
+            n = d["fires"]
+            shrunk = (d["correct"] + 5) / (n + 10)
+            out[pat][h] = {
+                "fires": n,
+                "correct": d["correct"],
+                "raw_accuracy": round(d["correct"] / n, 4) if n else 0.0,
+                "shrunk_accuracy": round(shrunk, 4),
+                "by_up": d["by_up"],
+                "by_down": d["by_down"],
+            }
+    return out
+
+
+def aggregate_pattern_accuracy_flat(samples: list[BacktestSample]) -> dict[str, dict]:
+    """Horizon-agnostic per-pattern stats for the dashboard's at-a-glance view."""
     stats: dict[str, dict[str, int]] = {}
     for s in samples:
         for pat_name, pat_dir in s.pattern_directions.items():
@@ -185,17 +223,14 @@ def aggregate_pattern_accuracy(samples: list[BacktestSample]) -> dict[str, dict]
                 d["by_down"] += 1
             if pat_dir == s.actual_label and pat_dir in ("up", "down"):
                 d["correct"] += 1
-
     out: dict[str, dict] = {}
     for name, d in stats.items():
         n = d["fires"]
-        accuracy = d["correct"] / n if n > 0 else 0.0
-        # Bayesian shrinkage toward 0.5 (prior alpha=beta=5)
         shrunk = (d["correct"] + 5) / (n + 10)
         out[name] = {
             "fires": n,
             "correct": d["correct"],
-            "raw_accuracy": round(accuracy, 4),
+            "raw_accuracy": round(d["correct"] / n, 4) if n else 0.0,
             "shrunk_accuracy": round(shrunk, 4),
             "by_up": d["by_up"],
             "by_down": d["by_down"],
@@ -204,17 +239,12 @@ def aggregate_pattern_accuracy(samples: list[BacktestSample]) -> dict[str, dict]
 
 
 def aggregate_ensemble_accuracy(samples: list[BacktestSample]) -> dict[str, Any]:
-    """Directional ensemble accuracy plus a calibration table by confidence bucket.
-
-    The headline accuracy uses only samples where the ensemble made an
-    actionable up/down call. Neutral predictions are counted separately as
-    `neutral_rate` because they can't be 'correct' (we didn't bet anything).
-    """
     total_samples = len(samples)
     if total_samples == 0:
         return {
             "total_samples": 0, "directional_total": 0, "directional_correct": 0,
-            "accuracy": None, "neutral_rate": None, "calibration": [], "by_direction": {},
+            "accuracy": None, "neutral_rate": None,
+            "calibration": [], "by_direction": {}, "by_horizon": {}, "by_regime": {},
         }
 
     directional = [s for s in samples if s.ensemble_direction in ("up", "down")]
@@ -228,6 +258,20 @@ def aggregate_ensemble_accuracy(samples: list[BacktestSample]) -> dict[str, Any]
         if s.ensemble_correct:
             d["correct"] += 1
 
+    by_horizon: dict[int, dict[str, int]] = {}
+    for s in directional:
+        d = by_horizon.setdefault(s.horizon_days, {"total": 0, "correct": 0})
+        d["total"] += 1
+        if s.ensemble_correct:
+            d["correct"] += 1
+
+    by_regime: dict[str, dict[str, int]] = {}
+    for s in directional:
+        d = by_regime.setdefault(s.regime, {"total": 0, "correct": 0})
+        d["total"] += 1
+        if s.ensemble_correct:
+            d["correct"] += 1
+
     buckets = [(0.50, 0.60), (0.60, 0.70), (0.70, 0.80), (0.80, 0.90), (0.90, 1.01)]
     calibration = []
     for lo, hi in buckets:
@@ -235,10 +279,8 @@ def aggregate_ensemble_accuracy(samples: list[BacktestSample]) -> dict[str, Any]
         n = len(bucket)
         c = sum(1 for s in bucket if s.ensemble_correct)
         calibration.append({
-            "confidence_lo": lo,
-            "confidence_hi": hi,
-            "n": n,
-            "correct": c,
+            "confidence_lo": lo, "confidence_hi": hi,
+            "n": n, "correct": c,
             "accuracy": round(c / n, 4) if n > 0 else None,
         })
 
@@ -249,32 +291,41 @@ def aggregate_ensemble_accuracy(samples: list[BacktestSample]) -> dict[str, Any]
         "accuracy": round(correct / len(directional), 4) if directional else None,
         "neutral_rate": round(neutral_count / total_samples, 4),
         "by_direction": {
-            d: {"total": v["total"], "correct": v["correct"], "accuracy": round(v["correct"] / v["total"], 4)}
+            d: {"total": v["total"], "correct": v["correct"],
+                "accuracy": round(v["correct"] / v["total"], 4)}
             for d, v in by_dir.items()
+        },
+        "by_horizon": {
+            h: {"total": v["total"], "correct": v["correct"],
+                "accuracy": round(v["correct"] / v["total"], 4)}
+            for h, v in sorted(by_horizon.items())
+        },
+        "by_regime": {
+            r: {"total": v["total"], "correct": v["correct"],
+                "accuracy": round(v["correct"] / v["total"], 4)}
+            for r, v in by_regime.items()
         },
         "calibration": calibration,
     }
 
 
-def update_weights(
-    current_weights: dict[str, float],
-    pattern_stats: dict[str, dict],
+# ---------------------- Weight updates ----------------------
+
+
+def update_weights_per_horizon(
+    current: dict[str, dict[int, float]],
+    pattern_stats: dict[str, dict[int, dict]],
     learning_rate: float = 0.5,
     floor: float = 0.3,
     ceiling: float = 2.0,
-) -> dict[str, float]:
-    """Re-weight patterns based on shrunk accuracy.
-
-    A pattern with shrunk_accuracy = 0.6 gets weight 1.2 (assuming base 1.0).
-    A pattern with 0.4 gets weight 0.8. Below `floor` gets floor; above `ceiling`
-    gets ceiling. `learning_rate` blends new and old weights for smoothing.
-    """
-    new_weights = dict(current_weights)
-    for name, stats in pattern_stats.items():
-        # signal = (accuracy - 0.5) * 2 maps 0.5 -> 0, 1.0 -> 1, 0.0 -> -1
-        # weight = base * 2^signal so accuracy 0.6 -> 1.15x, 0.7 -> 1.32x
-        target = 2 ** ((stats["shrunk_accuracy"] - 0.5) * 2)
-        target = max(floor, min(ceiling, target))
-        current = current_weights.get(name, 1.0)
-        new_weights[name] = (1 - learning_rate) * current + learning_rate * target
-    return new_weights
+) -> dict[str, dict[int, float]]:
+    """Re-weight each (pattern, horizon) toward 2^((shrunk_acc - 0.5) * 2)."""
+    new: dict[str, dict[int, float]] = {p: dict(hw) for p, hw in current.items()}
+    for pattern, hd in pattern_stats.items():
+        new.setdefault(pattern, {})
+        for horizon, stats in hd.items():
+            target = 2 ** ((stats["shrunk_accuracy"] - 0.5) * 2)
+            target = max(floor, min(ceiling, target))
+            cur = current.get(pattern, {}).get(horizon, 1.0)
+            new[pattern][horizon] = (1 - learning_rate) * cur + learning_rate * target
+    return new

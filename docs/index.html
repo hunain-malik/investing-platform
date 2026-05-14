@@ -12,9 +12,11 @@
   <nav>
     <a href="#scoreboard">Scoreboard</a>
     <a href="#signals">Live Signals</a>
+    <a href="#methodologies">Methodologies</a>
     <a href="#backtest">Backtest</a>
     <a href="#patterns">Patterns</a>
     <a href="#predictions">Predictions</a>
+    <a href="#approach">How it works</a>
   </nav>
   <div class="updated" id="updated-at">—</div>
 </header>
@@ -22,7 +24,7 @@
 <main>
   <section id="scoreboard" class="section">
     <h2>Scoreboard <span class="muted" id="scoreboard-context"></span></h2>
-    <p class="muted small">Accuracy on <em>resolved</em> predictions only. Backtest accuracy lives in its own section below.</p>
+    <p class="muted small">Accuracy on <em>resolved live predictions</em>. Backtest accuracy lives in its own section below.</p>
     <div class="tiles">
       <div class="tile big">
         <div class="label">Overall accuracy</div>
@@ -60,18 +62,49 @@
   <section id="signals" class="section">
     <h2>Live signals <span class="muted small">— act in your own brokerage</span></h2>
     <p class="muted small">
-      Generated against today's close. Confidence is calibrated 0.5 (no info) → 1.0 (very confident).
-      Sizing assumes the capital and risk profile in <code>config.yaml</code>. Options are heuristic
-      recommendations — verify strikes and premiums in your broker before trading.
+      Generated against today's close. One row per (ticker, horizon). Confidence is calibrated
+      0.5 (no info) → 1.0 (very confident). Sizing assumes the capital and risk profile in
+      <code>config.yaml</code>. Options are heuristic recommendations — verify in your broker.
+      Use the filter to hide neutral / hide low-confidence signals.
     </p>
+    <div class="signals-controls">
+      <label><input type="checkbox" id="hide-neutral" checked /> Hide neutral</label>
+      <label><input type="checkbox" id="hide-low-conf" /> Hide confidence &lt; 0.65</label>
+    </div>
     <div class="table-wrap">
       <table id="signals-table">
         <thead>
           <tr>
-            <th>Ticker</th><th>Direction</th><th>Confidence</th>
+            <th>Ticker</th><th>Horizon</th><th>Direction</th><th>Confidence</th>
             <th>Price</th><th>Patterns</th>
-            <th>Position (shares)</th><th>Stop</th><th>Risk $</th>
+            <th>Sentiment</th>
+            <th>Shares</th><th>Stop</th><th>Risk $</th>
             <th>Options</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="methodologies" class="section">
+    <h2>Methodologies <span class="muted small">— different ways to combine the same patterns</span></h2>
+    <p class="muted small">
+      Each methodology is a different rule for combining patterns into a prediction. They're all
+      evaluated against the same set of backtest samples, so any difference in accuracy is a
+      difference in approach, not data. The "best" methodology is the one we should weight most
+      when combining signals in production.
+    </p>
+    <div class="table-wrap">
+      <table id="methodologies-table">
+        <thead>
+          <tr>
+            <th>Methodology</th>
+            <th>Signals emitted</th>
+            <th>Correct</th>
+            <th>Accuracy</th>
+            <th>Signal rate</th>
+            <th>By horizon</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -82,15 +115,15 @@
   <section id="backtest" class="section">
     <h2>Backtest accuracy <span class="muted small">— random historical samples</span></h2>
     <p class="muted small">
-      The engine picks random (ticker, past-date) samples, runs the same pipeline using ONLY data
-      available on that date, then compares to the actual N-day forward move. This is how we
-      validate signal quality without waiting weeks. Headline accuracy is <em>directional</em> —
-      it counts only samples where the ensemble made an up/down call. Neutral cases are reported
-      separately since they're not actionable.
+      The engine picks random (ticker, past-date) samples, runs the same pipeline using ONLY
+      data available on that date, then compares to the actual N-day forward move. This is how
+      we validate signal quality without waiting weeks. Headline accuracy is <em>directional</em>:
+      it counts only samples where the ensemble made an up/down call. Neutrals are reported as
+      neutral rate.
     </p>
     <div class="tiles">
       <div class="tile big">
-        <div class="label">Backtest ensemble accuracy</div>
+        <div class="label">Ensemble accuracy</div>
         <div class="value" id="bt-accuracy">—</div>
         <div class="sub" id="bt-counts">—</div>
       </div>
@@ -103,6 +136,24 @@
         <div class="value" id="bt-bearish">—</div>
       </div>
     </div>
+
+    <h3>By horizon</h3>
+    <div class="table-wrap">
+      <table id="horizon-table">
+        <thead><tr><th>Horizon</th><th>Signals</th><th>Correct</th><th>Accuracy</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3>By market regime</h3>
+    <p class="muted small">Regime is computed from SPY's position vs its 200-day SMA at the cutoff date. Patterns may have very different edge in bull vs choppy markets.</p>
+    <div class="table-wrap">
+      <table id="regime-table">
+        <thead><tr><th>Regime</th><th>Signals</th><th>Correct</th><th>Accuracy</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
     <h3>Calibration by confidence bucket</h3>
     <p class="muted small">Higher confidence ought to map to higher accuracy. If it doesn't, the confidence score is miscalibrated.</p>
     <div class="table-wrap">
@@ -116,8 +167,9 @@
   <section id="patterns" class="section">
     <h2>Pattern performance</h2>
     <p class="muted small">
-      How each individual pattern performed in the backtest. The ensemble re-weights toward patterns
-      with higher shrunk accuracy (Bayesian-adjusted to avoid trusting small samples).
+      How each individual pattern performed in the backtest, aggregated across all horizons.
+      The ensemble re-weights toward patterns with higher shrunk accuracy (Bayesian-adjusted to
+      avoid trusting small samples).
     </p>
     <div class="table-wrap">
       <table id="patterns-table">
@@ -126,7 +178,7 @@
             <th>Pattern</th><th>Fires</th><th>Correct</th>
             <th>Raw accuracy</th><th>Shrunk accuracy</th>
             <th>Bullish votes</th><th>Bearish votes</th>
-            <th>Current weight</th>
+            <th>Avg weight (5d / 10d / 20d)</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -147,6 +199,54 @@
         </thead>
         <tbody></tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="approach" class="section">
+    <h2>How it works <span class="muted small">— what historical windows we use</span></h2>
+    <p>
+      The system is <em>not</em> looking at a single day of data when it makes a prediction. Every
+      pattern detector uses a different historical window, and the ensemble combines them so the
+      final call is informed by short, medium, and long term context simultaneously.
+    </p>
+    <div class="approach-grid">
+      <div class="approach-card">
+        <h3>Short-term context (5–14 days)</h3>
+        <ul>
+          <li>RSI(14) — momentum over last 2 trading weeks</li>
+          <li>5-day SMA for multi-timeframe alignment</li>
+          <li>Candlestick patterns: engulfing, hammer, shooting star (1–5 day windows)</li>
+          <li>ATR(14) for stop-loss distance</li>
+        </ul>
+      </div>
+      <div class="approach-card">
+        <h3>Medium-term context (20–50 days)</h3>
+        <ul>
+          <li>20-day SMA, 20-day Bollinger Bands (squeeze detection over 60-day window)</li>
+          <li>MACD(12/26/9) — exponential 12 and 26 day EMAs</li>
+          <li>50-day SMA — primary swing trend</li>
+          <li>Volume z-score over 20 bars</li>
+          <li>Doji at support/resistance (30-bar look-back for S/R)</li>
+        </ul>
+      </div>
+      <div class="approach-card">
+        <h3>Long-term context (200+ days)</h3>
+        <ul>
+          <li>200-day SMA — long-term trend</li>
+          <li>Golden cross / death cross (50d vs 200d crossover)</li>
+          <li>Multi-timeframe alignment: price &gt; 5/20/50/200 SMA stack</li>
+          <li>Market regime: SPY vs its own 200-day SMA + 60-bar slope</li>
+        </ul>
+      </div>
+      <div class="approach-card">
+        <h3>Cross-cutting</h3>
+        <ul>
+          <li>Per-horizon weight tuning: each pattern's weight is tuned separately for 5d, 10d, 20d predictions</li>
+          <li>Market regime tagging: each backtest sample is tagged with bull/bear/choppy regime so we can see edge by regime</li>
+          <li>News sentiment (live only): VADER on recent headlines via Yahoo Finance</li>
+          <li>Backtest cutoff date sees only data up to that date — strict no-look-ahead</li>
+        </ul>
+      </div>
     </div>
   </section>
 

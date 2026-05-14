@@ -1,11 +1,12 @@
 // Dashboard renderer. Fetches JSON files written by analysis/run.py
-// (and committed to docs/data/ by the GitHub Actions workflow) and paints
-// the page. No build step, no framework — vanilla DOM.
+// (committed to docs/data/ by the GitHub Actions workflow) and paints
+// the page. No build step, no framework.
 
 const FILES = {
   scoreboard: "data/scoreboard.json",
   signals: "data/signals.json",
   backtest: "data/backtest.json",
+  methodologies: "data/methodologies.json",
   predictions: "data/predictions.json",
   weights: "data/weights.json",
 };
@@ -26,25 +27,21 @@ async function loadJson(path) {
   }
 }
 
-function setText(id, txt) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = txt;
-}
+const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
 
 function confidenceCell(conf) {
   const pct = Math.max(0, Math.min(1, (conf - 0.5) / 0.5));
-  return `
-    <span class="confidence-bar"><span class="fill" style="width:${pct * 100}%"></span></span>
-    ${conf.toFixed(3)}
-  `;
+  return `<span class="confidence-bar"><span class="fill" style="width:${pct * 100}%"></span></span>${conf.toFixed(3)}`;
 }
 
-function tag(text, klass) { return `<span class="tag ${klass}">${text}</span>`; }
+const tag = (text, klass) => `<span class="tag ${klass}">${text}</span>`;
+const dirTag = (d) => d === "up" ? tag("UP", "up") : d === "down" ? tag("DOWN", "down") : tag("—", "neutral");
 
-function dirTag(direction) {
-  if (direction === "up") return tag("UP", "up");
-  if (direction === "down") return tag("DOWN", "down");
-  return tag("—", "neutral");
+function sentimentCell(sentiment) {
+  if (!sentiment) return `<span class="muted">no headlines</span>`;
+  const label = sentiment.label;
+  const klass = label === "bullish" ? "up" : label === "bearish" ? "down" : "neutral";
+  return `${tag(label, klass)}<br><span class="muted small">${sentiment.score.toFixed(2)} · ${sentiment.headline_count} headlines</span>`;
 }
 
 function renderScoreboard(sb) {
@@ -66,24 +63,27 @@ function renderScoreboard(sb) {
   setText("bearish-correct", fmtNum(r.correct ?? 0));
   setText("bearish-wrong", fmtNum((r.n ?? 0) - (r.correct ?? 0)));
 
-  if ((sb.total_resolved ?? 0) === 0) {
-    setText("scoreboard-context", "— no resolved predictions yet, check back as horizons elapse");
-  } else {
-    setText("scoreboard-context", "");
-  }
+  setText("scoreboard-context",
+    (sb.total_resolved ?? 0) === 0
+      ? "— no resolved predictions yet, check back as horizons elapse"
+      : "");
 }
 
-function renderSignals(payload) {
+let _signalsState = { all: [], hideNeutral: true, hideLow: false };
+
+function renderSignalsTable() {
   const tbody = document.querySelector("#signals-table tbody");
   tbody.innerHTML = "";
-  const sigs = (payload?.signals || []).slice().sort((a, b) => b.confidence - a.confidence);
-  if (sigs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" class="muted">No signals yet — first run hasn't completed or watchlist is empty.</td></tr>`;
+  let rows = _signalsState.all.slice().sort((a, b) => b.confidence - a.confidence);
+  if (_signalsState.hideNeutral) rows = rows.filter(s => s.direction !== "neutral");
+  if (_signalsState.hideLow) rows = rows.filter(s => s.confidence >= 0.65);
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="11" class="muted">No signals matching filters.</td></tr>`;
     return;
   }
-  for (const s of sigs) {
+  for (const s of rows) {
     const patterns = (s.fired_patterns || []).map(p =>
-      `<span class="pattern-chip" title="${p.note || ''}">${p.name} (${p.direction[0].toUpperCase()})</span>`
+      `<span class="pattern-chip" title="${(p.note || '').replace(/"/g, '&quot;')}">${p.name} (${p.direction[0].toUpperCase()})</span>`
     ).join("");
     const sizing = s.sizing;
     const opts = s.options;
@@ -94,14 +94,59 @@ function renderSignals(payload) {
     tbody.insertAdjacentHTML("beforeend", `
       <tr class="${rowClass}">
         <td><strong>${s.ticker}</strong><br><span class="muted small">${s.as_of}</span></td>
+        <td>${s.horizon_days}d</td>
         <td>${dirTag(s.direction)}</td>
         <td>${confidenceCell(s.confidence)}</td>
         <td>${fmtUsd(s.price)}</td>
         <td><div class="patterns-list">${patterns || '<span class="muted">none fired</span>'}</div></td>
+        <td>${sentimentCell(s.sentiment)}</td>
         <td>${sizing ? fmtNum(sizing.shares) : "—"}</td>
         <td>${sizing ? fmtUsd(sizing.stop) : "—"}</td>
         <td>${sizing ? fmtUsd(sizing.risk_usd) : "—"}</td>
         <td>${optsText}</td>
+      </tr>
+    `);
+  }
+}
+
+function renderSignals(payload) {
+  _signalsState.all = payload?.signals || [];
+  document.getElementById("hide-neutral").addEventListener("change", e => {
+    _signalsState.hideNeutral = e.target.checked;
+    renderSignalsTable();
+  });
+  document.getElementById("hide-low-conf").addEventListener("change", e => {
+    _signalsState.hideLow = e.target.checked;
+    renderSignalsTable();
+  });
+  renderSignalsTable();
+}
+
+function renderMethodologies(payload) {
+  const tbody = document.querySelector("#methodologies-table tbody");
+  tbody.innerHTML = "";
+  const m = payload?.methodologies || {};
+  const defs = (payload?.definitions || []).reduce((acc, d) => { acc[d.name] = d; return acc; }, {});
+  const rows = Object.entries(m).sort((a, b) =>
+    (b[1].accuracy ?? -1) - (a[1].accuracy ?? -1)
+  );
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="muted">No methodology data yet.</td></tr>`;
+    return;
+  }
+  for (const [name, stats] of rows) {
+    const def = defs[name] || {};
+    const byH = Object.entries(stats.by_horizon || {})
+      .map(([h, v]) => `<span class="muted">${h}d:</span> ${fmtPct(v.accuracy)} <span class="muted">(${v.signals})</span>`)
+      .join(" · ");
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td><strong>${name}</strong><br><span class="muted small">${def.description || stats.description || ""}</span></td>
+        <td>${fmtNum(stats.signals_emitted ?? 0)}</td>
+        <td>${fmtNum(stats.correct ?? 0)}</td>
+        <td><strong>${fmtPct(stats.accuracy)}</strong></td>
+        <td>${fmtPct(stats.signal_rate)}</td>
+        <td><span class="small">${byH || "—"}</span></td>
       </tr>
     `);
   }
@@ -119,6 +164,37 @@ function renderBacktest(bt) {
   setText("bt-bullish", fmtPct(ens.by_direction?.up?.accuracy));
   setText("bt-bearish", fmtPct(ens.by_direction?.down?.accuracy));
 
+  // by horizon
+  const hBody = document.querySelector("#horizon-table tbody");
+  hBody.innerHTML = "";
+  for (const [h, v] of Object.entries(ens.by_horizon || {})) {
+    hBody.insertAdjacentHTML("beforeend", `
+      <tr><td>${h}d</td><td>${v.total}</td><td>${v.correct}</td><td>${fmtPct(v.accuracy)}</td></tr>
+    `);
+  }
+  if (Object.keys(ens.by_horizon || {}).length === 0) {
+    hBody.innerHTML = `<tr><td colspan="4" class="muted">No data yet.</td></tr>`;
+  }
+
+  // by regime
+  const rBody = document.querySelector("#regime-table tbody");
+  rBody.innerHTML = "";
+  const regimeOrder = ["bull", "bear", "choppy", "unknown"];
+  const regimes = ens.by_regime || {};
+  const orderedRegimes = regimeOrder.filter(r => r in regimes).concat(
+    Object.keys(regimes).filter(r => !regimeOrder.includes(r))
+  );
+  for (const r of orderedRegimes) {
+    const v = regimes[r];
+    rBody.insertAdjacentHTML("beforeend", `
+      <tr><td><span class="tag ${r === 'bull' ? 'up' : r === 'bear' ? 'down' : 'neutral'}">${r}</span></td><td>${v.total}</td><td>${v.correct}</td><td>${fmtPct(v.accuracy)}</td></tr>
+    `);
+  }
+  if (orderedRegimes.length === 0) {
+    rBody.innerHTML = `<tr><td colspan="4" class="muted">No data yet.</td></tr>`;
+  }
+
+  // calibration
   const calBody = document.querySelector("#calibration-table tbody");
   calBody.innerHTML = "";
   for (const row of ens.calibration || []) {
@@ -134,20 +210,24 @@ function renderBacktest(bt) {
 }
 
 function renderPatterns(bt, weights) {
-  const patterns = bt?.patterns || {};
+  const patterns = bt?.patterns_flat || {};
   const w = weights?.weights || {};
   const tbody = document.querySelector("#patterns-table tbody");
   tbody.innerHTML = "";
 
-  // union of patterns we know about (from backtest, from weights)
   const names = new Set([...Object.keys(patterns), ...Object.keys(w)]);
-  const rows = Array.from(names).map(n => ({
-    name: n, stats: patterns[n] || {}, weight: w[n]
-  }));
+  const rows = Array.from(names).map(n => {
+    const wRaw = w[n] || {};
+    return { name: n, stats: patterns[n] || {}, weights_h: wRaw };
+  });
   rows.sort((a, b) => (b.stats.fires || 0) - (a.stats.fires || 0));
 
   for (const r of rows) {
     const s = r.stats;
+    const horizons = Object.keys(r.weights_h).sort((a, b) => parseInt(a) - parseInt(b));
+    const wText = horizons.length
+      ? horizons.map(h => `${h}d: ${Number(r.weights_h[h]).toFixed(2)}`).join(" / ")
+      : "—";
     tbody.insertAdjacentHTML("beforeend", `
       <tr>
         <td><code>${r.name}</code></td>
@@ -157,7 +237,7 @@ function renderPatterns(bt, weights) {
         <td>${fmtPct(s.shrunk_accuracy)}</td>
         <td><span class="green">${fmtNum(s.by_up ?? 0)}</span></td>
         <td><span class="red">${fmtNum(s.by_down ?? 0)}</span></td>
-        <td>${r.weight != null ? r.weight.toFixed(3) : "—"}</td>
+        <td><span class="small">${wText}</span></td>
       </tr>
     `);
   }
@@ -175,9 +255,7 @@ function renderPredictions(payload) {
   }
   for (const p of preds) {
     const isResolved = p.status === "resolved";
-    const rowClass = !isResolved
-      ? "row-open"
-      : p.correct ? "row-correct" : "row-wrong";
+    const rowClass = !isResolved ? "row-open" : p.correct ? "row-correct" : "row-wrong";
     const result = !isResolved
       ? tag("OPEN", "open")
       : p.correct ? tag("CORRECT", "correct") : tag("WRONG", "wrong");
@@ -197,15 +275,17 @@ function renderPredictions(payload) {
 }
 
 async function main() {
-  const [sb, signals, bt, preds, weights] = await Promise.all([
+  const [sb, signals, bt, methodologies, preds, weights] = await Promise.all([
     loadJson(FILES.scoreboard),
     loadJson(FILES.signals),
     loadJson(FILES.backtest),
+    loadJson(FILES.methodologies),
     loadJson(FILES.predictions),
     loadJson(FILES.weights),
   ]);
   renderScoreboard(sb);
   renderSignals(signals);
+  renderMethodologies(methodologies);
   renderBacktest(bt);
   renderPatterns(bt, weights);
   renderPredictions(preds);

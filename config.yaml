@@ -72,7 +72,7 @@ horizons_days: [5, 10, 20]
 
 # Backtesting configuration
 backtest:
-  samples_per_run: 500          # random (ticker, date) samples per analysis run
+  samples_per_run: 1000         # random (ticker, date) samples per analysis run
   history_years: 6              # how far back to sample from
   min_data_days: 252            # require at least 1 year of data before a cutoff
   threshold_up_pct: 1.0         # forward return >= this % counts as "up"
@@ -86,7 +86,8 @@ signals:
                                  # calls are below 50% accuracy — raise threshold
                                  # as weight tuning concentrates edge in higher buckets)
 
-# Initial pattern weights (overwritten by backtest results once enough data accumulates)
+# Initial pattern weights (broadcast across all horizons on first run; tuned
+# per-horizon afterward based on backtest accuracy)
 pattern_weights:
   sma_crossover_bull: 1.0
   sma_crossover_bear: 1.0
@@ -104,3 +105,5 @@ pattern_weights:
   shooting_star: 1.0
   doji_at_support: 1.0
   doji_at_resistance: 1.0
+  multi_timeframe_bull: 1.0
+  multi_timeframe_bear: 1.0
