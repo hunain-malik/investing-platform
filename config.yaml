@@ -15,15 +15,15 @@ portfolio:
   options_allowed: true     # whether to consider options recommendations
 
 # Forward-looking prediction horizons (trading days).
-# 5d/10d/20d are short-term swing; 60d/120d are quarter/half-year;
-# 252d is a 1-year view. Each horizon has its own per-pattern weights tuned
-# independently from backtest accuracy at THAT horizon.
-horizons_days: [5, 10, 20, 60, 120, 252]
+# 5d/10d/20d short-term, 60d/120d/252d quarter/half/full-year,
+# 504d=2y, 1260d=5y for long-term position trades. Each horizon has its
+# own per-pattern weights tuned independently from backtest accuracy.
+horizons_days: [5, 10, 20, 60, 120, 252, 504, 1260]
 
 # Backtesting configuration
 backtest:
-  samples_per_run: 3000         # bumped from 1500 to tighten per-horizon confidence intervals
-  history_years: 10             # how far back to sample from (longer to give 252d horizon room)
+  samples_per_run: 3000         # tighter per-horizon confidence intervals
+  history_years: 15             # bumped from 10 to give 5y (1260d) horizon room
   min_data_days: 252            # require at least 1 year of data before a cutoff
   threshold_up_pct: 1.0         # forward return >= this % counts as "up"
   threshold_down_pct: -1.0      # forward return <= this % counts as "down"

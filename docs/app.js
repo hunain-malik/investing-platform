@@ -68,6 +68,27 @@ function sizePosition(direction, entry, atr, confidence, capital, riskPct, maxPo
   };
 }
 
+// Portfolio-mode sizing: allocate up to `slotCapital` per position. ATR-based
+// stop still applies. Returns null only if even 1 share doesn't fit the slot.
+function sizePortfolioSlot(direction, entry, atr, slotCapital) {
+  const ATR_MULT = 2.0;
+  if (direction !== "up" && direction !== "down") return null;
+  if (entry <= 0) return null;
+  const maxShares = Math.floor(slotCapital / entry);
+  if (maxShares <= 0) return null;
+  const stopDistance = atr > 0 ? atr * ATR_MULT : entry * 0.05; // 5% fallback if ATR missing
+  const stop = direction === "up" ? entry - stopDistance : entry + stopDistance;
+  const posUsd = maxShares * entry;
+  const riskUsd = maxShares * stopDistance;
+  return {
+    direction, entry, stop,
+    shares: maxShares,
+    posUsd, riskUsd,
+    confFactor: 1.0,
+    pctOfCapital: posUsd / slotCapital,
+  };
+}
+
 // Mirror of analysis/options.py heuristic
 function recommendOptions(direction, confidence, spot, atr, horizon, allowed) {
   if (!allowed || (direction !== "up" && direction !== "down")) return null;
@@ -169,21 +190,39 @@ function renderAgent() {
     return;
   }
 
-  // Portfolio mode: pick top-N, split capital evenly
+  // Portfolio mode: pick top-N affordable, allocate slot capital each.
   if (cfg.mode === "portfolio") {
-    const n = Math.min(cfg.portfolioN, ranked.length);
-    const perPositionCapital = cfg.capital / n;
-    // recompute sizing per-position with the smaller per-slot capital
-    const portfolio = ranked.slice(0, n).map(s => {
-      const sizing = sizePosition(s.direction, s.price, s.atr, s.confidence, perPositionCapital, cfg.riskPct, 100); // allow up to 100% of slot
+    const targetN = cfg.portfolioN;
+    const perSlot = cfg.capital / targetN;
+
+    // Pre-filter to affordable stocks (at least 1 share fits per slot)
+    const affordable = ranked.filter(s => s.price <= perSlot * 0.98);
+
+    if (affordable.length === 0) {
+      const cheapestPrice = ranked.length > 0 ? Math.min(...ranked.map(r => r.price)) : 0;
+      const minCapitalNeeded = cheapestPrice * targetN;
+      setText("agent-summary",
+        `Portfolio mode: no stocks priced cheap enough to fit ${targetN} positions of ~${fmtUsd(perSlot)} each. The cheapest qualifying recommendation is ${fmtUsd(cheapestPrice)}/share, which would need ${fmtUsd(minCapitalNeeded)} of total capital for ${targetN} positions. Try fewer positions or more capital.`);
+      return;
+    }
+
+    // If fewer affordable than requested, reduce N to fit
+    const actualN = Math.min(targetN, affordable.length);
+    const actualSlot = cfg.capital / actualN;
+    const picks = affordable.slice(0, actualN).map(s => {
+      const sizing = sizePortfolioSlot(s.direction, s.price, s.atr, actualSlot);
       const opts = recommendOptions(s.direction, s.confidence, s.price, s.atr, s.horizon_days, cfg.optionsAllowed);
       return { ...s, _sizing: sizing, _options: opts };
     }).filter(s => s._sizing !== null);
-    const totalPosUsd = portfolio.reduce((a, s) => a + s._sizing.posUsd, 0);
-    const totalRiskUsd = portfolio.reduce((a, s) => a + s._sizing.riskUsd, 0);
+
+    const totalPosUsd = picks.reduce((a, s) => a + s._sizing.posUsd, 0);
+    const totalRiskUsd = picks.reduce((a, s) => a + s._sizing.riskUsd, 0);
+    const adjustedNote = actualN < targetN
+      ? ` (reduced from ${targetN} because not enough affordable stocks fit at ${fmtUsd(cfg.capital / targetN)}/slot)`
+      : "";
     setText("agent-summary",
-      `Portfolio mode: ${portfolio.length} positions, ~$${perPositionCapital.toFixed(0)} each. Total deployed ${fmtUsd(totalPosUsd)} (${(totalPosUsd/cfg.capital*100).toFixed(0)}% of capital), total at-risk ${fmtUsd(totalRiskUsd)} (${(totalRiskUsd/cfg.capital*100).toFixed(1)}% of capital). Diversifies across the top-${cfg.portfolioN} highest-confidence picks.`);
-    for (const s of portfolio) container.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg));
+      `Portfolio mode: ${picks.length} positions${adjustedNote}, ~${fmtUsd(actualSlot)} each. Total deployed ${fmtUsd(totalPosUsd)} (${(totalPosUsd/cfg.capital*100).toFixed(0)}% of capital), at-risk ${fmtUsd(totalRiskUsd)} (${(totalRiskUsd/cfg.capital*100).toFixed(1)}%). Sized to allocate slot capital (ignores per-trade risk cap so you actually get diversified positions).`);
+    for (const s of picks) container.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg));
     return;
   }
 
