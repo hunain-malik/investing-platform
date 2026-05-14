@@ -1,91 +1,106 @@
 {
-  "updated_at": "2026-05-14T19:04:12Z",
-  "n_samples": 1000,
+  "updated_at": "2026-05-14T19:40:39Z",
+  "n_samples": 1500,
   "ensemble": {
-    "total_samples": 1000,
-    "directional_total": 664,
-    "directional_correct": 282,
-    "accuracy": 0.4247,
-    "neutral_rate": 0.336,
+    "total_samples": 1500,
+    "directional_total": 982,
+    "directional_correct": 460,
+    "accuracy": 0.4684,
+    "neutral_rate": 0.3453,
     "by_direction": {
-      "up": {
-        "total": 434,
-        "correct": 203,
-        "accuracy": 0.4677
-      },
       "down": {
-        "total": 230,
-        "correct": 79,
-        "accuracy": 0.3435
+        "total": 303,
+        "correct": 105,
+        "accuracy": 0.3465
+      },
+      "up": {
+        "total": 679,
+        "correct": 355,
+        "accuracy": 0.5228
       }
     },
     "by_horizon": {
       "5": {
-        "total": 226,
-        "correct": 92,
-        "accuracy": 0.4071
+        "total": 152,
+        "correct": 46,
+        "accuracy": 0.3026
       },
       "10": {
-        "total": 220,
-        "correct": 94,
-        "accuracy": 0.4273
+        "total": 158,
+        "correct": 67,
+        "accuracy": 0.4241
       },
       "20": {
-        "total": 218,
-        "correct": 96,
-        "accuracy": 0.4404
+        "total": 176,
+        "correct": 89,
+        "accuracy": 0.5057
+      },
+      "60": {
+        "total": 170,
+        "correct": 89,
+        "accuracy": 0.5235
+      },
+      "120": {
+        "total": 158,
+        "correct": 82,
+        "accuracy": 0.519
+      },
+      "252": {
+        "total": 168,
+        "correct": 87,
+        "accuracy": 0.5179
       }
     },
     "by_regime": {
-      "bull": {
-        "total": 535,
-        "correct": 232,
-        "accuracy": 0.4336
-      },
       "choppy": {
-        "total": 89,
-        "correct": 31,
-        "accuracy": 0.3483
+        "total": 164,
+        "correct": 67,
+        "accuracy": 0.4085
+      },
+      "bull": {
+        "total": 738,
+        "correct": 360,
+        "accuracy": 0.4878
       },
       "bear": {
-        "total": 39,
-        "correct": 19,
-        "accuracy": 0.4872
+        "total": 78,
+        "correct": 31,
+        "accuracy": 0.3974
       },
       "unknown": {
-        "total": 1,
-        "correct": 0,
-        "accuracy": 0.0
+        "total": 2,
+        "correct": 2,
+        "accuracy": 1.0
       }
     },
     "calibration": [
       {
         "confidence_lo": 0.5,
         "confidence_hi": 0.6,
-        "n": 169,
-        "correct": 60,
-        "accuracy": 0.355
+        "n": 259,
+        "correct": 134,
+        "accuracy": 0.5174
       },
       {
         "confidence_lo": 0.6,
         "confidence_hi": 0.7,
-        "n": 449,
-        "correct": 204,
-        "accuracy": 0.4543
+        "n": 649,
+        "correct": 299,
+        "accuracy": 0.4607
       },
       {
         "confidence_lo": 0.7,
         "confidence_hi": 0.8,
-        "n": 45,
-        "correct": 17,
-        "accuracy": 0.3778
+        "n": 72,
+        "correct": 27,
+        "accuracy": 0.375
       },
       {
         "confidence_lo": 0.8,
         "confidence_hi": 0.9,
-        "n": 1,
-        "correct": 1,
-        "accuracy": 1.0
+        "n": 2,
+        "correct": 0,
+        "accuracy": 0.0
       },
       {
         "confidence_lo": 0.9,
@@ -97,109 +112,101 @@
     ]
   },
   "patterns_flat": {
+    "shooting_star": {
+      "fires": 12,
+      "correct": 4,
+      "raw_accuracy": 0.3333,
+      "shrunk_accuracy": 0.4091,
+      "by_up": 0,
+      "by_down": 12
+    },
     "multi_timeframe_bull": {
-      "fires": 394,
-      "correct": 186,
-      "raw_accuracy": 0.4721,
-      "shrunk_accuracy": 0.4728,
-      "by_up": 394,
+      "fires": 611,
+      "correct": 315,
+      "raw_accuracy": 0.5155,
+      "shrunk_accuracy": 0.5153,
+      "by_up": 611,
       "by_down": 0
-    },
-    "macd_cross_bear": {
-      "fires": 42,
-      "correct": 15,
-      "raw_accuracy": 0.3571,
-      "shrunk_accuracy": 0.3846,
-      "by_up": 0,
-      "by_down": 42
-    },
-    "rsi_overbought": {
-      "fires": 50,
-      "correct": 16,
-      "raw_accuracy": 0.32,
-      "shrunk_accuracy": 0.35,
-      "by_up": 0,
-      "by_down": 50
     },
     "multi_timeframe_bear": {
-      "fires": 149,
-      "correct": 56,
-      "raw_accuracy": 0.3758,
-      "shrunk_accuracy": 0.3836,
+      "fires": 213,
+      "correct": 68,
+      "raw_accuracy": 0.3192,
+      "shrunk_accuracy": 0.3274,
       "by_up": 0,
-      "by_down": 149
+      "by_down": 213
+    },
+    "macd_cross_bear": {
+      "fires": 54,
+      "correct": 18,
+      "raw_accuracy": 0.3333,
+      "shrunk_accuracy": 0.3594,
+      "by_up": 0,
+      "by_down": 54
     },
     "macd_cross_bull": {
-      "fires": 42,
-      "correct": 20,
-      "raw_accuracy": 0.4762,
-      "shrunk_accuracy": 0.4808,
-      "by_up": 42,
+      "fires": 67,
+      "correct": 27,
+      "raw_accuracy": 0.403,
+      "shrunk_accuracy": 0.4156,
+      "by_up": 67,
       "by_down": 0
-    },
-    "bearish_engulfing": {
-      "fires": 15,
-      "correct": 3,
-      "raw_accuracy": 0.2,
-      "shrunk_accuracy": 0.32,
-      "by_up": 0,
-      "by_down": 15
-    },
-    "bullish_engulfing": {
-      "fires": 16,
-      "correct": 9,
-      "raw_accuracy": 0.5625,
-      "shrunk_accuracy": 0.5385,
-      "by_up": 16,
-      "by_down": 0
-    },
-    "sma_crossover_bull": {
-      "fires": 13,
-      "correct": 6,
-      "raw_accuracy": 0.4615,
-      "shrunk_accuracy": 0.4783,
-      "by_up": 13,
-      "by_down": 0
-    },
-    "doji_at_resistance": {
-      "fires": 38,
-      "correct": 10,
-      "raw_accuracy": 0.2632,
-      "shrunk_accuracy": 0.3125,
-      "by_up": 0,
-      "by_down": 38
     },
     "rsi_oversold": {
-      "fires": 30,
-      "correct": 10,
-      "raw_accuracy": 0.3333,
-      "shrunk_accuracy": 0.375,
-      "by_up": 30,
+      "fires": 33,
+      "correct": 13,
+      "raw_accuracy": 0.3939,
+      "shrunk_accuracy": 0.4186,
+      "by_up": 33,
       "by_down": 0
+    },
+    "rsi_overbought": {
+      "fires": 87,
+      "correct": 32,
+      "raw_accuracy": 0.3678,
+      "shrunk_accuracy": 0.3814,
+      "by_up": 0,
+      "by_down": 87
+    },
+    "doji_at_resistance": {
+      "fires": 64,
+      "correct": 21,
+      "raw_accuracy": 0.3281,
+      "shrunk_accuracy": 0.3514,
+      "by_up": 0,
+      "by_down": 64
     },
     "doji_at_support": {
-      "fires": 11,
-      "correct": 3,
-      "raw_accuracy": 0.2727,
-      "shrunk_accuracy": 0.381,
-      "by_up": 11,
+      "fires": 32,
+      "correct": 22,
+      "raw_accuracy": 0.6875,
+      "shrunk_accuracy": 0.6429,
+      "by_up": 32,
       "by_down": 0
     },
-    "shooting_star": {
-      "fires": 10,
-      "correct": 5,
-      "raw_accuracy": 0.5,
-      "shrunk_accuracy": 0.5,
-      "by_up": 0,
-      "by_down": 10
-    },
     "sma_crossover_bear": {
-      "fires": 15,
-      "correct": 7,
-      "raw_accuracy": 0.4667,
-      "shrunk_accuracy": 0.48,
+      "fires": 14,
+      "correct": 8,
+      "raw_accuracy": 0.5714,
+      "shrunk_accuracy": 0.5417,
       "by_up": 0,
-      "by_down": 15
+      "by_down": 14
+    },
+    "bearish_engulfing": {
+      "fires": 28,
+      "correct": 9,
+      "raw_accuracy": 0.3214,
+      "shrunk_accuracy": 0.3684,
+      "by_up": 0,
+      "by_down": 28
+    },
+    "bb_squeeze_breakout_down": {
+      "fires": 5,
+      "correct": 0,
+      "raw_accuracy": 0.0,
+      "shrunk_accuracy": 0.3333,
+      "by_up": 0,
+      "by_down": 5
     },
     "bb_squeeze_breakout_up": {
       "fires": 7,
@@ -209,180 +216,540 @@
       "by_up": 7,
       "by_down": 0
     },
-    "hammer": {
-      "fires": 4,
-      "correct": 2,
-      "raw_accuracy": 0.5,
-      "shrunk_accuracy": 0.5,
-      "by_up": 4,
+    "bullish_engulfing": {
+      "fires": 15,
+      "correct": 8,
+      "raw_accuracy": 0.5333,
+      "shrunk_accuracy": 0.52,
+      "by_up": 15,
       "by_down": 0
     },
-    "bb_squeeze_breakout_down": {
+    "hammer": {
+      "fires": 21,
+      "correct": 14,
+      "raw_accuracy": 0.6667,
+      "shrunk_accuracy": 0.6129,
+      "by_up": 21,
+      "by_down": 0
+    },
+    "sma_crossover_bull": {
+      "fires": 14,
+      "correct": 10,
+      "raw_accuracy": 0.7143,
+      "shrunk_accuracy": 0.625,
+      "by_up": 14,
+      "by_down": 0
+    },
+    "death_cross": {
       "fires": 4,
-      "correct": 2,
-      "raw_accuracy": 0.5,
-      "shrunk_accuracy": 0.5,
+      "correct": 0,
+      "raw_accuracy": 0.0,
+      "shrunk_accuracy": 0.3571,
       "by_up": 0,
       "by_down": 4
     },
     "golden_cross": {
-      "fires": 3,
-      "correct": 0,
-      "raw_accuracy": 0.0,
-      "shrunk_accuracy": 0.3846,
-      "by_up": 3,
+      "fires": 1,
+      "correct": 1,
+      "raw_accuracy": 1.0,
+      "shrunk_accuracy": 0.5455,
+      "by_up": 1,
       "by_down": 0
     }
   },
   "patterns_per_horizon": {
-    "multi_timeframe_bull": {
+    "shooting_star": {
+      "60": {
+        "fires": 2,
+        "correct": 2,
+        "raw_accuracy": 1.0,
+        "shrunk_accuracy": 0.5833,
+        "by_up": 0,
+        "by_down": 2
+      },
       "5": {
-        "fires": 127,
-        "correct": 54,
-        "raw_accuracy": 0.4252,
-        "shrunk_accuracy": 0.4307,
-        "by_up": 127,
+        "fires": 2,
+        "correct": 1,
+        "raw_accuracy": 0.5,
+        "shrunk_accuracy": 0.5,
+        "by_up": 0,
+        "by_down": 2
+      },
+      "252": {
+        "fires": 4,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.3571,
+        "by_up": 0,
+        "by_down": 4
+      },
+      "10": {
+        "fires": 1,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.4545,
+        "by_up": 0,
+        "by_down": 1
+      },
+      "20": {
+        "fires": 2,
+        "correct": 1,
+        "raw_accuracy": 0.5,
+        "shrunk_accuracy": 0.5,
+        "by_up": 0,
+        "by_down": 2
+      },
+      "120": {
+        "fires": 1,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.4545,
+        "by_up": 0,
+        "by_down": 1
+      }
+    },
+    "multi_timeframe_bull": {
+      "252": {
+        "fires": 105,
+        "correct": 72,
+        "raw_accuracy": 0.6857,
+        "shrunk_accuracy": 0.6696,
+        "by_up": 105,
+        "by_down": 0
+      },
+      "120": {
+        "fires": 94,
+        "correct": 58,
+        "raw_accuracy": 0.617,
+        "shrunk_accuracy": 0.6058,
+        "by_up": 94,
+        "by_down": 0
+      },
+      "60": {
+        "fires": 108,
+        "correct": 60,
+        "raw_accuracy": 0.5556,
+        "shrunk_accuracy": 0.5508,
+        "by_up": 108,
         "by_down": 0
       },
       "10": {
-        "fires": 130,
-        "correct": 61,
-        "raw_accuracy": 0.4692,
-        "shrunk_accuracy": 0.4714,
-        "by_up": 130,
+        "fires": 106,
+        "correct": 45,
+        "raw_accuracy": 0.4245,
+        "shrunk_accuracy": 0.431,
+        "by_up": 106,
         "by_down": 0
       },
       "20": {
-        "fires": 137,
-        "correct": 71,
-        "raw_accuracy": 0.5182,
-        "shrunk_accuracy": 0.517,
-        "by_up": 137,
+        "fires": 115,
+        "correct": 58,
+        "raw_accuracy": 0.5043,
+        "shrunk_accuracy": 0.504,
+        "by_up": 115,
         "by_down": 0
+      },
+      "5": {
+        "fires": 83,
+        "correct": 22,
+        "raw_accuracy": 0.2651,
+        "shrunk_accuracy": 0.2903,
+        "by_up": 83,
+        "by_down": 0
+      }
+    },
+    "multi_timeframe_bear": {
+      "60": {
+        "fires": 34,
+        "correct": 12,
+        "raw_accuracy": 0.3529,
+        "shrunk_accuracy": 0.3864,
+        "by_up": 0,
+        "by_down": 34
+      },
+      "10": {
+        "fires": 30,
+        "correct": 12,
+        "raw_accuracy": 0.4,
+        "shrunk_accuracy": 0.425,
+        "by_up": 0,
+        "by_down": 30
+      },
+      "252": {
+        "fires": 38,
+        "correct": 8,
+        "raw_accuracy": 0.2105,
+        "shrunk_accuracy": 0.2708,
+        "by_up": 0,
+        "by_down": 38
+      },
+      "5": {
+        "fires": 39,
+        "correct": 12,
+        "raw_accuracy": 0.3077,
+        "shrunk_accuracy": 0.3469,
+        "by_up": 0,
+        "by_down": 39
+      },
+      "20": {
+        "fires": 34,
+        "correct": 14,
+        "raw_accuracy": 0.4118,
+        "shrunk_accuracy": 0.4318,
+        "by_up": 0,
+        "by_down": 34
+      },
+      "120": {
+        "fires": 38,
+        "correct": 10,
+        "raw_accuracy": 0.2632,
+        "shrunk_accuracy": 0.3125,
+        "by_up": 0,
+        "by_down": 38
       }
     },
     "macd_cross_bear": {
       "10": {
-        "fires": 14,
-        "correct": 5,
-        "raw_accuracy": 0.3571,
-        "shrunk_accuracy": 0.4167,
-        "by_up": 0,
-        "by_down": 14
-      },
-      "20": {
-        "fires": 12,
-        "correct": 5,
-        "raw_accuracy": 0.4167,
-        "shrunk_accuracy": 0.4545,
-        "by_up": 0,
-        "by_down": 12
-      },
-      "5": {
-        "fires": 16,
-        "correct": 5,
-        "raw_accuracy": 0.3125,
-        "shrunk_accuracy": 0.3846,
-        "by_up": 0,
-        "by_down": 16
-      }
-    },
-    "rsi_overbought": {
-      "5": {
-        "fires": 18,
-        "correct": 8,
-        "raw_accuracy": 0.4444,
-        "shrunk_accuracy": 0.4643,
-        "by_up": 0,
-        "by_down": 18
-      },
-      "10": {
-        "fires": 18,
-        "correct": 6,
+        "fires": 9,
+        "correct": 3,
         "raw_accuracy": 0.3333,
-        "shrunk_accuracy": 0.3929,
+        "shrunk_accuracy": 0.4211,
         "by_up": 0,
-        "by_down": 18
+        "by_down": 9
       },
-      "20": {
-        "fires": 14,
-        "correct": 2,
-        "raw_accuracy": 0.1429,
-        "shrunk_accuracy": 0.2917,
+      "120": {
+        "fires": 8,
+        "correct": 3,
+        "raw_accuracy": 0.375,
+        "shrunk_accuracy": 0.4444,
         "by_up": 0,
-        "by_down": 14
-      }
-    },
-    "multi_timeframe_bear": {
-      "10": {
-        "fires": 53,
-        "correct": 20,
-        "raw_accuracy": 0.3774,
-        "shrunk_accuracy": 0.3968,
-        "by_up": 0,
-        "by_down": 53
-      },
-      "20": {
-        "fires": 45,
-        "correct": 14,
-        "raw_accuracy": 0.3111,
-        "shrunk_accuracy": 0.3455,
-        "by_up": 0,
-        "by_down": 45
+        "by_down": 8
       },
       "5": {
-        "fires": 51,
-        "correct": 22,
-        "raw_accuracy": 0.4314,
-        "shrunk_accuracy": 0.4426,
+        "fires": 13,
+        "correct": 2,
+        "raw_accuracy": 0.1538,
+        "shrunk_accuracy": 0.3043,
         "by_up": 0,
-        "by_down": 51
+        "by_down": 13
+      },
+      "20": {
+        "fires": 8,
+        "correct": 3,
+        "raw_accuracy": 0.375,
+        "shrunk_accuracy": 0.4444,
+        "by_up": 0,
+        "by_down": 8
+      },
+      "60": {
+        "fires": 6,
+        "correct": 4,
+        "raw_accuracy": 0.6667,
+        "shrunk_accuracy": 0.5625,
+        "by_up": 0,
+        "by_down": 6
+      },
+      "252": {
+        "fires": 10,
+        "correct": 3,
+        "raw_accuracy": 0.3,
+        "shrunk_accuracy": 0.4,
+        "by_up": 0,
+        "by_down": 10
       }
     },
     "macd_cross_bull": {
-      "20": {
-        "fires": 15,
-        "correct": 9,
-        "raw_accuracy": 0.6,
-        "shrunk_accuracy": 0.56,
-        "by_up": 15,
+      "60": {
+        "fires": 11,
+        "correct": 4,
+        "raw_accuracy": 0.3636,
+        "shrunk_accuracy": 0.4286,
+        "by_up": 11,
         "by_down": 0
       },
       "10": {
         "fires": 15,
-        "correct": 5,
-        "raw_accuracy": 0.3333,
-        "shrunk_accuracy": 0.4,
+        "correct": 4,
+        "raw_accuracy": 0.2667,
+        "shrunk_accuracy": 0.36,
         "by_up": 15,
         "by_down": 0
+      },
+      "20": {
+        "fires": 9,
+        "correct": 5,
+        "raw_accuracy": 0.5556,
+        "shrunk_accuracy": 0.5263,
+        "by_up": 9,
+        "by_down": 0
+      },
+      "120": {
+        "fires": 14,
+        "correct": 9,
+        "raw_accuracy": 0.6429,
+        "shrunk_accuracy": 0.5833,
+        "by_up": 14,
+        "by_down": 0
+      },
+      "5": {
+        "fires": 6,
+        "correct": 1,
+        "raw_accuracy": 0.1667,
+        "shrunk_accuracy": 0.375,
+        "by_up": 6,
+        "by_down": 0
+      },
+      "252": {
+        "fires": 12,
+        "correct": 4,
+        "raw_accuracy": 0.3333,
+        "shrunk_accuracy": 0.4091,
+        "by_up": 12,
+        "by_down": 0
+      }
+    },
+    "rsi_oversold": {
+      "252": {
+        "fires": 6,
+        "correct": 2,
+        "raw_accuracy": 0.3333,
+        "shrunk_accuracy": 0.4375,
+        "by_up": 6,
+        "by_down": 0
+      },
+      "10": {
+        "fires": 8,
+        "correct": 3,
+        "raw_accuracy": 0.375,
+        "shrunk_accuracy": 0.4444,
+        "by_up": 8,
+        "by_down": 0
+      },
+      "20": {
+        "fires": 6,
+        "correct": 3,
+        "raw_accuracy": 0.5,
+        "shrunk_accuracy": 0.5,
+        "by_up": 6,
+        "by_down": 0
+      },
+      "60": {
+        "fires": 5,
+        "correct": 2,
+        "raw_accuracy": 0.4,
+        "shrunk_accuracy": 0.4667,
+        "by_up": 5,
+        "by_down": 0
+      },
+      "120": {
+        "fires": 5,
+        "correct": 2,
+        "raw_accuracy": 0.4,
+        "shrunk_accuracy": 0.4667,
+        "by_up": 5,
+        "by_down": 0
+      },
+      "5": {
+        "fires": 3,
+        "correct": 1,
+        "raw_accuracy": 0.3333,
+        "shrunk_accuracy": 0.4615,
+        "by_up": 3,
+        "by_down": 0
+      }
+    },
+    "rsi_overbought": {
+      "252": {
+        "fires": 18,
+        "correct": 5,
+        "raw_accuracy": 0.2778,
+        "shrunk_accuracy": 0.3571,
+        "by_up": 0,
+        "by_down": 18
+      },
+      "60": {
+        "fires": 21,
+        "correct": 9,
+        "raw_accuracy": 0.4286,
+        "shrunk_accuracy": 0.4516,
+        "by_up": 0,
+        "by_down": 21
+      },
+      "20": {
+        "fires": 15,
+        "correct": 3,
+        "raw_accuracy": 0.2,
+        "shrunk_accuracy": 0.32,
+        "by_up": 0,
+        "by_down": 15
       },
       "5": {
         "fires": 12,
         "correct": 6,
         "raw_accuracy": 0.5,
         "shrunk_accuracy": 0.5,
-        "by_up": 12,
+        "by_up": 0,
+        "by_down": 12
+      },
+      "10": {
+        "fires": 12,
+        "correct": 3,
+        "raw_accuracy": 0.25,
+        "shrunk_accuracy": 0.3636,
+        "by_up": 0,
+        "by_down": 12
+      },
+      "120": {
+        "fires": 9,
+        "correct": 6,
+        "raw_accuracy": 0.6667,
+        "shrunk_accuracy": 0.5789,
+        "by_up": 0,
+        "by_down": 9
+      }
+    },
+    "doji_at_resistance": {
+      "252": {
+        "fires": 12,
+        "correct": 7,
+        "raw_accuracy": 0.5833,
+        "shrunk_accuracy": 0.5455,
+        "by_up": 0,
+        "by_down": 12
+      },
+      "20": {
+        "fires": 13,
+        "correct": 4,
+        "raw_accuracy": 0.3077,
+        "shrunk_accuracy": 0.3913,
+        "by_up": 0,
+        "by_down": 13
+      },
+      "60": {
+        "fires": 13,
+        "correct": 6,
+        "raw_accuracy": 0.4615,
+        "shrunk_accuracy": 0.4783,
+        "by_up": 0,
+        "by_down": 13
+      },
+      "5": {
+        "fires": 10,
+        "correct": 1,
+        "raw_accuracy": 0.1,
+        "shrunk_accuracy": 0.3,
+        "by_up": 0,
+        "by_down": 10
+      },
+      "10": {
+        "fires": 10,
+        "correct": 3,
+        "raw_accuracy": 0.3,
+        "shrunk_accuracy": 0.4,
+        "by_up": 0,
+        "by_down": 10
+      },
+      "120": {
+        "fires": 6,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.3125,
+        "by_up": 0,
+        "by_down": 6
+      }
+    },
+    "doji_at_support": {
+      "20": {
+        "fires": 10,
+        "correct": 6,
+        "raw_accuracy": 0.6,
+        "shrunk_accuracy": 0.55,
+        "by_up": 10,
+        "by_down": 0
+      },
+      "60": {
+        "fires": 8,
+        "correct": 6,
+        "raw_accuracy": 0.75,
+        "shrunk_accuracy": 0.6111,
+        "by_up": 8,
+        "by_down": 0
+      },
+      "252": {
+        "fires": 6,
+        "correct": 5,
+        "raw_accuracy": 0.8333,
+        "shrunk_accuracy": 0.625,
+        "by_up": 6,
+        "by_down": 0
+      },
+      "10": {
+        "fires": 1,
+        "correct": 1,
+        "raw_accuracy": 1.0,
+        "shrunk_accuracy": 0.5455,
+        "by_up": 1,
+        "by_down": 0
+      },
+      "5": {
+        "fires": 3,
+        "correct": 1,
+        "raw_accuracy": 0.3333,
+        "shrunk_accuracy": 0.4615,
+        "by_up": 3,
+        "by_down": 0
+      },
+      "120": {
+        "fires": 4,
+        "correct": 3,
+        "raw_accuracy": 0.75,
+        "shrunk_accuracy": 0.5714,
+        "by_up": 4,
         "by_down": 0
       }
     },
-    "bearish_engulfing": {
+    "sma_crossover_bear": {
       "20": {
-        "fires": 9,
-        "correct": 2,
-        "raw_accuracy": 0.2222,
-        "shrunk_accuracy": 0.3684,
+        "fires": 1,
+        "correct": 1,
+        "raw_accuracy": 1.0,
+        "shrunk_accuracy": 0.5455,
         "by_up": 0,
-        "by_down": 9
+        "by_down": 1
       },
       "5": {
-        "fires": 5,
-        "correct": 0,
-        "raw_accuracy": 0.0,
-        "shrunk_accuracy": 0.3333,
+        "fires": 3,
+        "correct": 1,
+        "raw_accuracy": 0.3333,
+        "shrunk_accuracy": 0.4615,
         "by_up": 0,
-        "by_down": 5
+        "by_down": 3
+      },
+      "252": {
+        "fires": 2,
+        "correct": 1,
+        "raw_accuracy": 0.5,
+        "shrunk_accuracy": 0.5,
+        "by_up": 0,
+        "by_down": 2
       },
       "10": {
+        "fires": 4,
+        "correct": 3,
+        "raw_accuracy": 0.75,
+        "shrunk_accuracy": 0.5714,
+        "by_up": 0,
+        "by_down": 4
+      },
+      "60": {
+        "fires": 3,
+        "correct": 1,
+        "raw_accuracy": 0.3333,
+        "shrunk_accuracy": 0.4615,
+        "by_up": 0,
+        "by_down": 3
+      },
+      "120": {
         "fires": 1,
         "correct": 1,
         "raw_accuracy": 1.0,
@@ -391,13 +758,123 @@
         "by_down": 1
       }
     },
-    "bullish_engulfing": {
-      "20": {
-        "fires": 5,
+    "bearish_engulfing": {
+      "60": {
+        "fires": 4,
         "correct": 2,
-        "raw_accuracy": 0.4,
-        "shrunk_accuracy": 0.4667,
-        "by_up": 5,
+        "raw_accuracy": 0.5,
+        "shrunk_accuracy": 0.5,
+        "by_up": 0,
+        "by_down": 4
+      },
+      "120": {
+        "fires": 5,
+        "correct": 1,
+        "raw_accuracy": 0.2,
+        "shrunk_accuracy": 0.4,
+        "by_up": 0,
+        "by_down": 5
+      },
+      "20": {
+        "fires": 4,
+        "correct": 1,
+        "raw_accuracy": 0.25,
+        "shrunk_accuracy": 0.4286,
+        "by_up": 0,
+        "by_down": 4
+      },
+      "252": {
+        "fires": 8,
+        "correct": 2,
+        "raw_accuracy": 0.25,
+        "shrunk_accuracy": 0.3889,
+        "by_up": 0,
+        "by_down": 8
+      },
+      "5": {
+        "fires": 3,
+        "correct": 1,
+        "raw_accuracy": 0.3333,
+        "shrunk_accuracy": 0.4615,
+        "by_up": 0,
+        "by_down": 3
+      },
+      "10": {
+        "fires": 4,
+        "correct": 2,
+        "raw_accuracy": 0.5,
+        "shrunk_accuracy": 0.5,
+        "by_up": 0,
+        "by_down": 4
+      }
+    },
+    "bb_squeeze_breakout_down": {
+      "60": {
+        "fires": 2,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.4167,
+        "by_up": 0,
+        "by_down": 2
+      },
+      "5": {
+        "fires": 1,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.4545,
+        "by_up": 0,
+        "by_down": 1
+      },
+      "120": {
+        "fires": 2,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.4167,
+        "by_up": 0,
+        "by_down": 2
+      }
+    },
+    "bb_squeeze_breakout_up": {
+      "20": {
+        "fires": 2,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.4167,
+        "by_up": 2,
+        "by_down": 0
+      },
+      "120": {
+        "fires": 2,
+        "correct": 2,
+        "raw_accuracy": 1.0,
+        "shrunk_accuracy": 0.5833,
+        "by_up": 2,
+        "by_down": 0
+      },
+      "252": {
+        "fires": 2,
+        "correct": 1,
+        "raw_accuracy": 0.5,
+        "shrunk_accuracy": 0.5,
+        "by_up": 2,
+        "by_down": 0
+      },
+      "10": {
+        "fires": 1,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.4545,
+        "by_up": 1,
+        "by_down": 0
+      }
+    },
+    "bullish_engulfing": {
+      "5": {
+        "fires": 2,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.4167,
+        "by_up": 2,
         "by_down": 0
       },
       "10": {
@@ -408,30 +885,46 @@
         "by_up": 4,
         "by_down": 0
       },
-      "5": {
-        "fires": 7,
-        "correct": 4,
-        "raw_accuracy": 0.5714,
-        "shrunk_accuracy": 0.5294,
-        "by_up": 7,
+      "120": {
+        "fires": 4,
+        "correct": 2,
+        "raw_accuracy": 0.5,
+        "shrunk_accuracy": 0.5,
+        "by_up": 4,
+        "by_down": 0
+      },
+      "252": {
+        "fires": 2,
+        "correct": 1,
+        "raw_accuracy": 0.5,
+        "shrunk_accuracy": 0.5,
+        "by_up": 2,
+        "by_down": 0
+      },
+      "20": {
+        "fires": 2,
+        "correct": 1,
+        "raw_accuracy": 0.5,
+        "shrunk_accuracy": 0.5,
+        "by_up": 2,
+        "by_down": 0
+      },
+      "60": {
+        "fires": 1,
+        "correct": 1,
+        "raw_accuracy": 1.0,
+        "shrunk_accuracy": 0.5455,
+        "by_up": 1,
         "by_down": 0
       }
     },
-    "sma_crossover_bull": {
-      "10": {
+    "hammer": {
+      "252": {
         "fires": 6,
-        "correct": 1,
-        "raw_accuracy": 0.1667,
-        "shrunk_accuracy": 0.375,
+        "correct": 5,
+        "raw_accuracy": 0.8333,
+        "shrunk_accuracy": 0.625,
         "by_up": 6,
-        "by_down": 0
-      },
-      "5": {
-        "fires": 5,
-        "correct": 3,
-        "raw_accuracy": 0.6,
-        "shrunk_accuracy": 0.5333,
-        "by_up": 5,
         "by_down": 0
       },
       "20": {
@@ -441,140 +934,74 @@
         "shrunk_accuracy": 0.5833,
         "by_up": 2,
         "by_down": 0
-      }
-    },
-    "doji_at_resistance": {
-      "10": {
-        "fires": 15,
-        "correct": 2,
-        "raw_accuracy": 0.1333,
-        "shrunk_accuracy": 0.28,
-        "by_up": 0,
-        "by_down": 15
       },
-      "5": {
-        "fires": 10,
-        "correct": 4,
-        "raw_accuracy": 0.4,
-        "shrunk_accuracy": 0.45,
-        "by_up": 0,
-        "by_down": 10
-      },
-      "20": {
-        "fires": 13,
-        "correct": 4,
-        "raw_accuracy": 0.3077,
-        "shrunk_accuracy": 0.3913,
-        "by_up": 0,
-        "by_down": 13
-      }
-    },
-    "rsi_oversold": {
-      "20": {
-        "fires": 13,
-        "correct": 4,
-        "raw_accuracy": 0.3077,
-        "shrunk_accuracy": 0.3913,
-        "by_up": 13,
-        "by_down": 0
-      },
-      "10": {
-        "fires": 6,
-        "correct": 3,
-        "raw_accuracy": 0.5,
-        "shrunk_accuracy": 0.5,
-        "by_up": 6,
-        "by_down": 0
-      },
-      "5": {
-        "fires": 11,
-        "correct": 3,
-        "raw_accuracy": 0.2727,
-        "shrunk_accuracy": 0.381,
-        "by_up": 11,
-        "by_down": 0
-      }
-    },
-    "doji_at_support": {
-      "10": {
+      "120": {
         "fires": 5,
-        "correct": 2,
-        "raw_accuracy": 0.4,
-        "shrunk_accuracy": 0.4667,
+        "correct": 4,
+        "raw_accuracy": 0.8,
+        "shrunk_accuracy": 0.6,
         "by_up": 5,
         "by_down": 0
       },
-      "20": {
+      "5": {
+        "fires": 4,
+        "correct": 2,
+        "raw_accuracy": 0.5,
+        "shrunk_accuracy": 0.5,
+        "by_up": 4,
+        "by_down": 0
+      },
+      "10": {
+        "fires": 3,
+        "correct": 1,
+        "raw_accuracy": 0.3333,
+        "shrunk_accuracy": 0.4615,
+        "by_up": 3,
+        "by_down": 0
+      },
+      "60": {
         "fires": 1,
         "correct": 0,
         "raw_accuracy": 0.0,
         "shrunk_accuracy": 0.4545,
         "by_up": 1,
         "by_down": 0
-      },
-      "5": {
-        "fires": 5,
-        "correct": 1,
-        "raw_accuracy": 0.2,
-        "shrunk_accuracy": 0.4,
-        "by_up": 5,
-        "by_down": 0
       }
     },
-    "shooting_star": {
-      "20": {
+    "sma_crossover_bull": {
+      "120": {
         "fires": 2,
         "correct": 2,
         "raw_accuracy": 1.0,
         "shrunk_accuracy": 0.5833,
-        "by_up": 0,
-        "by_down": 2
+        "by_up": 2,
+        "by_down": 0
       },
-      "10": {
-        "fires": 4,
+      "60": {
+        "fires": 1,
         "correct": 1,
-        "raw_accuracy": 0.25,
-        "shrunk_accuracy": 0.4286,
-        "by_up": 0,
-        "by_down": 4
+        "raw_accuracy": 1.0,
+        "shrunk_accuracy": 0.5455,
+        "by_up": 1,
+        "by_down": 0
       },
-      "5": {
+      "20": {
         "fires": 4,
         "correct": 2,
         "raw_accuracy": 0.5,
         "shrunk_accuracy": 0.5,
-        "by_up": 0,
-        "by_down": 4
-      }
-    },
-    "sma_crossover_bear": {
-      "20": {
-        "fires": 7,
-        "correct": 3,
-        "raw_accuracy": 0.4286,
-        "shrunk_accuracy": 0.4706,
-        "by_up": 0,
-        "by_down": 7
-      },
-      "5": {
-        "fires": 5,
-        "correct": 2,
-        "raw_accuracy": 0.4,
-        "shrunk_accuracy": 0.4667,
-        "by_up": 0,
-        "by_down": 5
+        "by_up": 4,
+        "by_down": 0
       },
       "10": {
         "fires": 3,
         "correct": 2,
         "raw_accuracy": 0.6667,
         "shrunk_accuracy": 0.5385,
-        "by_up": 0,
-        "by_down": 3
-      }
-    },
-    "bb_squeeze_breakout_up": {
-      "5": {
+        "by_up": 3,
+        "by_down": 0
+      },
+      "252": {
         "fires": 2,
         "correct": 2,
         "raw_accuracy": 1.0,
@@ -582,82 +1009,56 @@
         "by_up": 2,
         "by_down": 0
       },
-      "20": {
-        "fires": 4,
-        "correct": 1,
-        "raw_accuracy": 0.25,
-        "shrunk_accuracy": 0.4286,
-        "by_up": 4,
-        "by_down": 0
-      },
-      "10": {
-        "fires": 1,
-        "correct": 0,
-        "raw_accuracy": 0.0,
-        "shrunk_accuracy": 0.4545,
-        "by_up": 1,
-        "by_down": 0
-      }
-    },
-    "hammer": {
-      "20": {
+      "5": {
         "fires": 2,
         "correct": 1,
         "raw_accuracy": 0.5,
         "shrunk_accuracy": 0.5,
         "by_up": 2,
         "by_down": 0
-      },
-      "5": {
-        "fires": 1,
-        "correct": 1,
-        "raw_accuracy": 1.0,
-        "shrunk_accuracy": 0.5455,
-        "by_up": 1,
-        "by_down": 0
-      },
+      }
+    },
+    "death_cross": {
       "10": {
         "fires": 1,
         "correct": 0,
         "raw_accuracy": 0.0,
         "shrunk_accuracy": 0.4545,
-        "by_up": 1,
-        "by_down": 0
-      }
-    },
-    "bb_squeeze_breakout_down": {
-      "5": {
-        "fires": 3,
-        "correct": 1,
-        "raw_accuracy": 0.3333,
-        "shrunk_accuracy": 0.4615,
         "by_up": 0,
-        "by_down": 3
+        "by_down": 1
       },
-      "10": {
+      "5": {
         "fires": 1,
-        "correct": 1,
-        "raw_accuracy": 1.0,
-        "shrunk_accuracy": 0.5455,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.4545,
+        "by_up": 0,
+        "by_down": 1
+      },
+      "252": {
+        "fires": 1,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.4545,
+        "by_up": 0,
+        "by_down": 1
+      },
+      "120": {
+        "fires": 1,
+        "correct": 0,
+        "raw_accuracy": 0.0,
+        "shrunk_accuracy": 0.4545,
         "by_up": 0,
         "by_down": 1
       }
     },
     "golden_cross": {
-      "5": {
+      "252": {
         "fires": 1,
-        "correct": 0,
-        "raw_accuracy": 0.0,
-        "shrunk_accuracy": 0.4545,
+        "correct": 1,
+        "raw_accuracy": 1.0,
+        "shrunk_accuracy": 0.5455,
         "by_up": 1,
-        "by_down": 0
-      },
-      "10": {
-        "fires": 2,
-        "correct": 0,
-        "raw_accuracy": 0.0,
-        "shrunk_accuracy": 0.4167,
-        "by_up": 2,
         "by_down": 0
       }
     }

@@ -1,145 +1,244 @@
 {
-  "updated_at": "2026-05-14T19:04:12Z",
-  "n_samples": 1000,
+  "updated_at": "2026-05-14T19:40:39Z",
+  "n_samples": 1500,
   "methodologies": {
     "all": {
       "description": "All patterns combined \u2014 baseline ensemble",
-      "samples_applicable": 1000,
-      "signals_emitted": 664,
-      "correct": 280,
-      "accuracy": 0.4217,
-      "signal_rate": 0.664,
+      "samples_applicable": 1500,
+      "signals_emitted": 900,
+      "correct": 420,
+      "accuracy": 0.4667,
+      "signal_rate": 0.6,
       "by_horizon": {
         "5": {
-          "signals": 226,
-          "correct": 91,
-          "accuracy": 0.4027
+          "signals": 152,
+          "correct": 46,
+          "accuracy": 0.3026
         },
         "10": {
-          "signals": 220,
-          "correct": 92,
-          "accuracy": 0.4182
+          "signals": 158,
+          "correct": 68,
+          "accuracy": 0.4304
         },
         "20": {
-          "signals": 218,
-          "correct": 97,
-          "accuracy": 0.445
+          "signals": 176,
+          "correct": 89,
+          "accuracy": 0.5057
+        },
+        "60": {
+          "signals": 140,
+          "correct": 73,
+          "accuracy": 0.5214
+        },
+        "120": {
+          "signals": 138,
+          "correct": 72,
+          "accuracy": 0.5217
+        },
+        "252": {
+          "signals": 136,
+          "correct": 72,
+          "accuracy": 0.5294
         }
       }
     },
     "trend_following": {
       "description": "SMA/MACD crossovers and multi-timeframe alignment only",
-      "samples_applicable": 1000,
-      "signals_emitted": 600,
-      "correct": 266,
-      "accuracy": 0.4433,
-      "signal_rate": 0.6,
+      "samples_applicable": 1500,
+      "signals_emitted": 873,
+      "correct": 406,
+      "accuracy": 0.4651,
+      "signal_rate": 0.582,
       "by_horizon": {
         "5": {
-          "signals": 200,
-          "correct": 84,
-          "accuracy": 0.42
+          "signals": 136,
+          "correct": 39,
+          "accuracy": 0.2868
         },
         "10": {
-          "signals": 203,
-          "correct": 88,
-          "accuracy": 0.4335
+          "signals": 150,
+          "correct": 62,
+          "accuracy": 0.4133
         },
         "20": {
-          "signals": 197,
-          "correct": 94,
-          "accuracy": 0.4772
+          "signals": 160,
+          "correct": 78,
+          "accuracy": 0.4875
+        },
+        "60": {
+          "signals": 148,
+          "correct": 76,
+          "accuracy": 0.5135
+        },
+        "120": {
+          "signals": 135,
+          "correct": 72,
+          "accuracy": 0.5333
+        },
+        "252": {
+          "signals": 144,
+          "correct": 79,
+          "accuracy": 0.5486
         }
       }
     },
     "mean_reversion": {
       "description": "RSI extremes, Bollinger squeezes, doji at S/R",
-      "samples_applicable": 1000,
-      "signals_emitted": 135,
-      "correct": 43,
-      "accuracy": 0.3185,
-      "signal_rate": 0.135,
+      "samples_applicable": 1500,
+      "signals_emitted": 222,
+      "correct": 88,
+      "accuracy": 0.3964,
+      "signal_rate": 0.148,
       "by_horizon": {
         "5": {
-          "signals": 47,
-          "correct": 19,
-          "accuracy": 0.4043
+          "signals": 29,
+          "correct": 9,
+          "accuracy": 0.3103
         },
         "10": {
-          "signals": 44,
-          "correct": 13,
-          "accuracy": 0.2955
+          "signals": 31,
+          "correct": 10,
+          "accuracy": 0.3226
         },
         "20": {
-          "signals": 44,
-          "correct": 11,
-          "accuracy": 0.25
+          "signals": 45,
+          "correct": 15,
+          "accuracy": 0.3333
+        },
+        "60": {
+          "signals": 47,
+          "correct": 22,
+          "accuracy": 0.4681
+        },
+        "120": {
+          "signals": 28,
+          "correct": 13,
+          "accuracy": 0.4643
+        },
+        "252": {
+          "signals": 42,
+          "correct": 19,
+          "accuracy": 0.4524
         }
       }
     },
     "candlestick_only": {
       "description": "Only candlestick patterns \u2014 wick/body shape signals",
-      "samples_applicable": 1000,
-      "signals_emitted": 93,
-      "correct": 31,
-      "accuracy": 0.3333,
-      "signal_rate": 0.093,
+      "samples_applicable": 1500,
+      "signals_emitted": 169,
+      "correct": 77,
+      "accuracy": 0.4556,
+      "signal_rate": 0.1127,
       "by_horizon": {
         "5": {
-          "signals": 32,
-          "correct": 12,
-          "accuracy": 0.375
+          "signals": 23,
+          "correct": 6,
+          "accuracy": 0.2609
         },
         "10": {
-          "signals": 29,
-          "correct": 8,
-          "accuracy": 0.2759
+          "signals": 23,
+          "correct": 10,
+          "accuracy": 0.4348
         },
         "20": {
-          "signals": 32,
-          "correct": 11,
-          "accuracy": 0.3438
+          "signals": 33,
+          "correct": 15,
+          "accuracy": 0.4545
+        },
+        "60": {
+          "signals": 27,
+          "correct": 16,
+          "accuracy": 0.5926
+        },
+        "120": {
+          "signals": 25,
+          "correct": 10,
+          "accuracy": 0.4
+        },
+        "252": {
+          "signals": 38,
+          "correct": 20,
+          "accuracy": 0.5263
         }
       }
     },
     "high_confidence": {
       "description": "All patterns but only count signals with confidence >= 0.75",
-      "samples_applicable": 1000,
-      "signals_emitted": 1,
-      "correct": 1,
-      "accuracy": 1.0,
-      "signal_rate": 0.001,
+      "samples_applicable": 1500,
+      "signals_emitted": 2,
+      "correct": 0,
+      "accuracy": 0.0,
+      "signal_rate": 0.0013,
       "by_horizon": {
-        "5": {
+        "10": {
           "signals": 1,
-          "correct": 1,
-          "accuracy": 1.0
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "252": {
+          "signals": 1,
+          "correct": 0,
+          "accuracy": 0.0
         }
       }
     },
     "trend_in_trending_regime": {
       "description": "Trend-following patterns, but only when the market is in a clear bull or bear regime",
-      "samples_applicable": 861,
-      "signals_emitted": 522,
-      "correct": 237,
-      "accuracy": 0.454,
-      "signal_rate": 0.6063,
+      "samples_applicable": 1232,
+      "signals_emitted": 729,
+      "correct": 352,
+      "accuracy": 0.4829,
+      "signal_rate": 0.5917,
       "by_horizon": {
         "5": {
-          "signals": 170,
-          "correct": 74,
-          "accuracy": 0.4353
+          "signals": 118,
+          "correct": 34,
+          "accuracy": 0.2881
         },
         "10": {
-          "signals": 173,
-          "correct": 76,
-          "accuracy": 0.4393
+          "signals": 124,
+          "correct": 53,
+          "accuracy": 0.4274
         },
         "20": {
-          "signals": 179,
-          "correct": 87,
-          "accuracy": 0.486
+          "signals": 141,
+          "correct": 69,
+          "accuracy": 0.4894
+        },
+        "60": {
+          "signals": 114,
+          "correct": 62,
+          "accuracy": 0.5439
+        },
+        "120": {
+          "signals": 110,
+          "correct": 61,
+          "accuracy": 0.5545
+        },
+        "252": {
+          "signals": 122,
+          "correct": 73,
+          "accuracy": 0.5984
         }
+      }
+    },
+    "meta_ensemble": {
+      "description": "Holistic meta-ensemble: stacked vote across sub-methodologies, weighted by each sub-method's backtest accuracy",
+      "samples_applicable": 1500,
+      "signals_emitted": 0,
+      "correct": 0,
+      "accuracy": null,
+      "signal_rate": 0.0,
+      "by_horizon": {},
+      "by_regime": {},
+      "methodology_contribution_count": {},
+      "sub_methodology_accuracies_used": {
+        "all": 0.4667,
+        "trend_following": 0.4651,
+        "mean_reversion": 0.3964,
+        "candlestick_only": 0.4556,
+        "high_confidence": 0.5,
+        "trend_in_trending_regime": 0.4829
       }
     }
   },
@@ -219,6 +318,13 @@
         "bear",
         "bull"
       ],
+      "min_confidence": 0.5
+    },
+    {
+      "name": "meta_ensemble",
+      "description": "Holistic meta-ensemble: stacked vote across the others, weighted by each sub-method's backtest accuracy",
+      "pattern_filter": null,
+      "regime_filter": null,
       "min_confidence": 0.5
     }
   ]
