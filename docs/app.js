@@ -110,8 +110,12 @@ function renderSignals(payload) {
 function renderBacktest(bt) {
   if (!bt) return;
   const ens = bt.ensemble || {};
+  const dirTotal = ens.directional_total ?? 0;
+  const dirCorrect = ens.directional_correct ?? 0;
   setText("bt-accuracy", fmtPct(ens.accuracy));
-  setText("bt-counts", `${ens.correct ?? 0} correct / ${(ens.total ?? 0) - (ens.correct ?? 0)} wrong of ${ens.total ?? 0}`);
+  setText("bt-counts",
+    `${dirCorrect} correct / ${dirTotal - dirCorrect} wrong of ${dirTotal} directional calls ` +
+    `(${ens.total_samples ?? 0} total samples, ${fmtPct(ens.neutral_rate)} neutral)`);
   setText("bt-bullish", fmtPct(ens.by_direction?.up?.accuracy));
   setText("bt-bearish", fmtPct(ens.by_direction?.down?.accuracy));
 

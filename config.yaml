@@ -81,7 +81,10 @@ backtest:
 # Signal generation
 signals:
   min_patterns_for_signal: 2     # need this many concurring patterns to emit a signal
-  min_confidence: 0.55           # don't emit signals below this confidence
+  min_confidence: 0.65           # don't emit signals below this confidence
+                                 # (early backtest data showed 0.5-0.7 confidence
+                                 # calls are below 50% accuracy — raise threshold
+                                 # as weight tuning concentrates edge in higher buckets)
 
 # Initial pattern weights (overwritten by backtest results once enough data accumulates)
 pattern_weights:

@@ -84,7 +84,9 @@
     <p class="muted small">
       The engine picks random (ticker, past-date) samples, runs the same pipeline using ONLY data
       available on that date, then compares to the actual N-day forward move. This is how we
-      validate signal quality without waiting weeks.
+      validate signal quality without waiting weeks. Headline accuracy is <em>directional</em> —
+      it counts only samples where the ensemble made an up/down call. Neutral cases are reported
+      separately since they're not actionable.
     </p>
     <div class="tiles">
       <div class="tile big">

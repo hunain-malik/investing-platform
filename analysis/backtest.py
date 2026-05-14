@@ -204,26 +204,34 @@ def aggregate_pattern_accuracy(samples: list[BacktestSample]) -> dict[str, dict]
 
 
 def aggregate_ensemble_accuracy(samples: list[BacktestSample]) -> dict[str, Any]:
-    """Overall ensemble accuracy plus a calibration table by confidence bucket."""
-    total = len(samples)
-    if total == 0:
-        return {"total": 0, "correct": 0, "accuracy": 0.0, "calibration": [], "by_direction": {}}
+    """Directional ensemble accuracy plus a calibration table by confidence bucket.
 
-    correct = sum(1 for s in samples if s.ensemble_correct)
+    The headline accuracy uses only samples where the ensemble made an
+    actionable up/down call. Neutral predictions are counted separately as
+    `neutral_rate` because they can't be 'correct' (we didn't bet anything).
+    """
+    total_samples = len(samples)
+    if total_samples == 0:
+        return {
+            "total_samples": 0, "directional_total": 0, "directional_correct": 0,
+            "accuracy": None, "neutral_rate": None, "calibration": [], "by_direction": {},
+        }
+
+    directional = [s for s in samples if s.ensemble_direction in ("up", "down")]
+    neutral_count = total_samples - len(directional)
+    correct = sum(1 for s in directional if s.ensemble_correct)
+
     by_dir: dict[str, dict[str, int]] = {}
-    for s in samples:
-        if s.ensemble_direction == "neutral":
-            continue
+    for s in directional:
         d = by_dir.setdefault(s.ensemble_direction, {"total": 0, "correct": 0})
         d["total"] += 1
         if s.ensemble_correct:
             d["correct"] += 1
 
-    # Calibration buckets by ensemble confidence
     buckets = [(0.50, 0.60), (0.60, 0.70), (0.70, 0.80), (0.80, 0.90), (0.90, 1.01)]
     calibration = []
     for lo, hi in buckets:
-        bucket = [s for s in samples if lo <= s.ensemble_confidence < hi and s.ensemble_direction != "neutral"]
+        bucket = [s for s in directional if lo <= s.ensemble_confidence < hi]
         n = len(bucket)
         c = sum(1 for s in bucket if s.ensemble_correct)
         calibration.append({
@@ -235,9 +243,11 @@ def aggregate_ensemble_accuracy(samples: list[BacktestSample]) -> dict[str, Any]
         })
 
     return {
-        "total": total,
-        "correct": correct,
-        "accuracy": round(correct / total, 4),
+        "total_samples": total_samples,
+        "directional_total": len(directional),
+        "directional_correct": correct,
+        "accuracy": round(correct / len(directional), 4) if directional else None,
+        "neutral_rate": round(neutral_count / total_samples, 4),
         "by_direction": {
             d: {"total": v["total"], "correct": v["correct"], "accuracy": round(v["correct"] / v["total"], 4)}
             for d, v in by_dir.items()
