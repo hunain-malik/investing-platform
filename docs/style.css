@@ -1,0 +1,160 @@
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel-2: #1f2630;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --green: #2ea043;
+  --green-bg: rgba(46, 160, 67, 0.15);
+  --red: #f85149;
+  --red-bg: rgba(248, 81, 73, 0.15);
+  --accent: #58a6ff;
+  --yellow: #d29922;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.5;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { font-weight: 700; font-size: 1.1rem; }
+.topbar nav { display: flex; gap: 16px; flex: 1; }
+.topbar nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.topbar nav a:hover { color: var(--text); }
+.updated { color: var(--muted); font-size: 0.85rem; }
+
+main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+.section {
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+}
+.section h2 { margin: 0 0 4px; font-size: 1.5rem; }
+.section h3 { margin: 24px 0 8px; font-size: 1.1rem; color: var(--text); }
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+.green { color: var(--green); }
+.red   { color: var(--red); }
+code { background: var(--panel-2); padding: 1px 6px; border-radius: 3px; font-size: 0.85em; }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.tile {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.tile.big { grid-column: span 2; }
+.tile.good { border-left: 4px solid var(--green); }
+.tile.bad  { border-left: 4px solid var(--red); }
+.tile .label { color: var(--muted); font-size: 0.85rem; }
+.tile .value { font-size: 1.8rem; font-weight: 700; margin-top: 4px; }
+.tile.big .value { font-size: 2.4rem; }
+.tile .sub { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+
+.table-wrap {
+  overflow-x: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+th, td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+th {
+  background: var(--panel-2);
+  color: var(--muted);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+tr:last-child td { border-bottom: none; }
+tr.row-up    { background: rgba(46, 160, 67, 0.04); }
+tr.row-down  { background: rgba(248, 81, 73, 0.04); }
+tr.row-open  { color: var(--muted); }
+tr.row-correct td:last-child { color: var(--green); font-weight: 600; }
+tr.row-wrong   td:last-child { color: var(--red); font-weight: 600; }
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.tag.up   { background: var(--green-bg); color: var(--green); }
+.tag.down { background: var(--red-bg);   color: var(--red); }
+.tag.neutral { background: var(--panel-2); color: var(--muted); }
+.tag.open { background: var(--panel-2); color: var(--muted); }
+.tag.correct { background: var(--green-bg); color: var(--green); }
+.tag.wrong   { background: var(--red-bg);   color: var(--red); }
+
+.patterns-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pattern-chip {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.confidence-bar {
+  display: inline-block;
+  width: 60px;
+  height: 8px;
+  background: var(--panel-2);
+  border-radius: 4px;
+  overflow: hidden;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.confidence-bar .fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--yellow), var(--green));
+}
+
+footer { color: var(--muted); padding: 24px 0; }
+footer a { color: var(--accent); }
+
+@media (max-width: 700px) {
+  .tile.big { grid-column: span 1; }
+  .topbar nav { display: none; }
+}

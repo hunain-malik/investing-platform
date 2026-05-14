@@ -1,0 +1,103 @@
+# Investing platform configuration
+
+# Watchlist: tickers analyzed daily. Add/remove as you like.
+watchlist:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - META
+  - NVDA
+  - TSLA
+  - IBM
+  - JPM
+  - V
+  - WMT
+  - SPY
+  - QQQ
+
+# Universe for random-sample backtesting (broader than watchlist on purpose —
+# the point is to test the algorithm on tickers it doesn't usually see)
+backtest_universe:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - META
+  - NVDA
+  - TSLA
+  - IBM
+  - JPM
+  - V
+  - WMT
+  - SPY
+  - QQQ
+  - DIS
+  - NFLX
+  - BA
+  - CAT
+  - XOM
+  - CVX
+  - KO
+  - PEP
+  - MCD
+  - NKE
+  - HD
+  - LOW
+  - PG
+  - JNJ
+  - PFE
+  - UNH
+  - GS
+  - BAC
+  - WFC
+  - C
+  - AXP
+  - ORCL
+  - CRM
+  - ADBE
+  - INTC
+  - AMD
+  - QCOM
+
+# Your capital and risk profile. The position sizer reads these.
+portfolio:
+  capital_usd: 10000        # total capital available
+  risk_per_trade_pct: 2.0   # max % of capital risked per trade
+  max_position_pct: 25.0    # max % of capital in any single position
+  options_allowed: true     # whether to consider options recommendations
+
+# Forward-looking prediction horizons (trading days)
+horizons_days: [5, 10, 20]
+
+# Backtesting configuration
+backtest:
+  samples_per_run: 500          # random (ticker, date) samples per analysis run
+  history_years: 6              # how far back to sample from
+  min_data_days: 252            # require at least 1 year of data before a cutoff
+  threshold_up_pct: 1.0         # forward return >= this % counts as "up"
+  threshold_down_pct: -1.0      # forward return <= this % counts as "down"
+
+# Signal generation
+signals:
+  min_patterns_for_signal: 2     # need this many concurring patterns to emit a signal
+  min_confidence: 0.55           # don't emit signals below this confidence
+
+# Initial pattern weights (overwritten by backtest results once enough data accumulates)
+pattern_weights:
+  sma_crossover_bull: 1.0
+  sma_crossover_bear: 1.0
+  golden_cross: 1.0
+  death_cross: 1.0
+  rsi_oversold: 1.0
+  rsi_overbought: 1.0
+  macd_cross_bull: 1.0
+  macd_cross_bear: 1.0
+  bb_squeeze_breakout_up: 1.0
+  bb_squeeze_breakout_down: 1.0
+  bullish_engulfing: 1.0
+  bearish_engulfing: 1.0
+  hammer: 1.0
+  shooting_star: 1.0
+  doji_at_support: 1.0
+  doji_at_resistance: 1.0

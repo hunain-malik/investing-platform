@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>investing-platform · scoreboard</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">investing-platform</div>
+  <nav>
+    <a href="#scoreboard">Scoreboard</a>
+    <a href="#signals">Live Signals</a>
+    <a href="#backtest">Backtest</a>
+    <a href="#patterns">Patterns</a>
+    <a href="#predictions">Predictions</a>
+  </nav>
+  <div class="updated" id="updated-at">—</div>
+</header>
+
+<main>
+  <section id="scoreboard" class="section">
+    <h2>Scoreboard <span class="muted" id="scoreboard-context"></span></h2>
+    <p class="muted small">Accuracy on <em>resolved</em> predictions only. Backtest accuracy lives in its own section below.</p>
+    <div class="tiles">
+      <div class="tile big">
+        <div class="label">Overall accuracy</div>
+        <div class="value" id="overall-accuracy">—</div>
+        <div class="sub" id="overall-counts">—</div>
+      </div>
+      <div class="tile good">
+        <div class="label">Correct (green)</div>
+        <div class="value" id="total-correct">—</div>
+      </div>
+      <div class="tile bad">
+        <div class="label">Wrong (red)</div>
+        <div class="value" id="total-wrong">—</div>
+      </div>
+      <div class="tile">
+        <div class="label">Open predictions</div>
+        <div class="value" id="open-count">—</div>
+        <div class="sub">awaiting horizon</div>
+      </div>
+    </div>
+    <div class="tiles">
+      <div class="tile">
+        <div class="label">Bullish calls</div>
+        <div class="value"><span id="bullish-accuracy">—</span></div>
+        <div class="sub"><span class="green" id="bullish-correct">—</span> / <span class="red" id="bullish-wrong">—</span></div>
+      </div>
+      <div class="tile">
+        <div class="label">Bearish calls</div>
+        <div class="value"><span id="bearish-accuracy">—</span></div>
+        <div class="sub"><span class="green" id="bearish-correct">—</span> / <span class="red" id="bearish-wrong">—</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="signals" class="section">
+    <h2>Live signals <span class="muted small">— act in your own brokerage</span></h2>
+    <p class="muted small">
+      Generated against today's close. Confidence is calibrated 0.5 (no info) → 1.0 (very confident).
+      Sizing assumes the capital and risk profile in <code>config.yaml</code>. Options are heuristic
+      recommendations — verify strikes and premiums in your broker before trading.
+    </p>
+    <div class="table-wrap">
+      <table id="signals-table">
+        <thead>
+          <tr>
+            <th>Ticker</th><th>Direction</th><th>Confidence</th>
+            <th>Price</th><th>Patterns</th>
+            <th>Position (shares)</th><th>Stop</th><th>Risk $</th>
+            <th>Options</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="backtest" class="section">
+    <h2>Backtest accuracy <span class="muted small">— random historical samples</span></h2>
+    <p class="muted small">
+      The engine picks random (ticker, past-date) samples, runs the same pipeline using ONLY data
+      available on that date, then compares to the actual N-day forward move. This is how we
+      validate signal quality without waiting weeks.
+    </p>
+    <div class="tiles">
+      <div class="tile big">
+        <div class="label">Backtest ensemble accuracy</div>
+        <div class="value" id="bt-accuracy">—</div>
+        <div class="sub" id="bt-counts">—</div>
+      </div>
+      <div class="tile">
+        <div class="label">Bullish backtest</div>
+        <div class="value" id="bt-bullish">—</div>
+      </div>
+      <div class="tile">
+        <div class="label">Bearish backtest</div>
+        <div class="value" id="bt-bearish">—</div>
+      </div>
+    </div>
+    <h3>Calibration by confidence bucket</h3>
+    <p class="muted small">Higher confidence ought to map to higher accuracy. If it doesn't, the confidence score is miscalibrated.</p>
+    <div class="table-wrap">
+      <table id="calibration-table">
+        <thead><tr><th>Confidence bucket</th><th>Samples</th><th>Correct</th><th>Accuracy</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="patterns" class="section">
+    <h2>Pattern performance</h2>
+    <p class="muted small">
+      How each individual pattern performed in the backtest. The ensemble re-weights toward patterns
+      with higher shrunk accuracy (Bayesian-adjusted to avoid trusting small samples).
+    </p>
+    <div class="table-wrap">
+      <table id="patterns-table">
+        <thead>
+          <tr>
+            <th>Pattern</th><th>Fires</th><th>Correct</th>
+            <th>Raw accuracy</th><th>Shrunk accuracy</th>
+            <th>Bullish votes</th><th>Bearish votes</th>
+            <th>Current weight</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="predictions" class="section">
+    <h2>Recent predictions log</h2>
+    <p class="muted small">Every prediction the system has made, newest first. Green = resolved correct, red = resolved wrong, grey = still open.</p>
+    <div class="table-wrap">
+      <table id="predictions-table">
+        <thead>
+          <tr>
+            <th>Made</th><th>Ticker</th><th>Direction</th><th>Confidence</th>
+            <th>Horizon</th><th>Status</th><th>Actual return</th><th>Result</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p class="muted small">
+      Not investment advice. Pattern-based predictions are probabilistic and can be wrong.
+      Read the scoreboard before acting on a signal.
+      Source: <a href="https://github.com/hunain-malik/investing-platform" target="_blank" rel="noopener">github.com/hunain-malik/investing-platform</a>
+    </p>
+  </footer>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
