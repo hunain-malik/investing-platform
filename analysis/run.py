@@ -218,7 +218,10 @@ def main() -> int:
         spy_df = load_spy()
         from .indicators import set_benchmark
         set_benchmark(spy_df)
-        live_regime = regime_at(spy_df, pd.Timestamp.utcnow().normalize())
+        # Use the most recent bar from SPY's own index as the "current" cutoff
+        # to avoid timezone mismatches with the naive yfinance index.
+        latest_spy_date = spy_df.index[-1]
+        live_regime = regime_at(spy_df, latest_spy_date)
     except Exception as e:  # noqa: BLE001
         log.warning("could not compute live regime: %s", e)
         live_regime = "unknown"

@@ -30,7 +30,11 @@ def regime_at(spy_df: pd.DataFrame, cutoff: pd.Timestamp) -> str:
 
     spy_df is the full SPY history (passed in so we don't refetch).
     """
-    cutoff = pd.Timestamp(cutoff).normalize()
+    cutoff = pd.Timestamp(cutoff)
+    # yfinance index is tz-naive; strip any tz from cutoff before comparison
+    if cutoff.tz is not None:
+        cutoff = cutoff.tz_convert(None) if hasattr(cutoff, "tz_convert") else cutoff.tz_localize(None)
+    cutoff = cutoff.normalize()
     sliced = spy_df.loc[spy_df.index <= cutoff]
     if len(sliced) < 260:
         return "unknown"

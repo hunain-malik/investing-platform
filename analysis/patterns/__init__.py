@@ -14,7 +14,7 @@ from typing import Callable
 
 import pandas as pd
 
-from . import candlestick, chart, multi_timeframe, oscillators, relative_strength, volume
+from . import candlestick, chart, momentum, multi_timeframe, oscillators, relative_strength, volume
 
 
 @dataclass(frozen=True)
@@ -62,6 +62,10 @@ DETECTORS: list[PatternFn] = [
     candlestick.detect_shooting_star,
     candlestick.detect_doji_at_support,
     candlestick.detect_doji_at_resistance,
+    momentum.detect_stochastic_oversold,
+    momentum.detect_stochastic_overbought,
+    momentum.detect_ichimoku_bull_cross,
+    momentum.detect_ichimoku_bear_cross,
 ]
 
 

@@ -109,6 +109,10 @@ function setupAgent(signalsPayload) {
   }
 
   document.getElementById("agent-form").addEventListener("input", renderAgent);
+  document.getElementById("agent-form").addEventListener("change", renderAgent);
+  document.getElementById("agent-mode").addEventListener("change", e => {
+    document.getElementById("agent-portfolio-n-wrap").style.display = (e.target.value === "portfolio") ? "" : "none";
+  });
   renderAgent();
 }
 
@@ -118,16 +122,29 @@ function getAgentInputs() {
     riskPct: parseFloat(document.getElementById("agent-risk-pct").value) || 2,
     maxPosPct: parseFloat(document.getElementById("agent-max-pos-pct").value) || 25,
     horizon: parseInt(document.getElementById("agent-horizon").value) || 60,
-    minConf: parseFloat(document.getElementById("agent-min-conf").value) || 0.6,
+    minConf: parseFloat(document.getElementById("agent-min-conf").value) || 0.55,
     direction: document.getElementById("agent-direction").value,
     optionsAllowed: document.getElementById("agent-options-allowed").checked,
     skipEarnings: document.getElementById("agent-skip-earnings").checked,
+    mode: document.getElementById("agent-mode").value,
+    portfolioN: parseInt(document.getElementById("agent-portfolio-n").value) || 5,
     tickerFilter: document.getElementById("agent-ticker-filter").value.trim().toUpperCase(),
   };
 }
 
 function renderAgent() {
   const cfg = getAgentInputs();
+  const container = document.getElementById("agent-recommendations");
+  container.innerHTML = "";
+
+  if (_agent.meta_signals.length === 0) {
+    setText("agent-summary", `No holistic meta signals fired today. The system needs ≥2 above-chance methodologies agreeing on the same direction at the same horizon. Check back after the next workflow run.`);
+    return;
+  }
+
+  // Diagnostics: how many at each filter step?
+  const totalAtHorizon = _agent.meta_signals.filter(s => s.horizon_days === cfg.horizon).length;
+
   let candidates = _agent.meta_signals.filter(s => s.horizon_days === cfg.horizon);
   if (cfg.direction !== "any") candidates = candidates.filter(s => s.direction === cfg.direction);
   if (cfg.minConf) candidates = candidates.filter(s => s.confidence >= cfg.minConf);
@@ -138,7 +155,7 @@ function renderAgent() {
   }
 
   // Re-size each candidate using the user's capital
-  const ranked = candidates.map(s => {
+  let ranked = candidates.map(s => {
     const sizing = sizePosition(s.direction, s.price, s.atr, s.confidence, cfg.capital, cfg.riskPct, cfg.maxPosPct);
     const opts = recommendOptions(s.direction, s.confidence, s.price, s.atr, s.horizon_days, cfg.optionsAllowed);
     return { ...s, _sizing: sizing, _options: opts };
@@ -146,21 +163,39 @@ function renderAgent() {
 
   ranked.sort((a, b) => b.confidence - a.confidence);
 
+  if (ranked.length === 0) {
+    setText("agent-summary",
+      `No recommendations match your filters (${totalAtHorizon} signals exist at ${cfg.horizon}d horizon, but none pass confidence ≥ ${cfg.minConf} + your other filters). Try lowering min confidence, switching horizon, or allowing both directions.`);
+    return;
+  }
+
+  // Portfolio mode: pick top-N, split capital evenly
+  if (cfg.mode === "portfolio") {
+    const n = Math.min(cfg.portfolioN, ranked.length);
+    const perPositionCapital = cfg.capital / n;
+    // recompute sizing per-position with the smaller per-slot capital
+    const portfolio = ranked.slice(0, n).map(s => {
+      const sizing = sizePosition(s.direction, s.price, s.atr, s.confidence, perPositionCapital, cfg.riskPct, 100); // allow up to 100% of slot
+      const opts = recommendOptions(s.direction, s.confidence, s.price, s.atr, s.horizon_days, cfg.optionsAllowed);
+      return { ...s, _sizing: sizing, _options: opts };
+    }).filter(s => s._sizing !== null);
+    const totalPosUsd = portfolio.reduce((a, s) => a + s._sizing.posUsd, 0);
+    const totalRiskUsd = portfolio.reduce((a, s) => a + s._sizing.riskUsd, 0);
+    setText("agent-summary",
+      `Portfolio mode: ${portfolio.length} positions, ~$${perPositionCapital.toFixed(0)} each. Total deployed ${fmtUsd(totalPosUsd)} (${(totalPosUsd/cfg.capital*100).toFixed(0)}% of capital), total at-risk ${fmtUsd(totalRiskUsd)} (${(totalRiskUsd/cfg.capital*100).toFixed(1)}% of capital). Diversifies across the top-${cfg.portfolioN} highest-confidence picks.`);
+    for (const s of portfolio) container.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg));
+    return;
+  }
+
+  // Ranked mode (default)
   setText("agent-summary",
-    ranked.length === 0
-      ? `No recommendations match your filters. Try lowering min confidence, switching horizon, or allowing both directions.`
-      : `Showing ${Math.min(ranked.length, 10)} of ${ranked.length} matching recommendations (sized for $${cfg.capital.toLocaleString()} capital, ${cfg.riskPct}% risk per trade).`);
+    `Showing ${Math.min(ranked.length, 10)} of ${ranked.length} matching recommendations (sized for ${fmtUsd(cfg.capital)} capital, ${cfg.riskPct}% risk per trade).`);
 
-  const container = document.getElementById("agent-recommendations");
-  container.innerHTML = "";
-  if (ranked.length === 0) return;
-
-  const showAll = ranked.length <= 10;
   const top = ranked.slice(0, 10);
   for (const s of top) {
     container.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg));
   }
-  if (!showAll) {
+  if (ranked.length > 10) {
     container.insertAdjacentHTML("beforeend", `
       <details class="show-more">
         <summary>Show all ${ranked.length} recommendations</summary>
@@ -185,8 +220,7 @@ function renderRecommendationCard(s, cfg) {
 
   const sentChip = sentimentChip(s.sentiment);
   const contribs = (s.contributing_methodologies || [])
-    .slice(0, 4)
-    .map(c => `<span class="pattern-chip">${c.methodology}</span>`).join(" ");
+    .map(c => `<span class="pattern-chip" title="${c.methodology} fired ${c.direction.toUpperCase()} at confidence ${c.confidence}, weighted by ${(c.weight * 100).toFixed(0)}% (from accuracy ${(c.accuracy * 100).toFixed(1)}%)">${c.methodology} → ${c.direction.toUpperCase()}</span>`).join(" ");
 
   let optsLine = "";
   if (opts) {
@@ -199,12 +233,24 @@ function renderRecommendationCard(s, cfg) {
     optsLine = `<div class="rec-line muted">Options: not recommended at this confidence — equity only.</div>`;
   }
 
+  // Recent news headlines if sentiment available
+  let newsBlock = "";
+  if (s.sentiment && Array.isArray(s.sentiment.headlines) && s.sentiment.headlines.length > 0) {
+    const items = s.sentiment.headlines.slice(0, 3).map(h => `<li>${h}</li>`).join("");
+    newsBlock = `
+      <details class="news-details">
+        <summary class="muted small">Recent headlines (${s.sentiment.headline_count})</summary>
+        <ul class="news-list">${items}</ul>
+      </details>
+    `;
+  }
+
   return `
     <div class="rec-card">
       <div class="rec-header">
-        <span class="rec-ticker">${s.ticker}</span>
+        <a href="#" class="rec-ticker ticker-link" data-ticker="${s.ticker}">${s.ticker}</a>
         <span class="tag ${dClass}">${s.direction.toUpperCase()}</span>
-        <span class="rec-meta">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · ${s.n_contributing} methods agree</span>
+        <span class="rec-meta">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · margin ${(s.vote_margin * 100).toFixed(1)}% · ${s.n_contributing} methods agree</span>
         ${earningsWarn}
         ${sentChip}
       </div>
@@ -212,9 +258,126 @@ function renderRecommendationCard(s, cfg) {
         <strong>Equity:</strong> Buy <strong>${fmtNum(sizing.shares)} shares</strong> @ ${fmtUsd(s.price)} · stop ${fmtUsd(sizing.stop)} · position ${fmtUsd(sizing.posUsd)} (${(sizing.pctOfCapital * 100).toFixed(1)}% of capital) · max risk ${fmtUsd(sizing.riskUsd)}
       </div>
       ${optsLine}
-      <div class="rec-line muted small">Methodologies in favor: ${contribs}</div>
+      <div class="rec-line muted small">Voted in favor: ${contribs}</div>
+      ${newsBlock}
     </div>
   `;
+}
+
+// =========================================================================
+// TICKER DEEP-DIVE MODAL
+// =========================================================================
+
+const _allData = { signals: null, backtest: null, predictions: null };
+
+function showTickerModal(ticker) {
+  const body = document.getElementById("ticker-modal-body");
+  ticker = ticker.toUpperCase();
+
+  const metas = (_allData.signals?.meta_signals || []).filter(s => s.ticker === ticker);
+  const allSigs = (_allData.signals?.signals || []).filter(s => s.ticker === ticker);
+  const perTicker = _allData.backtest?.per_ticker?.[ticker] || null;
+  const ticker_preds = (_allData.predictions?.predictions || []).filter(p => p.ticker === ticker).slice(0, 20);
+  const sentiment = _allData.signals?.sentiments?.[ticker];
+
+  const sigByHorizon = {};
+  for (const s of allSigs) {
+    sigByHorizon[s.horizon_days] = sigByHorizon[s.horizon_days] || [];
+    sigByHorizon[s.horizon_days].push(s);
+  }
+
+  const sample = allSigs[0] || metas[0];
+  const price = sample?.price;
+  const atr = sample?.atr;
+  const firedPatterns = sample?.fired_patterns || [];
+
+  let metaHtml = "";
+  if (metas.length > 0) {
+    metaHtml = `<div class="modal-section">
+      <h4>Holistic meta-ensemble across horizons</h4>
+      <table style="width:100%"><thead><tr><th>Horizon</th><th>Direction</th><th>Confidence</th><th>Margin</th><th>Methods</th></tr></thead><tbody>
+      ${metas.sort((a,b) => a.horizon_days - b.horizon_days).map(m => `
+        <tr>
+          <td>${m.horizon_days}d</td>
+          <td>${dirTag(m.direction)}</td>
+          <td>${m.confidence.toFixed(3)}</td>
+          <td>${(m.vote_margin * 100).toFixed(1)}%</td>
+          <td>${m.contributing_methodologies.map(c => `<span class="pattern-chip">${c.methodology} ${c.direction[0].toUpperCase()}</span>`).join(" ")}</td>
+        </tr>
+      `).join("")}
+      </tbody></table>
+    </div>`;
+  } else {
+    metaHtml = `<div class="modal-section"><h4>Holistic meta-ensemble</h4><p class="muted">No meta signal fired for ${ticker} today.</p></div>`;
+  }
+
+  const patternsHtml = firedPatterns.length > 0
+    ? `<div class="modal-section">
+        <h4>Patterns fired today (${firedPatterns.length})</h4>
+        <ul class="news-list">${firedPatterns.map(p => `<li><code>${p.name}</code> → ${p.direction.toUpperCase()} (conf ${p.confidence.toFixed(2)}) — <span class="muted">${p.note}</span></li>`).join("")}</ul>
+      </div>`
+    : `<div class="modal-section"><h4>Patterns fired today</h4><p class="muted">No patterns fired for ${ticker}.</p></div>`;
+
+  let sentHtml = "";
+  if (sentiment) {
+    const items = (sentiment.headlines || []).slice(0, 5).map(h => `<li>${h}</li>`).join("");
+    sentHtml = `<div class="modal-section">
+      <h4>News sentiment: ${sentiment.label} (${sentiment.score.toFixed(2)})</h4>
+      <ul class="news-list">${items || "<li>no headlines</li>"}</ul>
+    </div>`;
+  }
+
+  const tickerHist = perTicker
+    ? `<div class="modal-section">
+        <h4>Backtest accuracy for ${ticker}</h4>
+        <p>
+          <strong>${fmtPct(perTicker.accuracy)}</strong> on ${perTicker.n} samples (${perTicker.correct} correct)
+          ${!perTicker.min_samples_met ? '<span class="muted small">(small sample)</span>' : ""}
+        </p>
+        <p class="muted small">
+          Bullish ${perTicker.up_n}/${fmtPct(perTicker.up_accuracy)} · Bearish ${perTicker.down_n}/${fmtPct(perTicker.down_accuracy)}
+        </p>
+      </div>`
+    : `<div class="modal-section"><h4>Backtest accuracy for ${ticker}</h4><p class="muted">No backtest data for ${ticker} yet.</p></div>`;
+
+  const predsHtml = ticker_preds.length > 0
+    ? `<div class="modal-section"><h4>Live predictions for ${ticker}</h4>
+      <table style="width:100%"><thead><tr><th>Made</th><th>Direction</th><th>Conf</th><th>Horizon</th><th>Status</th><th>Return</th></tr></thead><tbody>
+      ${ticker_preds.map(p => `<tr>
+        <td>${p.made_at}</td><td>${dirTag(p.predicted_direction)}</td><td>${p.ensemble_confidence.toFixed(2)}</td>
+        <td>${p.horizon_days}d</td><td>${p.status}</td><td>${p.actual_return_pct == null ? "—" : fmtPctSigned(p.actual_return_pct)}</td>
+      </tr>`).join("")}
+      </tbody></table>
+      </div>`
+    : "";
+
+  body.innerHTML = `
+    <h2>${ticker} <span class="muted small">${price ? "@ " + fmtUsd(price) : ""}</span></h2>
+    <p class="muted small">Today's snapshot ${sample?.as_of ? "as of " + sample.as_of : ""}.</p>
+    ${metaHtml}
+    ${patternsHtml}
+    ${sentHtml}
+    ${tickerHist}
+    ${predsHtml}
+  `;
+  document.getElementById("ticker-modal").hidden = false;
+}
+
+function setupTickerModal() {
+  document.getElementById("ticker-modal-close").addEventListener("click", () => {
+    document.getElementById("ticker-modal").hidden = true;
+  });
+  document.getElementById("ticker-modal").addEventListener("click", e => {
+    if (e.target.id === "ticker-modal") document.getElementById("ticker-modal").hidden = true;
+  });
+  document.addEventListener("click", e => {
+    const a = e.target.closest(".ticker-link");
+    if (a) {
+      e.preventDefault();
+      const ticker = a.dataset.ticker || a.textContent.trim();
+      showTickerModal(ticker);
+    }
+  });
 }
 
 // =========================================================================
@@ -360,7 +523,7 @@ function renderPerTickerTable() {
   for (const r of rows.slice(0, 200)) {
     const thin = !r.min_samples_met ? ` <span class="muted small">(thin)</span>` : "";
     tbody.insertAdjacentHTML("beforeend", `
-      <tr><td><strong>${r.ticker}</strong>${thin}</td><td>${r.n}</td><td>${r.correct}</td><td><strong>${fmtPct(r.accuracy)}</strong></td><td>${r.up_n}/${fmtPct(r.up_accuracy)}</td><td>${r.down_n}/${fmtPct(r.down_accuracy)}</td></tr>
+      <tr><td><a href="#" class="ticker-link" data-ticker="${r.ticker}"><strong>${r.ticker}</strong></a>${thin}</td><td>${r.n}</td><td>${r.correct}</td><td><strong>${fmtPct(r.accuracy)}</strong></td><td>${r.up_n}/${fmtPct(r.up_accuracy)}</td><td>${r.down_n}/${fmtPct(r.down_accuracy)}</td></tr>
     `);
   }
 }
@@ -390,7 +553,7 @@ function renderPredictionsTable() {
     const result = !resolved ? tag("OPEN", "open") : p.correct ? tag("CORRECT", "correct") : tag("WRONG", "wrong");
     tbody.insertAdjacentHTML("beforeend", `
       <tr class="${klass}">
-        <td>${p.made_at}</td><td><strong>${p.ticker}</strong></td><td>${dirTag(p.predicted_direction)}</td>
+        <td>${p.made_at}</td><td><a href="#" class="ticker-link" data-ticker="${p.ticker}"><strong>${p.ticker}</strong></a></td><td>${dirTag(p.predicted_direction)}</td>
         <td>${p.ensemble_confidence.toFixed(3)}</td><td>${p.horizon_days}d</td><td>${p.status}</td>
         <td>${p.actual_return_pct == null ? "—" : fmtPctSigned(p.actual_return_pct)}</td><td>${result}</td>
       </tr>
@@ -417,6 +580,10 @@ async function main() {
     loadJson(FILES.predictions),
     loadJson(FILES.weights),
   ]);
+  _allData.signals = signals;
+  _allData.backtest = bt;
+  _allData.predictions = preds;
+  setupTickerModal();
   setupAgent(signals);
   renderMethodologies(methodologies);
   renderScoreboard(sb);

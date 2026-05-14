@@ -32,20 +32,22 @@ METHODOLOGIES: list[Methodology] = [
     ),
     Methodology(
         name="trend_following",
-        description="SMA/MACD crossovers + multi-timeframe alignment + relative strength",
+        description="SMA/MACD/Ichimoku crossovers + multi-timeframe alignment + relative strength",
         pattern_filter=frozenset({
             "sma_crossover_bull", "sma_crossover_bear",
             "golden_cross", "death_cross",
             "macd_cross_bull", "macd_cross_bear",
             "multi_timeframe_bull", "multi_timeframe_bear",
             "relative_strength_bull", "relative_strength_bear",
+            "ichimoku_bull_cross", "ichimoku_bear_cross",
         }),
     ),
     Methodology(
         name="mean_reversion",
-        description="RSI extremes, Bollinger squeezes, doji at S/R, volume dry-up/dry-top",
+        description="RSI/Stochastic extremes, Bollinger squeezes, doji at S/R, volume dry-up/dry-top",
         pattern_filter=frozenset({
             "rsi_oversold", "rsi_overbought",
+            "stochastic_oversold", "stochastic_overbought",
             "bb_squeeze_breakout_up", "bb_squeeze_breakout_down",
             "doji_at_support", "doji_at_resistance",
             "volume_dry_up", "volume_dry_top",
@@ -83,6 +85,7 @@ METHODOLOGIES: list[Methodology] = [
             "macd_cross_bull", "macd_cross_bear",
             "multi_timeframe_bull", "multi_timeframe_bear",
             "relative_strength_bull", "relative_strength_bear",
+            "ichimoku_bull_cross", "ichimoku_bear_cross",
         }),
         regime_filter=frozenset({"bull", "bear"}),
     ),
@@ -182,9 +185,11 @@ def evaluate_meta_ensemble(
         return None
 
     direction = "up" if margin > 0 else "down"
-    agreement = abs(margin)
-    intensity = min(1.0, total / 1.5)
-    confidence = 0.5 + 0.5 * agreement * intensity
+    # Confidence reflects agreement quality. Min-methodologies + vote_margin
+    # already gate evidence quantity, so we don't penalize for the absolute
+    # magnitude of methodology weights (which are small when accuracies
+    # hover near chance and would otherwise squash confidence to 0.50-0.55).
+    confidence = 0.5 + 0.5 * abs(margin)
 
     correct = (direction == sample.actual_label)
     return {
@@ -257,9 +262,8 @@ def evaluate_meta_live(
         return None
 
     direction = "up" if margin > 0 else "down"
-    agreement = abs(margin)
-    intensity = min(1.0, total / 1.5)
-    confidence = 0.5 + 0.5 * agreement * intensity
+    # See evaluate_meta_ensemble — same simplified formula.
+    confidence = 0.5 + 0.5 * abs(margin)
     return {
         "direction": direction,
         "confidence": confidence,

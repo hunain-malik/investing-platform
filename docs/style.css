@@ -224,6 +224,55 @@ tr.row-pruned { opacity: 0.5; }
 .approach-card ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.85rem; }
 .approach-card li { margin: 3px 0; }
 
+.ticker-link {
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+.ticker-link:hover { text-decoration: underline; }
+
+.news-details {
+  margin-top: 6px;
+  background: var(--panel-2);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+.news-details summary { cursor: pointer; padding: 2px 0; }
+.news-list { margin: 6px 0 4px; padding-left: 18px; font-size: 0.85rem; color: var(--muted); }
+.news-list li { margin: 3px 0; }
+
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 100;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+}
+.modal-overlay[hidden] { display: none; }
+.modal-content {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-width: 900px; width: 100%;
+  padding: 24px;
+  position: relative;
+}
+.modal-close {
+  position: absolute; top: 12px; right: 12px;
+  background: transparent; border: none;
+  color: var(--muted); font-size: 1.5rem; cursor: pointer;
+  width: 32px; height: 32px;
+}
+.modal-close:hover { color: var(--text); }
+.modal-section {
+  margin: 16px 0;
+  padding: 12px;
+  background: var(--panel-2);
+  border-radius: 8px;
+}
+.modal-section h4 { margin: 0 0 8px; font-size: 0.95rem; color: var(--accent); }
+
 footer { color: var(--muted); padding: 24px 0; }
 footer a { color: var(--accent); }
 

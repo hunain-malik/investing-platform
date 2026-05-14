@@ -41,10 +41,11 @@
       </div>
       <div class="agent-field">
         <label>Min confidence<select id="agent-min-conf">
-          <option value="0.5">0.50 (loose)</option>
-          <option value="0.6" selected>0.60 (moderate)</option>
-          <option value="0.65">0.65 (strict)</option>
+          <option value="0.5">0.50 (show everything)</option>
+          <option value="0.55" selected>0.55 (moderate)</option>
+          <option value="0.6">0.60 (strict)</option>
           <option value="0.7">0.70 (very strict)</option>
+          <option value="0.8">0.80 (extreme)</option>
         </select></label>
       </div>
       <div class="agent-field">
@@ -61,6 +62,20 @@
         <label><input type="checkbox" id="agent-skip-earnings" checked /> Skip stocks with earnings inside horizon</label>
       </div>
       <div class="agent-field">
+        <label>Mode<select id="agent-mode">
+          <option value="ranked">Ranked picks (show all that match)</option>
+          <option value="portfolio">Portfolio (top N split across positions)</option>
+        </select></label>
+      </div>
+      <div class="agent-field" id="agent-portfolio-n-wrap" style="display:none">
+        <label>Portfolio size<select id="agent-portfolio-n">
+          <option value="3">3 positions</option>
+          <option value="5" selected>5 positions</option>
+          <option value="8">8 positions</option>
+          <option value="10">10 positions</option>
+        </select></label>
+      </div>
+      <div class="agent-field">
         <label>Ticker filter<input type="search" id="agent-ticker-filter" placeholder="e.g. AAPL, IBM" /></label>
       </div>
     </form>
@@ -68,17 +83,25 @@
     <div id="agent-summary" class="agent-summary muted small">Adjust inputs above to get personalized recommendations.</div>
     <div id="agent-recommendations"></div>
     <details class="liveness">
-      <summary>How "live" works + caveats</summary>
-      <p class="muted small">
-        The workflow runs <strong>4 times per US weekday</strong> (14:30, 17:00, 19:30, 22:00 UTC) plus
-        on manual trigger. The 22:00 UTC run is the authoritative one (uses the closing bar); intraday
-        runs show partial daily bars so signals there can be noisier. Daily-bar technical analysis
-        doesn't change intraday until the bar closes — for real intraday signals you'd need an
-        intraday data source, which this build doesn't have.
-        <br /><br />
-        Click "↻ Refresh now" in the header to open the Actions tab and trigger an immediate run
-        (~3 min). The dashboard auto-redeploys when the workflow commits new data.
-      </p>
+      <summary>How "live" works + how to refresh manually</summary>
+      <div class="muted small">
+        <p>
+          The workflow runs <strong>4 times per US weekday</strong> (14:30, 17:00, 19:30, 22:00 UTC)
+          plus on manual trigger. The 22:00 UTC run is authoritative (uses the closing bar); intraday
+          runs include partial bars and current prices.
+        </p>
+        <p><strong>To run analysis right now (~3 minutes):</strong></p>
+        <ol>
+          <li>Click <a href="https://github.com/hunain-malik/investing-platform/actions/workflows/analysis.yml" target="_blank" rel="noopener">this link to open the Actions page</a></li>
+          <li>On that page, click the gray <strong>"Run workflow ▾"</strong> button (top right of the runs list)</li>
+          <li>In the dropdown that appears, click the green <strong>"Run workflow"</strong> button</li>
+          <li>Wait ~3 minutes, then refresh this dashboard</li>
+        </ol>
+        <p>
+          GitHub Pages doesn't let us run Python on click directly — but this two-click sequence is the official path.
+          A future iteration could add a small serverless trigger (Cloudflare Workers) for one-click refresh.
+        </p>
+      </div>
     </details>
   </section>
 
@@ -262,6 +285,14 @@
       </ul>
     </details>
   </section>
+
+  <!-- Ticker deep-dive modal -->
+  <div id="ticker-modal" class="modal-overlay" hidden>
+    <div class="modal-content">
+      <button class="modal-close" id="ticker-modal-close">×</button>
+      <div id="ticker-modal-body"></div>
+    </div>
+  </div>
 
   <footer>
     <p class="muted small">
