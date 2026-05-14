@@ -1,6 +1,225 @@
 {
-  "updated_at": null,
-  "n_samples": 0,
-  "methodologies": {},
-  "definitions": []
+  "updated_at": "2026-05-14T19:04:12Z",
+  "n_samples": 1000,
+  "methodologies": {
+    "all": {
+      "description": "All patterns combined \u2014 baseline ensemble",
+      "samples_applicable": 1000,
+      "signals_emitted": 664,
+      "correct": 280,
+      "accuracy": 0.4217,
+      "signal_rate": 0.664,
+      "by_horizon": {
+        "5": {
+          "signals": 226,
+          "correct": 91,
+          "accuracy": 0.4027
+        },
+        "10": {
+          "signals": 220,
+          "correct": 92,
+          "accuracy": 0.4182
+        },
+        "20": {
+          "signals": 218,
+          "correct": 97,
+          "accuracy": 0.445
+        }
+      }
+    },
+    "trend_following": {
+      "description": "SMA/MACD crossovers and multi-timeframe alignment only",
+      "samples_applicable": 1000,
+      "signals_emitted": 600,
+      "correct": 266,
+      "accuracy": 0.4433,
+      "signal_rate": 0.6,
+      "by_horizon": {
+        "5": {
+          "signals": 200,
+          "correct": 84,
+          "accuracy": 0.42
+        },
+        "10": {
+          "signals": 203,
+          "correct": 88,
+          "accuracy": 0.4335
+        },
+        "20": {
+          "signals": 197,
+          "correct": 94,
+          "accuracy": 0.4772
+        }
+      }
+    },
+    "mean_reversion": {
+      "description": "RSI extremes, Bollinger squeezes, doji at S/R",
+      "samples_applicable": 1000,
+      "signals_emitted": 135,
+      "correct": 43,
+      "accuracy": 0.3185,
+      "signal_rate": 0.135,
+      "by_horizon": {
+        "5": {
+          "signals": 47,
+          "correct": 19,
+          "accuracy": 0.4043
+        },
+        "10": {
+          "signals": 44,
+          "correct": 13,
+          "accuracy": 0.2955
+        },
+        "20": {
+          "signals": 44,
+          "correct": 11,
+          "accuracy": 0.25
+        }
+      }
+    },
+    "candlestick_only": {
+      "description": "Only candlestick patterns \u2014 wick/body shape signals",
+      "samples_applicable": 1000,
+      "signals_emitted": 93,
+      "correct": 31,
+      "accuracy": 0.3333,
+      "signal_rate": 0.093,
+      "by_horizon": {
+        "5": {
+          "signals": 32,
+          "correct": 12,
+          "accuracy": 0.375
+        },
+        "10": {
+          "signals": 29,
+          "correct": 8,
+          "accuracy": 0.2759
+        },
+        "20": {
+          "signals": 32,
+          "correct": 11,
+          "accuracy": 0.3438
+        }
+      }
+    },
+    "high_confidence": {
+      "description": "All patterns but only count signals with confidence >= 0.75",
+      "samples_applicable": 1000,
+      "signals_emitted": 1,
+      "correct": 1,
+      "accuracy": 1.0,
+      "signal_rate": 0.001,
+      "by_horizon": {
+        "5": {
+          "signals": 1,
+          "correct": 1,
+          "accuracy": 1.0
+        }
+      }
+    },
+    "trend_in_trending_regime": {
+      "description": "Trend-following patterns, but only when the market is in a clear bull or bear regime",
+      "samples_applicable": 861,
+      "signals_emitted": 522,
+      "correct": 237,
+      "accuracy": 0.454,
+      "signal_rate": 0.6063,
+      "by_horizon": {
+        "5": {
+          "signals": 170,
+          "correct": 74,
+          "accuracy": 0.4353
+        },
+        "10": {
+          "signals": 173,
+          "correct": 76,
+          "accuracy": 0.4393
+        },
+        "20": {
+          "signals": 179,
+          "correct": 87,
+          "accuracy": 0.486
+        }
+      }
+    }
+  },
+  "definitions": [
+    {
+      "name": "all",
+      "description": "All patterns combined \u2014 baseline ensemble",
+      "pattern_filter": null,
+      "regime_filter": null,
+      "min_confidence": 0.5
+    },
+    {
+      "name": "trend_following",
+      "description": "SMA/MACD crossovers and multi-timeframe alignment only",
+      "pattern_filter": [
+        "death_cross",
+        "golden_cross",
+        "macd_cross_bear",
+        "macd_cross_bull",
+        "multi_timeframe_bear",
+        "multi_timeframe_bull",
+        "sma_crossover_bear",
+        "sma_crossover_bull"
+      ],
+      "regime_filter": null,
+      "min_confidence": 0.5
+    },
+    {
+      "name": "mean_reversion",
+      "description": "RSI extremes, Bollinger squeezes, doji at S/R",
+      "pattern_filter": [
+        "bb_squeeze_breakout_down",
+        "bb_squeeze_breakout_up",
+        "doji_at_resistance",
+        "doji_at_support",
+        "rsi_overbought",
+        "rsi_oversold"
+      ],
+      "regime_filter": null,
+      "min_confidence": 0.5
+    },
+    {
+      "name": "candlestick_only",
+      "description": "Only candlestick patterns \u2014 wick/body shape signals",
+      "pattern_filter": [
+        "bearish_engulfing",
+        "bullish_engulfing",
+        "doji_at_resistance",
+        "doji_at_support",
+        "hammer",
+        "shooting_star"
+      ],
+      "regime_filter": null,
+      "min_confidence": 0.5
+    },
+    {
+      "name": "high_confidence",
+      "description": "All patterns but only count signals with confidence >= 0.75",
+      "pattern_filter": null,
+      "regime_filter": null,
+      "min_confidence": 0.75
+    },
+    {
+      "name": "trend_in_trending_regime",
+      "description": "Trend-following patterns, but only when the market is in a clear bull or bear regime",
+      "pattern_filter": [
+        "death_cross",
+        "golden_cross",
+        "macd_cross_bear",
+        "macd_cross_bull",
+        "multi_timeframe_bear",
+        "multi_timeframe_bull",
+        "sma_crossover_bear",
+        "sma_crossover_bull"
+      ],
+      "regime_filter": [
+        "bear",
+        "bull"
+      ],
+      "min_confidence": 0.5
+    }
+  ]
 }
