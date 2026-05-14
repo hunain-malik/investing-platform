@@ -14,7 +14,7 @@ from typing import Callable
 
 import pandas as pd
 
-from . import candlestick, chart, multi_timeframe, oscillators
+from . import candlestick, chart, multi_timeframe, oscillators, relative_strength, volume
 
 
 @dataclass(frozen=True)
@@ -46,6 +46,12 @@ DETECTORS: list[PatternFn] = [
     chart.detect_bb_squeeze_breakout_down,
     multi_timeframe.detect_multi_timeframe_alignment_bull,
     multi_timeframe.detect_multi_timeframe_alignment_bear,
+    volume.detect_volume_breakout_bull,
+    volume.detect_volume_breakout_bear,
+    volume.detect_volume_dry_up,
+    volume.detect_volume_dry_top,
+    relative_strength.detect_relative_strength_bull,
+    relative_strength.detect_relative_strength_bear,
     oscillators.detect_rsi_oversold,
     oscillators.detect_rsi_overbought,
     oscillators.detect_macd_cross_bull,

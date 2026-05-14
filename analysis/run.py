@@ -31,9 +31,11 @@ from .backtest import (
     aggregate_ensemble_accuracy,
     aggregate_pattern_accuracy_flat,
     aggregate_pattern_accuracy_per_horizon,
+    aggregate_per_ticker,
     run_batch,
     update_weights_per_horizon,
 )
+from .cross_validation import kfold_meta_accuracy
 from .data import fetch_history_cached
 from .indicators import compute_all
 from .methodologies import (
@@ -55,6 +57,7 @@ from .scoreboard import (
 from .sentiment import fetch_sentiment
 from .signals import EnsembleSignal, analyze_all_horizons
 from .sizing import size_position
+from .universe import backtest_universe, watchlist
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_FILE = ROOT / "config.yaml"
@@ -128,6 +131,10 @@ def main() -> int:
     bt_cfg = config["backtest"]
     sig_cfg = config["signals"]
 
+    # Watchlist and backtest universe — fall back to universe.py defaults
+    watchlist_tickers = config.get("watchlist") or watchlist()
+    bt_universe = config.get("backtest_universe") or backtest_universe()
+
     # ---- 1. Resolve any open predictions whose horizon has elapsed --------
     predictions = load_predictions()
     predictions, resolved = resolve_due_predictions(
@@ -141,7 +148,7 @@ def main() -> int:
     log.info("running backtest: %d samples across horizons %s",
              bt_cfg["samples_per_run"], horizons)
     samples = run_batch(
-        universe=config["backtest_universe"],
+        universe=bt_universe,
         horizons=horizons,
         weights_per_horizon=weights,
         n_samples=bt_cfg["samples_per_run"],
@@ -172,6 +179,28 @@ def main() -> int:
         samples, weights, method_acc_per_h,
     )
 
+    # Auto-prune methodologies whose accuracy is below 0.5 at EVERY horizon
+    # they had data for. These are net-harmful and shouldn't be acted on.
+    pruned: list[str] = []
+    for name, stats in methodology_stats.items():
+        if name == "meta_ensemble":
+            continue
+        by_h = stats.get("by_horizon", {}) or {}
+        if not by_h:
+            continue
+        accs = [v.get("accuracy") for v in by_h.values() if v.get("accuracy") is not None]
+        if accs and all(a < 0.5 for a in accs):
+            pruned.append(name)
+            stats["pruned"] = True
+        else:
+            stats["pruned"] = False
+
+    # K-fold cross-validated meta accuracy — the honest, out-of-sample number
+    kfold_result = kfold_meta_accuracy(samples, weights, k=5)
+
+    # Per-ticker accuracy
+    per_ticker_stats = aggregate_per_ticker(samples)
+
     # ---- 4. Update per-horizon pattern weights from backtest --------------
     if pattern_acc_per_h:
         old_weights = {p: dict(hw) for p, hw in weights.items()}
@@ -183,15 +212,17 @@ def main() -> int:
     live_meta_signals = []
     sentiments_by_ticker: dict[str, dict] = {}
 
-    # Load SPY once for live regime detection
+    # Load SPY once for live regime detection AND relative-strength patterns
     try:
         spy_df = load_spy()
+        from .indicators import set_benchmark
+        set_benchmark(spy_df)
         live_regime = regime_at(spy_df, pd.Timestamp.utcnow().normalize())
     except Exception as e:  # noqa: BLE001
         log.warning("could not compute live regime: %s", e)
         live_regime = "unknown"
 
-    for ticker in config["watchlist"]:
+    for ticker in watchlist_tickers:
         try:
             df = fetch_history_cached(ticker)
         except Exception as e:  # noqa: BLE001
@@ -200,15 +231,18 @@ def main() -> int:
         if len(df) < 252:
             continue
 
-        sentiment = fetch_sentiment(ticker)
-        if sentiment is not None:
-            sentiments_by_ticker[ticker] = sentiment.to_dict()
-
         horizon_signals = analyze_all_horizons(ticker, df, weights, horizons)
 
         # Compute fired patterns once for meta evaluation (same for all horizons)
         df_ind = compute_all(df)
         fired_today = detect_all(df_ind, idx=-1)
+
+        # Only fetch sentiment for tickers that actually fired a pattern
+        # (avoid 200 unnecessary yfinance.news calls per run)
+        if fired_today:
+            sentiment = fetch_sentiment(ticker)
+            if sentiment is not None:
+                sentiments_by_ticker[ticker] = sentiment.to_dict()
 
         for sig in horizon_signals:
             sig_dict = sig.to_dict()
@@ -317,10 +351,13 @@ def main() -> int:
         "ensemble": ensemble_acc,
         "patterns_flat": pattern_acc_flat,
         "patterns_per_horizon": pattern_acc_per_h,
+        "per_ticker": per_ticker_stats,
     })
     write_json(DATA_DIR / "methodologies.json", {
         "updated_at": _ts(),
         "n_samples": len(samples),
+        "meta_kfold": kfold_result,
+        "pruned": pruned,
         "methodologies": methodology_stats,
         "definitions": [
             {"name": m.name, "description": m.description,

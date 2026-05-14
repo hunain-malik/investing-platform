@@ -134,9 +134,11 @@ def run_batch(
         log.error("no tickers with enough history")
         return samples
 
-    # Load SPY once for regime tagging
+    # Load SPY once for regime tagging AND for relative-strength patterns
     try:
         spy = load_spy()
+        from .indicators import set_benchmark
+        set_benchmark(spy)
     except Exception as e:  # noqa: BLE001
         log.warning("could not load SPY for regime detection: %s", e)
         spy = None
@@ -207,6 +209,41 @@ def aggregate_pattern_accuracy_per_horizon(
                 "by_up": d["by_up"],
                 "by_down": d["by_down"],
             }
+    return out
+
+
+def aggregate_per_ticker(samples: list[BacktestSample], min_samples: int = 10) -> dict[str, dict]:
+    """Per-ticker directional accuracy. Tickers with fewer than `min_samples`
+    backtest hits are still returned but flagged via the `n` count so the
+    dashboard can show them differently."""
+    stats: dict[str, dict[str, int]] = {}
+    for s in samples:
+        if s.ensemble_direction not in ("up", "down"):
+            continue
+        d = stats.setdefault(s.ticker, {"n": 0, "correct": 0, "up": 0, "down": 0, "up_correct": 0, "down_correct": 0})
+        d["n"] += 1
+        if s.ensemble_direction == "up":
+            d["up"] += 1
+            if s.ensemble_correct:
+                d["up_correct"] += 1
+        else:
+            d["down"] += 1
+            if s.ensemble_correct:
+                d["down_correct"] += 1
+        if s.ensemble_correct:
+            d["correct"] += 1
+    out: dict[str, dict] = {}
+    for t, d in stats.items():
+        out[t] = {
+            "n": d["n"],
+            "correct": d["correct"],
+            "accuracy": round(d["correct"] / d["n"], 4) if d["n"] else None,
+            "up_n": d["up"],
+            "up_accuracy": round(d["up_correct"] / d["up"], 4) if d["up"] else None,
+            "down_n": d["down"],
+            "down_accuracy": round(d["down_correct"] / d["down"], 4) if d["down"] else None,
+            "min_samples_met": d["n"] >= min_samples,
+        }
     return out
 
 

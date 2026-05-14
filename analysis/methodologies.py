@@ -32,21 +32,23 @@ METHODOLOGIES: list[Methodology] = [
     ),
     Methodology(
         name="trend_following",
-        description="SMA/MACD crossovers and multi-timeframe alignment only",
+        description="SMA/MACD crossovers + multi-timeframe alignment + relative strength",
         pattern_filter=frozenset({
             "sma_crossover_bull", "sma_crossover_bear",
             "golden_cross", "death_cross",
             "macd_cross_bull", "macd_cross_bear",
             "multi_timeframe_bull", "multi_timeframe_bear",
+            "relative_strength_bull", "relative_strength_bear",
         }),
     ),
     Methodology(
         name="mean_reversion",
-        description="RSI extremes, Bollinger squeezes, doji at S/R",
+        description="RSI extremes, Bollinger squeezes, doji at S/R, volume dry-up/dry-top",
         pattern_filter=frozenset({
             "rsi_oversold", "rsi_overbought",
             "bb_squeeze_breakout_up", "bb_squeeze_breakout_down",
             "doji_at_support", "doji_at_resistance",
+            "volume_dry_up", "volume_dry_top",
         }),
     ),
     Methodology(
@@ -56,6 +58,14 @@ METHODOLOGIES: list[Methodology] = [
             "bullish_engulfing", "bearish_engulfing",
             "hammer", "shooting_star",
             "doji_at_support", "doji_at_resistance",
+        }),
+    ),
+    Methodology(
+        name="volume_driven",
+        description="Volume-based conviction patterns (breakouts and dry-ups)",
+        pattern_filter=frozenset({
+            "volume_breakout_bull", "volume_breakout_bear",
+            "volume_dry_up", "volume_dry_top",
         }),
     ),
     Methodology(
@@ -72,6 +82,7 @@ METHODOLOGIES: list[Methodology] = [
             "golden_cross", "death_cross",
             "macd_cross_bull", "macd_cross_bear",
             "multi_timeframe_bull", "multi_timeframe_bear",
+            "relative_strength_bull", "relative_strength_bear",
         }),
         regime_filter=frozenset({"bull", "bear"}),
     ),

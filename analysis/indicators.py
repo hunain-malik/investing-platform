@@ -13,6 +13,20 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+# Optional benchmark (typically SPY) attached at process start so the
+# relative-strength patterns can read SPY's close at any date without each
+# caller having to thread the benchmark through.
+_BENCHMARK_DF: pd.DataFrame | None = None
+
+
+def set_benchmark(df: pd.DataFrame | None) -> None:
+    global _BENCHMARK_DF
+    _BENCHMARK_DF = df
+
+
+def get_benchmark() -> pd.DataFrame | None:
+    return _BENCHMARK_DF
+
 
 def sma(close: pd.Series, window: int) -> pd.Series:
     return close.rolling(window=window, min_periods=window).mean()
@@ -83,8 +97,12 @@ def volume_zscore(volume: pd.Series, window: int = 20) -> pd.Series:
     return (volume - mean) / std.replace(0, np.nan)
 
 
-def compute_all(df: pd.DataFrame) -> pd.DataFrame:
-    """Attach the full indicator suite to a copy of df."""
+def compute_all(df: pd.DataFrame, benchmark_df: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Attach the full indicator suite to a copy of df.
+
+    If `benchmark_df` (e.g. SPY) is provided, also attaches a `spy_close`
+    column aligned to df's index — used by relative-strength patterns.
+    """
     out = df.copy()
     close = out["Close"]
     out["sma_20"] = sma(close, 20)
@@ -104,4 +122,9 @@ def compute_all(df: pd.DataFrame) -> pd.DataFrame:
     out["bb_bandwidth"] = bb["bb_bandwidth"]
     out["atr_14"] = atr(out, 14)
     out["vol_z_20"] = volume_zscore(out["Volume"], 20)
+    if benchmark_df is None:
+        benchmark_df = _BENCHMARK_DF
+    if benchmark_df is not None and "Close" in benchmark_df.columns:
+        bench = benchmark_df["Close"].reindex(out.index, method="ffill")
+        out["spy_close"] = bench
     return out

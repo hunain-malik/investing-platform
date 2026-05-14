@@ -165,6 +165,8 @@ tr.row-wrong   td:last-child { color: var(--red); font-weight: 600; }
   gap: 16px;
   margin: 12px 0;
   font-size: 0.9rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 .signals-controls label {
   display: inline-flex;
@@ -172,6 +174,64 @@ tr.row-wrong   td:last-child { color: var(--red); font-weight: 600; }
   gap: 6px;
   cursor: pointer;
 }
+.signals-controls input[type="search"] {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-width: 140px;
+}
+.signals-controls select {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.section.featured {
+  background: linear-gradient(180deg, rgba(88, 166, 255, 0.05), transparent);
+  border: 1px solid rgba(88, 166, 255, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+.featured-card { margin-top: 8px; }
+.featured-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.featured-ticker { font-size: 2rem; font-weight: 700; }
+.featured-dir { font-size: 1.1rem; }
+.featured-horizon, .featured-conf { color: var(--muted); font-size: 0.95rem; }
+.featured-line { margin: 6px 0; font-size: 0.95rem; }
+.liveness { margin-top: 16px; }
+.liveness summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; }
+
+.kfold-banner {
+  display: flex;
+  gap: 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  align-items: center;
+}
+.kfold-banner > div { flex: 1; }
+.kfold-banner .label { color: var(--muted); font-size: 0.85rem; }
+.kfold-banner .value-big { font-size: 2.4rem; font-weight: 700; color: var(--green); }
+.kfold-banner .value-mid { font-size: 1.5rem; font-weight: 600; color: var(--muted); }
+.kfold-banner .sub { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+
+tr.row-featured { background: rgba(88, 166, 255, 0.08); }
+tr.row-featured td { font-weight: 600; }
+tr.row-pruned { opacity: 0.5; }
 
 .approach-grid {
   display: grid;

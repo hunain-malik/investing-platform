@@ -1,64 +1,11 @@
 # Investing platform configuration
-
-# Watchlist: tickers analyzed daily. Add/remove as you like.
-watchlist:
-  - AAPL
-  - MSFT
-  - GOOGL
-  - AMZN
-  - META
-  - NVDA
-  - TSLA
-  - IBM
-  - JPM
-  - V
-  - WMT
-  - SPY
-  - QQQ
-
-# Universe for random-sample backtesting (broader than watchlist on purpose —
-# the point is to test the algorithm on tickers it doesn't usually see)
-backtest_universe:
-  - AAPL
-  - MSFT
-  - GOOGL
-  - AMZN
-  - META
-  - NVDA
-  - TSLA
-  - IBM
-  - JPM
-  - V
-  - WMT
-  - SPY
-  - QQQ
-  - DIS
-  - NFLX
-  - BA
-  - CAT
-  - XOM
-  - CVX
-  - KO
-  - PEP
-  - MCD
-  - NKE
-  - HD
-  - LOW
-  - PG
-  - JNJ
-  - PFE
-  - UNH
-  - GS
-  - BAC
-  - WFC
-  - C
-  - AXP
-  - ORCL
-  - CRM
-  - ADBE
-  - INTC
-  - AMD
-  - QCOM
+#
+# Watchlist and backtest universe live in analysis/universe.py (200+ tickers
+# spanning large/mid caps, popular trading names, and ETFs). Edit there to
+# add/remove tickers — keeping them in Python lets us deduplicate cleanly.
+#
+# To override the universe from this file, set watchlist / backtest_universe
+# below. Otherwise the universe.py defaults are used.
 
 # Your capital and risk profile. The position sizer reads these.
 portfolio:
@@ -110,3 +57,9 @@ pattern_weights:
   doji_at_resistance: 1.0
   multi_timeframe_bull: 1.0
   multi_timeframe_bear: 1.0
+  volume_breakout_bull: 1.0
+  volume_breakout_bear: 1.0
+  volume_dry_up: 1.0
+  volume_dry_top: 1.0
+  relative_strength_bull: 1.0
+  relative_strength_bear: 1.0
