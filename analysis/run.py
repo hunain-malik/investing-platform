@@ -3,17 +3,17 @@
 Pipeline:
     1. Load config + per-horizon pattern weights (migrate flat weights if needed).
     2. Resolve any open predictions whose horizon has elapsed.
-    3. For each watchlist ticker:
-         - Fetch data, fetch sentiment.
-         - For each horizon, generate ensemble signal with horizon-specific weights.
-         - For actionable signals (confidence >= min_confidence), attach sizing +
-           options recommendations + sentiment context, and log a prediction.
-    4. Run backtest batch (random ticker × random cutoff × random horizon),
-       tagging each sample with the prevailing market regime.
-    5. Aggregate per-pattern, per-horizon, per-regime accuracy.
-    6. Evaluate each named methodology against the same backtest samples.
-    7. Update per-horizon weights from backtest accuracy.
+    3. Run backtest batch FIRST so we know each methodology's current accuracy.
+    4. Aggregate per-pattern, per-horizon, per-regime accuracy.
+    5. Evaluate each named methodology + the holistic meta-ensemble.
+    6. Update per-horizon pattern weights from backtest accuracy.
+    7. Generate live signals per (ticker, horizon) using updated weights AND
+       the holistic meta-ensemble using fresh methodology accuracies.
     8. Write JSON outputs to docs/data/.
+
+The backtest-before-live ordering means the meta-ensemble's vote on live data
+uses the most recent backtest's methodology accuracies — methodologies below
+chance get dropped before they influence today's actionable recommendation.
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import pandas as pd
 import yaml
 
 from .backtest import (
@@ -34,8 +35,16 @@ from .backtest import (
     update_weights_per_horizon,
 )
 from .data import fetch_history_cached
-from .methodologies import METHODOLOGIES, aggregate_methodology_accuracy
+from .indicators import compute_all
+from .methodologies import (
+    METHODOLOGIES,
+    aggregate_meta_ensemble,
+    aggregate_methodology_accuracy,
+    evaluate_meta_live,
+)
 from .options import recommend_options
+from .patterns import detect_all
+from .regime import load_spy, regime_at
 from .scoreboard import (
     aggregate_scoreboard,
     load_predictions,
@@ -44,7 +53,7 @@ from .scoreboard import (
     save_predictions,
 )
 from .sentiment import fetch_sentiment
-from .signals import analyze_all_horizons
+from .signals import EnsembleSignal, analyze_all_horizons
 from .sizing import size_position
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -71,7 +80,6 @@ def _initial_weights_per_horizon(config: dict) -> dict[str, dict[int, float]]:
 
 
 def load_weights(config: dict) -> dict[str, dict[int, float]]:
-    """Load per-horizon weights. Migrate flat weights from older state files."""
     horizons = config["horizons_days"]
     if WEIGHTS_FILE.exists():
         data = json.loads(WEIGHTS_FILE.read_text(encoding="utf-8"))
@@ -79,11 +87,13 @@ def load_weights(config: dict) -> dict[str, dict[int, float]]:
         out: dict[str, dict[int, float]] = {}
         for p, v in raw.items():
             if isinstance(v, dict):
-                # already per-horizon — keys may be strings from JSON
                 out[p] = {int(h): float(w) for h, w in v.items()}
             else:
-                # flat weight, broadcast across all horizons
                 out[p] = {h: float(v) for h in horizons}
+        # Ensure all horizons present (new horizons added via config get default 1.0)
+        for p in out:
+            for h in horizons:
+                out[p].setdefault(h, 1.0)
         if out:
             return out
     return _initial_weights_per_horizon(config)
@@ -91,7 +101,7 @@ def load_weights(config: dict) -> dict[str, dict[int, float]]:
 
 def save_weights(weights: dict[str, dict[int, float]], meta: dict) -> None:
     payload = {
-        "updated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "updated_at": _ts(),
         "weights": {p: {str(h): w for h, w in hw.items()} for p, hw in weights.items()},
         "meta": meta,
     }
@@ -127,9 +137,50 @@ def main() -> int:
     )
     log.info("resolved %d predictions", resolved)
 
-    # ---- 2. Generate live signals (per horizon) ---------------------------
+    # ---- 2. Run backtest FIRST so methodology accuracies are known --------
+    log.info("running backtest: %d samples across horizons %s",
+             bt_cfg["samples_per_run"], horizons)
+    samples = run_batch(
+        universe=config["backtest_universe"],
+        horizons=horizons,
+        weights_per_horizon=weights,
+        n_samples=bt_cfg["samples_per_run"],
+        history_years=bt_cfg["history_years"],
+        min_data_days=bt_cfg["min_data_days"],
+        up_threshold=bt_cfg["threshold_up_pct"],
+        down_threshold=bt_cfg["threshold_down_pct"],
+        seed=None,
+    )
+
+    # ---- 3. Aggregate accuracies + evaluate methodologies -----------------
+    ensemble_acc = aggregate_ensemble_accuracy(samples)
+    pattern_acc_flat = aggregate_pattern_accuracy_flat(samples)
+    pattern_acc_per_h = aggregate_pattern_accuracy_per_horizon(samples)
+    methodology_stats = aggregate_methodology_accuracy(samples, weights)
+
+    # Meta ensemble uses each methodology's just-computed accuracy as its weight
+    method_accs = {name: (s.get("accuracy") or 0.5) for name, s in methodology_stats.items()}
+    methodology_stats["meta_ensemble"] = aggregate_meta_ensemble(samples, weights, method_accs)
+
+    # ---- 4. Update per-horizon pattern weights from backtest --------------
+    if pattern_acc_per_h:
+        old_weights = {p: dict(hw) for p, hw in weights.items()}
+        weights = update_weights_per_horizon(weights, pattern_acc_per_h)
+        save_weights(weights, meta={"n_samples": len(samples), "previous_weights": old_weights})
+
+    # ---- 5. Generate live signals (per horizon) using updated weights ----
     live_signals = []
+    live_meta_signals = []
     sentiments_by_ticker: dict[str, dict] = {}
+
+    # Load SPY once for live regime detection
+    try:
+        spy_df = load_spy()
+        live_regime = regime_at(spy_df, pd.Timestamp.utcnow().normalize())
+    except Exception as e:  # noqa: BLE001
+        log.warning("could not compute live regime: %s", e)
+        live_regime = "unknown"
+
     for ticker in config["watchlist"]:
         try:
             df = fetch_history_cached(ticker)
@@ -144,75 +195,105 @@ def main() -> int:
             sentiments_by_ticker[ticker] = sentiment.to_dict()
 
         horizon_signals = analyze_all_horizons(ticker, df, weights, horizons)
+
+        # Compute fired patterns once for meta evaluation (same for all horizons)
+        df_ind = compute_all(df)
+        fired_today = detect_all(df_ind, idx=-1)
+
         for sig in horizon_signals:
             sig_dict = sig.to_dict()
             sig_dict["sentiment"] = sentiments_by_ticker.get(ticker)
+            sig_dict["regime"] = live_regime
 
             sizing_plan = None
             options_plan = None
             if sig.direction in ("up", "down") and sig.confidence >= sig_cfg["min_confidence"]:
                 sizing_plan = size_position(
                     direction=sig.direction,
-                    entry=sig.price,
-                    atr=sig.atr,
-                    confidence=sig.confidence,
+                    entry=sig.price, atr=sig.atr, confidence=sig.confidence,
                     capital_usd=portfolio["capital_usd"],
                     risk_per_trade_pct=portfolio["risk_per_trade_pct"],
                     max_position_pct=portfolio["max_position_pct"],
                 )
                 options_plan = recommend_options(
-                    direction=sig.direction,
-                    confidence=sig.confidence,
-                    spot=sig.price,
-                    atr=sig.atr,
+                    direction=sig.direction, confidence=sig.confidence,
+                    spot=sig.price, atr=sig.atr,
                     horizon_days=sig.horizon_days,
                     options_allowed=portfolio.get("options_allowed", True),
                 )
-
                 if len(sig.fired_patterns) >= sig_cfg["min_patterns_for_signal"]:
                     predictions = log_predictions_from_signal(
                         sig, [sig.horizon_days], sig_cfg["min_confidence"], predictions
                     )
-
             sig_dict["sizing"] = sizing_plan.to_dict() if sizing_plan else None
             sig_dict["options"] = options_plan.to_dict() if options_plan else None
             live_signals.append(sig_dict)
 
-    # ---- 3. Run backtest batch -------------------------------------------
-    log.info("running backtest: %d samples...", bt_cfg["samples_per_run"])
-    samples = run_batch(
-        universe=config["backtest_universe"],
-        horizons=horizons,
-        weights_per_horizon=weights,
-        n_samples=bt_cfg["samples_per_run"],
-        history_years=bt_cfg["history_years"],
-        min_data_days=bt_cfg["min_data_days"],
-        up_threshold=bt_cfg["threshold_up_pct"],
-        down_threshold=bt_cfg["threshold_down_pct"],
-        seed=None,
-    )
+            # Meta-ensemble live evaluation
+            meta = evaluate_meta_live(
+                fired_patterns=fired_today,
+                regime=live_regime,
+                horizon=sig.horizon_days,
+                weights_per_horizon=weights,
+                methodology_accuracies=method_accs,
+            )
+            if meta is not None:
+                meta_sizing = size_position(
+                    direction=meta["direction"], entry=sig.price, atr=sig.atr,
+                    confidence=meta["confidence"],
+                    capital_usd=portfolio["capital_usd"],
+                    risk_per_trade_pct=portfolio["risk_per_trade_pct"],
+                    max_position_pct=portfolio["max_position_pct"],
+                )
+                meta_options = recommend_options(
+                    direction=meta["direction"], confidence=meta["confidence"],
+                    spot=sig.price, atr=sig.atr, horizon_days=sig.horizon_days,
+                    options_allowed=portfolio.get("options_allowed", True),
+                )
+                live_meta_signals.append({
+                    "ticker": ticker,
+                    "as_of": sig.as_of.strftime("%Y-%m-%d"),
+                    "horizon_days": sig.horizon_days,
+                    "regime": live_regime,
+                    "direction": meta["direction"],
+                    "confidence": round(meta["confidence"], 4),
+                    "vote_margin": meta["vote_margin"],
+                    "n_contributing": meta["n_contributing"],
+                    "contributing_methodologies": meta["contributing_methodologies"],
+                    "price": round(sig.price, 4),
+                    "atr": round(sig.atr, 4),
+                    "sentiment": sentiments_by_ticker.get(ticker),
+                    "sizing": meta_sizing.to_dict() if meta_sizing else None,
+                    "options": meta_options.to_dict() if meta_options else None,
+                })
 
-    # ---- 4. Aggregate accuracies (overall + per-horizon + per-regime) -----
-    ensemble_acc = aggregate_ensemble_accuracy(samples)
-    pattern_acc_flat = aggregate_pattern_accuracy_flat(samples)
-    pattern_acc_per_h = aggregate_pattern_accuracy_per_horizon(samples)
+                # Log a meta prediction for the live scoreboard
+                if meta["confidence"] >= sig_cfg["min_confidence"]:
+                    meta_pseudo_signal = EnsembleSignal(
+                        ticker=ticker,
+                        as_of=sig.as_of,
+                        horizon_days=sig.horizon_days,
+                        direction=meta["direction"],
+                        confidence=meta["confidence"],
+                        fired_patterns=sig.fired_patterns,
+                        price=sig.price,
+                        atr=sig.atr,
+                        methodology="meta_ensemble",
+                    )
+                    predictions = log_predictions_from_signal(
+                        meta_pseudo_signal, [sig.horizon_days],
+                        sig_cfg["min_confidence"], predictions,
+                    )
 
-    # ---- 5. Evaluate methodologies ---------------------------------------
-    methodology_stats = aggregate_methodology_accuracy(samples, weights)
-
-    # ---- 6. Update pattern weights per-horizon ---------------------------
-    if pattern_acc_per_h:
-        old_weights = {p: dict(hw) for p, hw in weights.items()}
-        weights = update_weights_per_horizon(weights, pattern_acc_per_h)
-        save_weights(weights, meta={"n_samples": len(samples), "previous_weights": old_weights})
-
-    # ---- 7. Save predictions and dashboard JSON -------------------------
+    # ---- 6. Save predictions and dashboard JSON --------------------------
     save_predictions(predictions)
     scoreboard = aggregate_scoreboard(predictions)
 
     write_json(DATA_DIR / "signals.json", {
         "updated_at": _ts(),
+        "live_regime": live_regime,
         "signals": live_signals,
+        "meta_signals": live_meta_signals,
         "sentiments": sentiments_by_ticker,
     })
     write_json(DATA_DIR / "predictions.json", {
@@ -237,7 +318,13 @@ def main() -> int:
              "regime_filter": sorted(m.regime_filter) if m.regime_filter else None,
              "min_confidence": m.min_confidence}
             for m in METHODOLOGIES
-        ],
+        ] + [{
+            "name": "meta_ensemble",
+            "description": "Holistic meta-ensemble: stacked vote across the others, weighted by each sub-method's backtest accuracy",
+            "pattern_filter": None,
+            "regime_filter": None,
+            "min_confidence": 0.50,
+        }],
     })
     write_json(DATA_DIR / "weights.json", {
         "updated_at": _ts(),
@@ -245,9 +332,9 @@ def main() -> int:
     })
 
     log.info(
-        "done. live signals: %d (%d sentiments), backtest samples: %d, "
-        "open preds: %d, resolved preds: %d",
-        len(live_signals), len(sentiments_by_ticker), len(samples),
+        "done. live regime: %s. signals: %d ensemble + %d meta. "
+        "backtest samples: %d. open preds: %d. resolved preds: %d.",
+        live_regime, len(live_signals), len(live_meta_signals), len(samples),
         scoreboard["open_predictions"], scoreboard["total_resolved"],
     )
     return 0

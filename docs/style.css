@@ -39,7 +39,16 @@ body {
   font-size: 0.95rem;
 }
 .topbar nav a:hover { color: var(--text); }
-.updated { color: var(--muted); font-size: 0.85rem; }
+.updated { color: var(--muted); font-size: 0.85rem; display: flex; align-items: center; gap: 12px; }
+.refresh-link {
+  color: var(--accent);
+  text-decoration: none;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+.refresh-link:hover { background: var(--panel-2); }
 
 main { max-width: 1200px; margin: 0 auto; padding: 24px; }
 

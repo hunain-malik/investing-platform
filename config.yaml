@@ -67,13 +67,16 @@ portfolio:
   max_position_pct: 25.0    # max % of capital in any single position
   options_allowed: true     # whether to consider options recommendations
 
-# Forward-looking prediction horizons (trading days)
-horizons_days: [5, 10, 20]
+# Forward-looking prediction horizons (trading days).
+# 5d/10d/20d are short-term swing; 60d/120d are quarter/half-year;
+# 252d is a 1-year view. Each horizon has its own per-pattern weights tuned
+# independently from backtest accuracy at THAT horizon.
+horizons_days: [5, 10, 20, 60, 120, 252]
 
 # Backtesting configuration
 backtest:
-  samples_per_run: 1000         # random (ticker, date) samples per analysis run
-  history_years: 6              # how far back to sample from
+  samples_per_run: 1500         # random (ticker, date) samples per analysis run
+  history_years: 10             # how far back to sample from (longer to give 252d horizon room)
   min_data_days: 252            # require at least 1 year of data before a cutoff
   threshold_up_pct: 1.0         # forward return >= this % counts as "up"
   threshold_down_pct: -1.0      # forward return <= this % counts as "down"

@@ -274,6 +274,59 @@ function renderPredictions(payload) {
   }
 }
 
+let _metaState = { all: [], hideLow: false };
+
+function renderMetaSignalsTable() {
+  const tbody = document.querySelector("#meta-signals-table tbody");
+  tbody.innerHTML = "";
+  let rows = _metaState.all.slice().sort((a, b) => b.confidence - a.confidence);
+  if (_metaState.hideLow) rows = rows.filter(s => s.confidence >= 0.65);
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="12" class="muted">No holistic signals — meta-ensemble requires ≥2 methodologies (with above-chance accuracy) to agree. Either methodologies are below chance or none fired today.</td></tr>`;
+    return;
+  }
+  for (const s of rows) {
+    const contributors = (s.contributing_methodologies || []).map(c =>
+      `<span class="pattern-chip" title="weight ${c.weight.toFixed(2)}, acc ${(c.accuracy*100).toFixed(0)}%">${c.methodology} → ${c.direction.toUpperCase()} (${c.confidence.toFixed(2)})</span>`
+    ).join("");
+    const sizing = s.sizing;
+    const opts = s.options;
+    const optsText = opts && opts.use_options
+      ? `${opts.strategy.replaceAll('_', ' ')}<br><span class="muted small">long ${opts.long_strike ?? "?"}${opts.short_strike ? " / short " + opts.short_strike : ""}, ${opts.target_dte_days}d</span>`
+      : `<span class="muted">equity only</span>`;
+    const rowClass = s.direction === "up" ? "row-up" : "row-down";
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr class="${rowClass}">
+        <td><strong>${s.ticker}</strong><br><span class="muted small">${s.as_of}</span></td>
+        <td>${s.horizon_days}d</td>
+        <td>${dirTag(s.direction)}</td>
+        <td>${confidenceCell(s.confidence)}</td>
+        <td>${(s.vote_margin * 100).toFixed(1)}%</td>
+        <td><div class="patterns-list">${contributors}</div></td>
+        <td>${fmtUsd(s.price)}</td>
+        <td>${sentimentCell(s.sentiment)}</td>
+        <td>${sizing ? fmtNum(sizing.shares) : "—"}</td>
+        <td>${sizing ? fmtUsd(sizing.stop) : "—"}</td>
+        <td>${sizing ? fmtUsd(sizing.risk_usd) : "—"}</td>
+        <td>${optsText}</td>
+      </tr>
+    `);
+  }
+}
+
+function renderHolistic(signalsPayload) {
+  const regime = signalsPayload?.live_regime || "unknown";
+  const regimeEl = document.getElementById("live-regime");
+  regimeEl.textContent = regime;
+  regimeEl.className = "tag " + (regime === "bull" ? "up" : regime === "bear" ? "down" : "neutral");
+  _metaState.all = signalsPayload?.meta_signals || [];
+  document.getElementById("meta-hide-low-conf").addEventListener("change", e => {
+    _metaState.hideLow = e.target.checked;
+    renderMetaSignalsTable();
+  });
+  renderMetaSignalsTable();
+}
+
 async function main() {
   const [sb, signals, bt, methodologies, preds, weights] = await Promise.all([
     loadJson(FILES.scoreboard),
@@ -283,6 +336,7 @@ async function main() {
     loadJson(FILES.predictions),
     loadJson(FILES.weights),
   ]);
+  renderHolistic(signals);
   renderScoreboard(sb);
   renderSignals(signals);
   renderMethodologies(methodologies);

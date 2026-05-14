@@ -10,6 +10,7 @@
 <header class="topbar">
   <div class="brand">investing-platform</div>
   <nav>
+    <a href="#holistic">Holistic</a>
     <a href="#scoreboard">Scoreboard</a>
     <a href="#signals">Live Signals</a>
     <a href="#methodologies">Methodologies</a>
@@ -18,10 +19,42 @@
     <a href="#predictions">Predictions</a>
     <a href="#approach">How it works</a>
   </nav>
-  <div class="updated" id="updated-at">—</div>
+  <div class="updated">
+    <span id="updated-at">—</span>
+    <a class="refresh-link" href="https://github.com/hunain-malik/investing-platform/actions/workflows/analysis.yml" target="_blank" rel="noopener" title="Open Actions tab on GitHub to manually trigger an analysis run">↻ Refresh now</a>
+  </div>
 </header>
 
 <main>
+  <section id="holistic" class="section">
+    <h2>Holistic recommendations <span class="muted small">— meta-ensemble across methodologies</span></h2>
+    <p class="muted small">
+      Each row is a (ticker, horizon) recommendation from the holistic meta-ensemble.
+      The meta-ensemble runs every sub-methodology (trend-following, mean-reversion, etc.),
+      drops any below 50% backtest accuracy, and stacks the survivors' votes weighted by
+      their accuracy. Only emits a call when at least 2 methodologies agree and the net
+      vote margin clears 15%. This is the recommendation to act on — sub-methodology
+      breakdown is shown in the expand cell.
+    </p>
+    <div class="signals-controls">
+      <span class="muted small">Today's market regime: <span id="live-regime" class="tag neutral">—</span></span>
+      <label><input type="checkbox" id="meta-hide-low-conf" /> Hide confidence &lt; 0.65</label>
+    </div>
+    <div class="table-wrap">
+      <table id="meta-signals-table">
+        <thead>
+          <tr>
+            <th>Ticker</th><th>Horizon</th><th>Direction</th><th>Confidence</th>
+            <th>Margin</th><th>Contributing methodologies</th>
+            <th>Price</th><th>Sentiment</th>
+            <th>Shares</th><th>Stop</th><th>Risk $</th><th>Options</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
   <section id="scoreboard" class="section">
     <h2>Scoreboard <span class="muted" id="scoreboard-context"></span></h2>
     <p class="muted small">Accuracy on <em>resolved live predictions</em>. Backtest accuracy lives in its own section below.</p>
@@ -60,12 +93,13 @@
   </section>
 
   <section id="signals" class="section">
-    <h2>Live signals <span class="muted small">— act in your own brokerage</span></h2>
+    <h2>Per-methodology live signals <span class="muted small">— individual approaches</span></h2>
     <p class="muted small">
-      Generated against today's close. One row per (ticker, horizon). Confidence is calibrated
-      0.5 (no info) → 1.0 (very confident). Sizing assumes the capital and risk profile in
-      <code>config.yaml</code>. Options are heuristic recommendations — verify in your broker.
-      Use the filter to hide neutral / hide low-confidence signals.
+      The raw per-(ticker, horizon) view from the all-patterns ensemble. The Holistic table
+      above already combines these into a single recommendation; this section is here so you
+      can see what each individual approach is saying. Generated against today's close (the
+      market doesn't move intraday for daily-bar analysis, so this is "live" in the
+      daily-cadence sense — see freshness link in the header).
     </p>
     <div class="signals-controls">
       <label><input type="checkbox" id="hide-neutral" checked /> Hide neutral</label>

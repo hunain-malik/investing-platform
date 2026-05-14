@@ -122,6 +122,188 @@ def evaluate_methodology(
     }
 
 
+def evaluate_meta_ensemble(
+    sample,
+    weights_per_horizon,
+    methodology_accuracies: dict[str, float],
+    min_methodologies: int = 2,
+) -> dict | None:
+    """Stacked / holistic ensemble.
+
+    Each sub-methodology (excluding `meta_ensemble` itself) produces a vote
+    if it fires for this sample. Below-chance methodologies (accuracy < 0.5)
+    are excluded entirely — they would actively hurt accuracy. Surviving
+    methodologies' votes are weighted by (accuracy - 0.5) * 2, so a method
+    at 60% gets weight 0.2 and a method at 75% gets weight 0.5.
+
+    Requires at least `min_methodologies` to vote and a net agreement margin
+    of >= 0.15 before emitting a directional call.
+    """
+    votes: list[tuple[str, float, float, str]] = []
+    for m in METHODOLOGIES:
+        if m.name in ("meta_ensemble",):
+            continue
+        acc = methodology_accuracies.get(m.name)
+        if acc is None or acc < 0.5:
+            continue
+        r = evaluate_methodology(m, sample, weights_per_horizon)
+        if r is None:
+            continue
+        w_meth = (acc - 0.5) * 2  # 0.50 -> 0, 1.00 -> 1
+        votes.append((r["direction"], float(r["confidence"]), w_meth, m.name))
+
+    if len(votes) < min_methodologies:
+        return None
+
+    up_score = sum(c * w for d, c, w, _ in votes if d == "up")
+    down_score = sum(c * w for d, c, w, _ in votes if d == "down")
+    total = up_score + down_score
+    if total == 0:
+        return None
+    margin = (up_score - down_score) / total  # in [-1, 1]
+    if abs(margin) < 0.15:  # too close to call
+        return None
+
+    direction = "up" if margin > 0 else "down"
+    agreement = abs(margin)
+    intensity = min(1.0, total / 1.5)
+    confidence = 0.5 + 0.5 * agreement * intensity
+
+    correct = (direction == sample.actual_label)
+    return {
+        "direction": direction,
+        "confidence": confidence,
+        "correct": correct,
+        "contributing_methodologies": [n for _, _, _, n in votes],
+        "vote_margin": round(margin, 4),
+    }
+
+
+def evaluate_meta_live(
+    fired_patterns: list,        # list[PatternSignal]
+    regime: str,
+    horizon: int,
+    weights_per_horizon,
+    methodology_accuracies: dict[str, float],
+    min_methodologies: int = 2,
+) -> dict | None:
+    """Same logic as `evaluate_meta_ensemble` but operates on live data
+    (fired PatternSignal objects, not a stored BacktestSample).
+    """
+    weights_h = {p: hw.get(horizon, 1.0) for p, hw in weights_per_horizon.items()}
+    votes = []
+    contributing_details = []
+    for m in METHODOLOGIES:
+        if m.name == "meta_ensemble":
+            continue
+        if m.regime_filter is not None and regime not in m.regime_filter:
+            continue
+        acc = methodology_accuracies.get(m.name)
+        if acc is None or acc < 0.5:
+            continue
+        if m.pattern_filter is not None:
+            filtered = [p for p in fired_patterns if p.name in m.pattern_filter]
+        else:
+            filtered = list(fired_patterns)
+        if not filtered:
+            continue
+        direction, confidence = combine(filtered, weights_h)
+        if direction == "neutral" or confidence < m.min_confidence:
+            continue
+        w_meth = (acc - 0.5) * 2
+        votes.append((direction, confidence, w_meth, m.name))
+        contributing_details.append({
+            "methodology": m.name,
+            "direction": direction,
+            "confidence": round(confidence, 4),
+            "weight": round(w_meth, 4),
+            "accuracy": round(acc, 4),
+        })
+
+    if len(votes) < min_methodologies:
+        return None
+
+    up_score = sum(c * w for d, c, w, _ in votes if d == "up")
+    down_score = sum(c * w for d, c, w, _ in votes if d == "down")
+    total = up_score + down_score
+    if total == 0:
+        return None
+    margin = (up_score - down_score) / total
+    if abs(margin) < 0.15:
+        return None
+
+    direction = "up" if margin > 0 else "down"
+    agreement = abs(margin)
+    intensity = min(1.0, total / 1.5)
+    confidence = 0.5 + 0.5 * agreement * intensity
+    return {
+        "direction": direction,
+        "confidence": confidence,
+        "vote_margin": round(margin, 4),
+        "contributing_methodologies": contributing_details,
+        "n_contributing": len(votes),
+    }
+
+
+def aggregate_meta_ensemble(
+    samples,
+    weights_per_horizon,
+    methodology_accuracies: dict[str, float],
+) -> dict:
+    """Evaluate meta-ensemble against all samples; return stats matching
+    the schema of `aggregate_methodology_accuracy` per methodology."""
+    n_signal = 0
+    n_correct = 0
+    by_horizon: dict[int, dict[str, int]] = {}
+    by_regime: dict[str, dict[str, int]] = {}
+    method_contribution: dict[str, int] = {}
+
+    for s in samples:
+        r = evaluate_meta_ensemble(s, weights_per_horizon, methodology_accuracies)
+        if r is None:
+            continue
+        n_signal += 1
+        if r["correct"]:
+            n_correct += 1
+        hb = by_horizon.setdefault(s.horizon_days, {"signals": 0, "correct": 0})
+        hb["signals"] += 1
+        if r["correct"]:
+            hb["correct"] += 1
+        rb = by_regime.setdefault(s.regime, {"signals": 0, "correct": 0})
+        rb["signals"] += 1
+        if r["correct"]:
+            rb["correct"] += 1
+        for mname in r["contributing_methodologies"]:
+            method_contribution[mname] = method_contribution.get(mname, 0) + 1
+
+    return {
+        "description": "Holistic meta-ensemble: stacked vote across sub-methodologies, weighted by each sub-method's backtest accuracy",
+        "samples_applicable": len(samples),
+        "signals_emitted": n_signal,
+        "correct": n_correct,
+        "accuracy": round(n_correct / n_signal, 4) if n_signal else None,
+        "signal_rate": round(n_signal / len(samples), 4) if samples else None,
+        "by_horizon": {
+            h: {
+                "signals": v["signals"],
+                "correct": v["correct"],
+                "accuracy": round(v["correct"] / v["signals"], 4) if v["signals"] else None,
+            }
+            for h, v in sorted(by_horizon.items())
+        },
+        "by_regime": {
+            r: {
+                "signals": v["signals"],
+                "correct": v["correct"],
+                "accuracy": round(v["correct"] / v["signals"], 4) if v["signals"] else None,
+            }
+            for r, v in by_regime.items()
+        },
+        "methodology_contribution_count": method_contribution,
+        "sub_methodology_accuracies_used": {k: round(v, 4) for k, v in methodology_accuracies.items()},
+    }
+
+
 def aggregate_methodology_accuracy(
     samples,  # list[BacktestSample]
     weights_per_horizon,
