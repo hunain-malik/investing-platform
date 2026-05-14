@@ -20,6 +20,21 @@ CACHE_DIR = Path(__file__).resolve().parent.parent / "data_cache"
 CACHE_DIR.mkdir(exist_ok=True)
 
 
+def _impersonating_session():
+    """Return a curl_cffi session that impersonates Chrome so Yahoo's
+    anti-bot rate limiter doesn't return empty responses. yfinance 0.2.55+
+    accepts a `session=` kwarg in download().
+    """
+    try:
+        from curl_cffi import requests as cffi_requests
+        return cffi_requests.Session(impersonate="chrome")
+    except Exception:  # noqa: BLE001
+        return None
+
+
+_SESSION = _impersonating_session()
+
+
 def _cache_path(ticker: str) -> Path:
     return CACHE_DIR / f"{ticker.upper()}.parquet"
 
@@ -47,14 +62,16 @@ def fetch_history(
     start = end - timedelta(days=years * 366)
     log.info("fetching %s from %s to %s", ticker, start.date(), end.date())
 
-    df = yf.download(
-        ticker,
+    download_kwargs = dict(
         start=start.strftime("%Y-%m-%d"),
         end=end.strftime("%Y-%m-%d"),
         auto_adjust=True,
         progress=False,
         threads=False,
     )
+    if _SESSION is not None:
+        download_kwargs["session"] = _SESSION
+    df = yf.download(ticker, **download_kwargs)
 
     if df is None or df.empty:
         raise RuntimeError(f"no data returned for {ticker}")
