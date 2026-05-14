@@ -158,9 +158,19 @@ def main() -> int:
     pattern_acc_per_h = aggregate_pattern_accuracy_per_horizon(samples)
     methodology_stats = aggregate_methodology_accuracy(samples, weights)
 
-    # Meta ensemble uses each methodology's just-computed accuracy as its weight
-    method_accs = {name: (s.get("accuracy") or 0.5) for name, s in methodology_stats.items()}
-    methodology_stats["meta_ensemble"] = aggregate_meta_ensemble(samples, weights, method_accs)
+    # Meta ensemble uses each methodology's per-horizon accuracy as its
+    # voting weight. A methodology that's bad at 5d but great at 252d should
+    # vote on 252d samples only.
+    method_acc_per_h: dict[str, dict[int, float]] = {}
+    for name, s in methodology_stats.items():
+        by_h = s.get("by_horizon", {}) or {}
+        method_acc_per_h[name] = {
+            int(h): float(v["accuracy"]) for h, v in by_h.items()
+            if v.get("accuracy") is not None
+        }
+    methodology_stats["meta_ensemble"] = aggregate_meta_ensemble(
+        samples, weights, method_acc_per_h,
+    )
 
     # ---- 4. Update per-horizon pattern weights from backtest --------------
     if pattern_acc_per_h:
@@ -229,13 +239,13 @@ def main() -> int:
             sig_dict["options"] = options_plan.to_dict() if options_plan else None
             live_signals.append(sig_dict)
 
-            # Meta-ensemble live evaluation
+            # Meta-ensemble live evaluation using per-horizon methodology accs
             meta = evaluate_meta_live(
                 fired_patterns=fired_today,
                 regime=live_regime,
                 horizon=sig.horizon_days,
                 weights_per_horizon=weights,
-                methodology_accuracies=method_accs,
+                methodology_acc_per_horizon=method_acc_per_h,
             )
             if meta is not None:
                 meta_sizing = size_position(

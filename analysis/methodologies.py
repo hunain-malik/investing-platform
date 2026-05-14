@@ -125,31 +125,30 @@ def evaluate_methodology(
 def evaluate_meta_ensemble(
     sample,
     weights_per_horizon,
-    methodology_accuracies: dict[str, float],
+    methodology_acc_per_horizon: dict[str, dict[int, float]],
     min_methodologies: int = 2,
 ) -> dict | None:
-    """Stacked / holistic ensemble.
+    """Stacked / holistic ensemble. Per-horizon filtering.
 
-    Each sub-methodology (excluding `meta_ensemble` itself) produces a vote
-    if it fires for this sample. Below-chance methodologies (accuracy < 0.5)
-    are excluded entirely — they would actively hurt accuracy. Surviving
-    methodologies' votes are weighted by (accuracy - 0.5) * 2, so a method
-    at 60% gets weight 0.2 and a method at 75% gets weight 0.5.
+    Each sub-methodology votes if (a) it fires for this sample AND
+    (b) its accuracy AT THIS HORIZON is above 50%. A methodology can be
+    great at 252d but useless at 5d, so the filter has to be horizon-specific.
 
-    Requires at least `min_methodologies` to vote and a net agreement margin
-    of >= 0.15 before emitting a directional call.
+    Surviving votes are weighted by (per-horizon accuracy - 0.5) * 2.
+    Requires >= min_methodologies and vote margin >= 15%.
     """
+    h = sample.horizon_days
     votes: list[tuple[str, float, float, str]] = []
     for m in METHODOLOGIES:
-        if m.name in ("meta_ensemble",):
+        if m.name == "meta_ensemble":
             continue
-        acc = methodology_accuracies.get(m.name)
-        if acc is None or acc < 0.5:
+        h_acc = methodology_acc_per_horizon.get(m.name, {}).get(h)
+        if h_acc is None or h_acc < 0.5:
             continue
         r = evaluate_methodology(m, sample, weights_per_horizon)
         if r is None:
             continue
-        w_meth = (acc - 0.5) * 2  # 0.50 -> 0, 1.00 -> 1
+        w_meth = (h_acc - 0.5) * 2
         votes.append((r["direction"], float(r["confidence"]), w_meth, m.name))
 
     if len(votes) < min_methodologies:
@@ -184,11 +183,13 @@ def evaluate_meta_live(
     regime: str,
     horizon: int,
     weights_per_horizon,
-    methodology_accuracies: dict[str, float],
+    methodology_acc_per_horizon: dict[str, dict[int, float]],
     min_methodologies: int = 2,
 ) -> dict | None:
     """Same logic as `evaluate_meta_ensemble` but operates on live data
     (fired PatternSignal objects, not a stored BacktestSample).
+    Per-horizon accuracy filtering — a method only votes if its accuracy
+    AT THIS HORIZON is above 50%.
     """
     weights_h = {p: hw.get(horizon, 1.0) for p, hw in weights_per_horizon.items()}
     votes = []
@@ -198,8 +199,8 @@ def evaluate_meta_live(
             continue
         if m.regime_filter is not None and regime not in m.regime_filter:
             continue
-        acc = methodology_accuracies.get(m.name)
-        if acc is None or acc < 0.5:
+        h_acc = methodology_acc_per_horizon.get(m.name, {}).get(horizon)
+        if h_acc is None or h_acc < 0.5:
             continue
         if m.pattern_filter is not None:
             filtered = [p for p in fired_patterns if p.name in m.pattern_filter]
@@ -210,14 +211,14 @@ def evaluate_meta_live(
         direction, confidence = combine(filtered, weights_h)
         if direction == "neutral" or confidence < m.min_confidence:
             continue
-        w_meth = (acc - 0.5) * 2
+        w_meth = (h_acc - 0.5) * 2
         votes.append((direction, confidence, w_meth, m.name))
         contributing_details.append({
             "methodology": m.name,
             "direction": direction,
             "confidence": round(confidence, 4),
             "weight": round(w_meth, 4),
-            "accuracy": round(acc, 4),
+            "accuracy": round(h_acc, 4),
         })
 
     if len(votes) < min_methodologies:
@@ -248,10 +249,11 @@ def evaluate_meta_live(
 def aggregate_meta_ensemble(
     samples,
     weights_per_horizon,
-    methodology_accuracies: dict[str, float],
+    methodology_acc_per_horizon: dict[str, dict[int, float]],
 ) -> dict:
-    """Evaluate meta-ensemble against all samples; return stats matching
-    the schema of `aggregate_methodology_accuracy` per methodology."""
+    """Evaluate meta-ensemble against all samples using per-horizon methodology
+    accuracies as voting weights. Returns stats matching the schema of
+    `aggregate_methodology_accuracy` per methodology."""
     n_signal = 0
     n_correct = 0
     by_horizon: dict[int, dict[str, int]] = {}
@@ -259,7 +261,7 @@ def aggregate_meta_ensemble(
     method_contribution: dict[str, int] = {}
 
     for s in samples:
-        r = evaluate_meta_ensemble(s, weights_per_horizon, methodology_accuracies)
+        r = evaluate_meta_ensemble(s, weights_per_horizon, methodology_acc_per_horizon)
         if r is None:
             continue
         n_signal += 1
@@ -300,7 +302,10 @@ def aggregate_meta_ensemble(
             for r, v in by_regime.items()
         },
         "methodology_contribution_count": method_contribution,
-        "sub_methodology_accuracies_used": {k: round(v, 4) for k, v in methodology_accuracies.items()},
+        "sub_methodology_accuracies_used": {
+            k: {str(h): round(v, 4) for h, v in hd.items()}
+            for k, hd in methodology_acc_per_horizon.items()
+        },
     }
 
 
