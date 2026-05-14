@@ -10,73 +10,81 @@
 <header class="topbar">
   <div class="brand">investing-platform</div>
   <nav>
-    <a href="#featured">Featured</a>
-    <a href="#holistic">Holistic</a>
-    <a href="#methodologies">Methodologies</a>
-    <a href="#backtest">Backtest</a>
-    <a href="#tickers">Per-ticker</a>
-    <a href="#scoreboard">Live scoreboard</a>
-    <a href="#predictions">Predictions</a>
-    <a href="#approach">How it works</a>
+    <a href="#agent">Personal Agent</a>
+    <a href="#leaderboard">Methodologies</a>
+    <a href="#scoreboard">Scoreboard</a>
+    <a href="#details">Details</a>
   </nav>
   <div class="updated">
     <span id="updated-at">—</span>
-    <a class="refresh-link" href="https://github.com/hunain-malik/investing-platform/actions/workflows/analysis.yml" target="_blank" rel="noopener" title="Open Actions tab to manually trigger an analysis run (~70s)">↻ Refresh now</a>
+    <a class="refresh-link" href="https://github.com/hunain-malik/investing-platform/actions/workflows/analysis.yml" target="_blank" rel="noopener" title="Trigger an immediate analysis run (~3 min)">↻ Refresh now</a>
   </div>
 </header>
 
 <main>
-  <section id="featured" class="section featured">
-    <h2>Today's top recommendation</h2>
-    <div id="featured-content">
-      <p class="muted">Loading…</p>
-    </div>
+  <!-- ====== PERSONAL AGENT ====== -->
+  <section id="agent" class="section featured">
+    <h2>Personal Agent <span class="muted small">— recommendations sized for your wallet</span></h2>
+
+    <form id="agent-form" class="agent-form">
+      <div class="agent-field">
+        <label>Capital ($)<input type="number" id="agent-capital" value="3000" min="100" step="100" /></label>
+      </div>
+      <div class="agent-field">
+        <label>Risk per trade (%)<input type="number" id="agent-risk-pct" value="2" min="0.1" max="10" step="0.1" /></label>
+      </div>
+      <div class="agent-field">
+        <label>Max position (% of capital)<input type="number" id="agent-max-pos-pct" value="25" min="5" max="100" step="5" /></label>
+      </div>
+      <div class="agent-field">
+        <label>Horizon<select id="agent-horizon"></select></label>
+      </div>
+      <div class="agent-field">
+        <label>Min confidence<select id="agent-min-conf">
+          <option value="0.5">0.50 (loose)</option>
+          <option value="0.6" selected>0.60 (moderate)</option>
+          <option value="0.65">0.65 (strict)</option>
+          <option value="0.7">0.70 (very strict)</option>
+        </select></label>
+      </div>
+      <div class="agent-field">
+        <label>Direction<select id="agent-direction">
+          <option value="any">Either (bullish or bearish)</option>
+          <option value="up">Bullish only</option>
+          <option value="down">Bearish only</option>
+        </select></label>
+      </div>
+      <div class="agent-field">
+        <label><input type="checkbox" id="agent-options-allowed" checked /> Allow options recommendations</label>
+      </div>
+      <div class="agent-field">
+        <label><input type="checkbox" id="agent-skip-earnings" checked /> Skip stocks with earnings inside horizon</label>
+      </div>
+      <div class="agent-field">
+        <label>Ticker filter<input type="search" id="agent-ticker-filter" placeholder="e.g. AAPL, IBM" /></label>
+      </div>
+    </form>
+
+    <div id="agent-summary" class="agent-summary muted small">Adjust inputs above to get personalized recommendations.</div>
+    <div id="agent-recommendations"></div>
     <details class="liveness">
-      <summary>How "live" works</summary>
+      <summary>How "live" works + caveats</summary>
       <p class="muted small">
-        The GitHub Actions workflow runs every weekday at 22:00 UTC (6pm ET, after US market close).
-        Each run pulls fresh prices from Yahoo Finance, regenerates all signals, runs a 1500-sample
-        backtest with 5-fold cross-validation, updates pattern weights, and commits the new JSON to
-        this page. GitHub Pages auto-deploys the updated site within ~1 minute. To force an immediate
-        refresh (e.g., during market hours for after-the-close analysis), click "↻ Refresh now" in
-        the header — it opens the Actions tab where you can press "Run workflow" to trigger a run
-        on-demand (takes ~70 seconds). True real-time (intraday) data would require a separate
-        backend service; daily-bar technical analysis doesn't gain much from intraday updates since
-        the bar doesn't close until 4pm ET.
+        The workflow runs <strong>4 times per US weekday</strong> (14:30, 17:00, 19:30, 22:00 UTC) plus
+        on manual trigger. The 22:00 UTC run is the authoritative one (uses the closing bar); intraday
+        runs show partial daily bars so signals there can be noisier. Daily-bar technical analysis
+        doesn't change intraday until the bar closes — for real intraday signals you'd need an
+        intraday data source, which this build doesn't have.
+        <br /><br />
+        Click "↻ Refresh now" in the header to open the Actions tab and trigger an immediate run
+        (~3 min). The dashboard auto-redeploys when the workflow commits new data.
       </p>
     </details>
   </section>
 
-  <section id="holistic" class="section">
-    <h2>Holistic recommendations <span class="muted small">— meta-ensemble live signals</span></h2>
-    <p class="muted small">
-      Each row is a recommendation from the holistic meta-ensemble — runs every sub-methodology,
-      drops any below 50% accuracy at this horizon, stacks the survivors weighted by their
-      per-horizon accuracy. Only emits a call when ≥2 methodologies agree with a margin ≥15%.
-    </p>
-    <div class="signals-controls">
-      <span class="muted small">Today's regime: <span id="live-regime" class="tag neutral">—</span></span>
-      <label>Horizon: <select id="meta-horizon-select"></select></label>
-      <label>Search: <input type="search" id="meta-search" placeholder="ticker (e.g. AAPL)" /></label>
-      <label><input type="checkbox" id="meta-hide-low-conf" /> Hide confidence &lt; 0.65</label>
-    </div>
-    <div class="table-wrap">
-      <table id="meta-signals-table">
-        <thead>
-          <tr>
-            <th>Ticker</th><th>Direction</th><th>Confidence</th>
-            <th>Margin</th><th>Contributing methodologies</th>
-            <th>Price</th><th>Sentiment</th>
-            <th>Shares</th><th>Stop</th><th>Risk $</th><th>Options</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section id="methodologies" class="section">
-    <h2>Methodology leaderboard <span class="muted small">— what's actually working</span></h2>
+  <!-- ====== METHODOLOGY LEADERBOARD ====== -->
+  <section id="leaderboard" class="section">
+    <h2>Methodology leaderboard <span class="muted small">— what's working</span></h2>
 
     <div class="kfold-banner">
       <div>
@@ -92,21 +100,19 @@
     </div>
 
     <p class="muted small">
-      Each methodology is a different rule for combining the patterns. The headline number is
-      the K-fold CV accuracy of the meta-ensemble — that's the honest "if we trade this, what's
-      our expected hit rate." Pruned methodologies have negative edge at every horizon and are
-      excluded from the meta.
+      The K-fold number is the honest expected hit rate. Each methodology row shows accuracy at
+      each horizon — methodologies with negative edge are auto-pruned.
     </p>
+
     <div class="table-wrap">
       <table id="methodologies-table">
         <thead>
           <tr>
             <th>Methodology</th>
             <th>Signals</th>
-            <th>Correct</th>
             <th>Accuracy</th>
-            <th>Signal rate</th>
-            <th>By horizon (accuracy / n)</th>
+            <th>Best horizon</th>
+            <th>By horizon</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -114,208 +120,154 @@
     </div>
   </section>
 
-  <section id="backtest" class="section">
-    <h2>Backtest details</h2>
-    <p class="muted small">
-      Each run takes 1500 random (ticker, past-date) samples and predicts forward using only data
-      available at that date. Tickers are sampled uniformly from a ~200-name universe (large caps,
-      ETFs, popular trading names) so the test is not biased toward any specific stock.
-    </p>
-    <div class="tiles">
-      <div class="tile big">
-        <div class="label">All-patterns ensemble accuracy</div>
-        <div class="value" id="bt-accuracy">—</div>
-        <div class="sub" id="bt-counts">—</div>
-      </div>
-      <div class="tile">
-        <div class="label">Bullish backtest</div>
-        <div class="value" id="bt-bullish">—</div>
-      </div>
-      <div class="tile">
-        <div class="label">Bearish backtest</div>
-        <div class="value" id="bt-bearish">—</div>
-      </div>
-    </div>
-
-    <h3>By horizon</h3>
-    <div class="table-wrap">
-      <table id="horizon-table">
-        <thead><tr><th>Horizon</th><th>Signals</th><th>Correct</th><th>Accuracy</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <h3>By market regime <span class="muted small">— SPY vs its 200-SMA at cutoff</span></h3>
-    <div class="table-wrap">
-      <table id="regime-table">
-        <thead><tr><th>Regime</th><th>Signals</th><th>Correct</th><th>Accuracy</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <h3>Calibration by confidence bucket</h3>
-    <div class="table-wrap">
-      <table id="calibration-table">
-        <thead><tr><th>Confidence bucket</th><th>Samples</th><th>Correct</th><th>Accuracy</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <h3>Pattern performance <span class="muted small">— per-pattern stats</span></h3>
-    <div class="table-wrap">
-      <table id="patterns-table">
-        <thead>
-          <tr>
-            <th>Pattern</th><th>Fires</th><th>Correct</th>
-            <th>Raw accuracy</th><th>Shrunk accuracy</th>
-            <th>Bullish</th><th>Bearish</th>
-            <th>Weights (per horizon)</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section id="tickers" class="section">
-    <h2>Per-ticker accuracy <span class="muted small">— which stocks are more predictable</span></h2>
-    <p class="muted small">
-      Backtest accuracy broken out by individual ticker (directional calls only). Tickers with
-      fewer than 10 backtest samples are shown but flagged because the number is noisy. Searchable.
-    </p>
-    <div class="signals-controls">
-      <label>Search: <input type="search" id="ticker-search" placeholder="ticker (e.g. AAPL)" /></label>
-      <label><input type="checkbox" id="ticker-hide-thin" checked /> Hide tickers with &lt; 10 samples</label>
-    </div>
-    <div class="table-wrap">
-      <table id="per-ticker-table">
-        <thead>
-          <tr>
-            <th>Ticker</th><th>Samples</th><th>Correct</th><th>Accuracy</th>
-            <th>Bullish n / acc</th><th>Bearish n / acc</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
+  <!-- ====== LIVE SCOREBOARD ====== -->
   <section id="scoreboard" class="section">
     <h2>Live prediction scoreboard <span class="muted" id="scoreboard-context"></span></h2>
     <p class="muted small">
-      Accuracy on <em>resolved live predictions</em> — predictions whose horizon has elapsed and
-      the actual N-day forward return is known. Backtest accuracy is in the section above; this
-      number grows as time passes and new predictions resolve.
+      Accuracy on <em>resolved live predictions</em> — predictions whose horizon has elapsed.
+      This grows as predictions resolve over time.
     </p>
     <div class="tiles">
       <div class="tile big">
-        <div class="label">Overall accuracy</div>
+        <div class="label">Overall</div>
         <div class="value" id="overall-accuracy">—</div>
         <div class="sub" id="overall-counts">—</div>
       </div>
       <div class="tile good">
-        <div class="label">Correct (green)</div>
+        <div class="label">Correct</div>
         <div class="value" id="total-correct">—</div>
       </div>
       <div class="tile bad">
-        <div class="label">Wrong (red)</div>
+        <div class="label">Wrong</div>
         <div class="value" id="total-wrong">—</div>
       </div>
       <div class="tile">
         <div class="label">Open</div>
         <div class="value" id="open-count">—</div>
-        <div class="sub">awaiting horizon</div>
-      </div>
-    </div>
-    <div class="tiles">
-      <div class="tile">
-        <div class="label">Bullish</div>
-        <div class="value"><span id="bullish-accuracy">—</span></div>
-        <div class="sub"><span class="green" id="bullish-correct">—</span> / <span class="red" id="bullish-wrong">—</span></div>
       </div>
       <div class="tile">
-        <div class="label">Bearish</div>
-        <div class="value"><span id="bearish-accuracy">—</span></div>
-        <div class="sub"><span class="green" id="bearish-correct">—</span> / <span class="red" id="bearish-wrong">—</span></div>
+        <div class="label">Bullish acc</div>
+        <div class="value" id="bullish-accuracy">—</div>
+      </div>
+      <div class="tile">
+        <div class="label">Bearish acc</div>
+        <div class="value" id="bearish-accuracy">—</div>
       </div>
     </div>
   </section>
 
-  <section id="predictions" class="section">
-    <h2>Recent predictions log</h2>
-    <p class="muted small">Every prediction the system has made, newest first.</p>
-    <div class="signals-controls">
-      <label>Search: <input type="search" id="pred-search" placeholder="ticker" /></label>
-      <label><input type="checkbox" id="pred-only-resolved" /> Only resolved</label>
-    </div>
-    <div class="table-wrap">
-      <table id="predictions-table">
-        <thead>
-          <tr>
-            <th>Made</th><th>Ticker</th><th>Method</th><th>Direction</th><th>Confidence</th>
-            <th>Horizon</th><th>Status</th><th>Actual return</th><th>Result</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
+  <!-- ====== DETAILS (collapsed by default) ====== -->
+  <section id="details" class="section">
+    <h2>Details</h2>
+    <p class="muted small">Backtest stats, per-ticker accuracy, recent predictions, and methodology sources. Expand only what you need.</p>
 
-  <section id="approach" class="section">
-    <h2>How it works</h2>
-    <p>
-      Every pattern uses a different historical window. The ensemble combines them so the final
-      call is informed by short, medium, and long term context simultaneously.
-    </p>
-    <div class="approach-grid">
-      <div class="approach-card">
-        <h3>Short-term context (5–14 days)</h3>
-        <ul>
-          <li>RSI(14) — momentum over 2 trading weeks</li>
-          <li>5-day SMA for multi-timeframe alignment</li>
-          <li>Candlestick patterns: engulfing, hammer, shooting star</li>
-          <li>Volume breakouts (z-score over 20 bars)</li>
-          <li>ATR(14) for stop-loss distance</li>
-        </ul>
+    <details class="detail-block">
+      <summary>Backtest accuracy by horizon, regime, and confidence</summary>
+      <div class="tiles">
+        <div class="tile big">
+          <div class="label">All-patterns ensemble accuracy (in-sample)</div>
+          <div class="value" id="bt-accuracy">—</div>
+          <div class="sub" id="bt-counts">—</div>
+        </div>
+        <div class="tile">
+          <div class="label">Bullish</div>
+          <div class="value" id="bt-bullish">—</div>
+        </div>
+        <div class="tile">
+          <div class="label">Bearish</div>
+          <div class="value" id="bt-bearish">—</div>
+        </div>
       </div>
-      <div class="approach-card">
-        <h3>Medium-term context (20–50 days)</h3>
-        <ul>
-          <li>20-day SMA + Bollinger Bands (squeeze over 60-bar window)</li>
-          <li>MACD(12/26/9) — 12 and 26 day EMAs</li>
-          <li>50-day SMA — primary swing trend</li>
-          <li>Relative strength vs SPY over 20 days</li>
-          <li>Volume dry-up / dry-top divergence (20-bar lookback)</li>
-        </ul>
+      <h3>By horizon</h3>
+      <div class="table-wrap"><table id="horizon-table"><thead><tr><th>Horizon</th><th>Signals</th><th>Correct</th><th>Accuracy</th></tr></thead><tbody></tbody></table></div>
+      <h3>By regime</h3>
+      <div class="table-wrap"><table id="regime-table"><thead><tr><th>Regime</th><th>Signals</th><th>Correct</th><th>Accuracy</th></tr></thead><tbody></tbody></table></div>
+      <h3>Calibration</h3>
+      <div class="table-wrap"><table id="calibration-table"><thead><tr><th>Confidence bucket</th><th>n</th><th>Correct</th><th>Accuracy</th></tr></thead><tbody></tbody></table></div>
+    </details>
+
+    <details class="detail-block">
+      <summary>Per-ticker accuracy</summary>
+      <div class="signals-controls">
+        <label>Search<input type="search" id="ticker-search" placeholder="ticker" /></label>
+        <label><input type="checkbox" id="ticker-hide-thin" checked /> Hide tickers with &lt; 10 samples</label>
       </div>
-      <div class="approach-card">
-        <h3>Long-term context (200+ days)</h3>
-        <ul>
-          <li>200-day SMA — long-term trend</li>
-          <li>Golden cross / death cross (50d vs 200d)</li>
-          <li>Multi-timeframe stack: price &gt; 5/20/50/200 SMA</li>
-          <li>Market regime: SPY vs 200-SMA + 60-bar slope</li>
-        </ul>
+      <div class="table-wrap"><table id="per-ticker-table"><thead><tr><th>Ticker</th><th>n</th><th>Correct</th><th>Accuracy</th><th>Bull n/acc</th><th>Bear n/acc</th></tr></thead><tbody></tbody></table></div>
+    </details>
+
+    <details class="detail-block">
+      <summary>Pattern performance</summary>
+      <div class="table-wrap"><table id="patterns-table"><thead><tr><th>Pattern</th><th>Fires</th><th>Correct</th><th>Raw acc</th><th>Shrunk acc</th><th>Bull</th><th>Bear</th><th>Weights / horizon</th></tr></thead><tbody></tbody></table></div>
+    </details>
+
+    <details class="detail-block">
+      <summary>Recent predictions log</summary>
+      <div class="signals-controls">
+        <label>Search<input type="search" id="pred-search" placeholder="ticker" /></label>
+        <label><input type="checkbox" id="pred-only-resolved" /> Only resolved</label>
       </div>
-      <div class="approach-card">
-        <h3>Cross-cutting</h3>
-        <ul>
-          <li>Per-horizon weight tuning (5d/10d/20d/60d/120d/252d separately)</li>
-          <li>Per-horizon methodology filtering (meta only uses methods with positive edge AT THAT horizon)</li>
-          <li>K-fold cross-validation (k=5) for honest out-of-sample accuracy</li>
-          <li>Auto-pruning: methodologies below chance at every horizon are dropped</li>
-          <li>Market regime tagging on every backtest sample</li>
-          <li>News sentiment via VADER on Yahoo Finance headlines (live only)</li>
-          <li>Strict no-look-ahead: cutoff dates see only past data</li>
-        </ul>
+      <div class="table-wrap"><table id="predictions-table"><thead><tr><th>Made</th><th>Ticker</th><th>Direction</th><th>Conf</th><th>Horizon</th><th>Status</th><th>Return</th><th>Result</th></tr></thead><tbody></tbody></table></div>
+    </details>
+
+    <details class="detail-block">
+      <summary>How it works (patterns + windows + sources)</summary>
+      <div class="approach-grid">
+        <div class="approach-card">
+          <h3>Short-term (5–14 days)</h3>
+          <ul>
+            <li>RSI(14), 5-day SMA</li>
+            <li>Candlestick: engulfing, hammer, shooting star, doji</li>
+            <li>Volume breakouts (20-bar z-score)</li>
+            <li>ATR(14) for stop-loss</li>
+          </ul>
+        </div>
+        <div class="approach-card">
+          <h3>Medium-term (20–50 days)</h3>
+          <ul>
+            <li>20/50 SMA, Bollinger Bands (60-bar squeeze)</li>
+            <li>MACD(12/26/9)</li>
+            <li>Relative strength vs SPY (20d)</li>
+            <li>Volume dry-up / dry-top divergence</li>
+          </ul>
+        </div>
+        <div class="approach-card">
+          <h3>Long-term (200+ days)</h3>
+          <ul>
+            <li>200-SMA, golden/death cross</li>
+            <li>Multi-timeframe stack (5/20/50/200)</li>
+            <li>Market regime (SPY vs 200-SMA + 60-bar slope)</li>
+          </ul>
+        </div>
+        <div class="approach-card">
+          <h3>Cross-cutting</h3>
+          <ul>
+            <li>Per-horizon weight tuning</li>
+            <li>5-fold cross-validation for out-of-sample accuracy</li>
+            <li>Auto-pruning of below-chance methodologies</li>
+            <li>Earnings-date awareness via Yahoo Finance calendar</li>
+            <li>Headline sentiment (VADER) on Yahoo Finance news</li>
+            <li>Asymmetric bearish quorum (markets drift up; bearish calls need 3+ methodologies vs 2 for bullish)</li>
+          </ul>
+        </div>
       </div>
-    </div>
+      <h3>Methodology sources</h3>
+      <ul class="muted small">
+        <li><strong>Murphy, "Technical Analysis of the Financial Markets"</strong> — SMA crossovers, MACD, support/resistance, trend definitions</li>
+        <li><strong>Nison, "Japanese Candlestick Charting Techniques"</strong> — engulfing, hammer, shooting star, doji</li>
+        <li><strong>Wilder, "New Concepts in Technical Trading Systems" (1978)</strong> — RSI(14), ATR</li>
+        <li><strong>Bollinger, "Bollinger on Bollinger Bands"</strong> — band squeeze + breakout setups</li>
+        <li><strong>Jegadeesh & Titman (1993)</strong> — relative strength / momentum factor</li>
+        <li><strong>Stacking ensembles</strong> — standard ML practice; the meta-ensemble weights each sub-method by its k-fold out-of-sample accuracy</li>
+        <li><strong>Methodology auto-pruning</strong> — drop below-chance approaches before they pollute the ensemble (standard ML hygiene)</li>
+      </ul>
+    </details>
   </section>
 
   <footer>
     <p class="muted small">
-      Not investment advice. Pattern-based predictions are probabilistic and can be wrong.
-      Read the K-fold accuracy and methodology leaderboard before acting on a signal.
+      Not investment advice. K-fold CV reveals technical-analysis-only signals have near-coin-flip
+      accuracy out-of-sample. Use this for entry timing on positions you've already decided on for
+      other reasons, not as a standalone prediction engine.
       Source: <a href="https://github.com/hunain-malik/investing-platform" target="_blank" rel="noopener">github.com/hunain-malik/investing-platform</a>
     </p>
   </footer>

@@ -37,6 +37,7 @@ from .backtest import (
 )
 from .cross_validation import kfold_meta_accuracy
 from .data import fetch_history_cached
+from .earnings import days_until_earnings
 from .indicators import compute_all
 from .methodologies import (
     METHODOLOGIES,
@@ -237,12 +238,17 @@ def main() -> int:
         df_ind = compute_all(df)
         fired_today = detect_all(df_ind, idx=-1)
 
-        # Only fetch sentiment for tickers that actually fired a pattern
-        # (avoid 200 unnecessary yfinance.news calls per run)
+        # Only fetch sentiment + earnings for tickers that actually fired a
+        # pattern (avoid hundreds of unnecessary yfinance calls per run)
+        ticker_earnings_days: int | None = None
         if fired_today:
             sentiment = fetch_sentiment(ticker)
             if sentiment is not None:
                 sentiments_by_ticker[ticker] = sentiment.to_dict()
+            try:
+                ticker_earnings_days = days_until_earnings(ticker)
+            except Exception:  # noqa: BLE001
+                ticker_earnings_days = None
 
         for sig in horizon_signals:
             sig_dict = sig.to_dict()
@@ -294,6 +300,12 @@ def main() -> int:
                     spot=sig.price, atr=sig.atr, horizon_days=sig.horizon_days,
                     options_allowed=portfolio.get("options_allowed", True),
                 )
+                # Flag if earnings hit before the horizon closes (event risk)
+                earnings_in_horizon = (
+                    ticker_earnings_days is not None
+                    and ticker_earnings_days <= sig.horizon_days
+                )
+
                 live_meta_signals.append({
                     "ticker": ticker,
                     "as_of": sig.as_of.strftime("%Y-%m-%d"),
@@ -307,6 +319,8 @@ def main() -> int:
                     "price": round(sig.price, 4),
                     "atr": round(sig.atr, 4),
                     "sentiment": sentiments_by_ticker.get(ticker),
+                    "earnings_in_days": ticker_earnings_days,
+                    "earnings_in_horizon": earnings_in_horizon,
                     "sizing": meta_sizing.to_dict() if meta_sizing else None,
                     "options": meta_options.to_dict() if meta_options else None,
                 })

@@ -2,8 +2,17 @@ name: daily-analysis
 
 on:
   schedule:
-    # 22:00 UTC daily = 6pm ET, after US market close.
-    # Yahoo Finance has the day's close available by then.
+    # Multiple runs per US market day so the dashboard reflects current prices,
+    # not just last close. Times are UTC; corresponds to:
+    #   14:30 UTC = market open (9:30 ET)
+    #   17:00 UTC = midday (12:00 ET)
+    #   19:30 UTC = pre-close (14:30 ET)
+    #   22:00 UTC = after close (17:00 ET) — primary analysis
+    # Intraday runs include partial daily bars; the after-close run is the
+    # authoritative one.
+    - cron: "30 14 * * 1-5"
+    - cron: "0 17 * * 1-5"
+    - cron: "30 19 * * 1-5"
     - cron: "0 22 * * 1-5"
   workflow_dispatch:  # allow manual runs from the Actions tab
 

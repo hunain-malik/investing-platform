@@ -137,7 +137,8 @@ def evaluate_meta_ensemble(
     sample,
     weights_per_horizon,
     methodology_acc_per_horizon: dict[str, dict[int, float]],
-    min_methodologies: int = 2,
+    min_methodologies_bull: int = 2,
+    min_methodologies_bear: int = 3,
 ) -> dict | None:
     """Stacked / holistic ensemble. Per-horizon filtering.
 
@@ -162,16 +163,22 @@ def evaluate_meta_ensemble(
         w_meth = (h_acc - 0.5) * 2
         votes.append((r["direction"], float(r["confidence"]), w_meth, m.name))
 
-    if len(votes) < min_methodologies:
-        return None
-
-    up_score = sum(c * w for d, c, w, _ in votes if d == "up")
-    down_score = sum(c * w for d, c, w, _ in votes if d == "down")
+    up_votes = [v for v in votes if v[0] == "up"]
+    down_votes = [v for v in votes if v[0] == "down"]
+    up_score = sum(c * w for _, c, w, _ in up_votes)
+    down_score = sum(c * w for _, c, w, _ in down_votes)
     total = up_score + down_score
     if total == 0:
         return None
-    margin = (up_score - down_score) / total  # in [-1, 1]
-    if abs(margin) < 0.15:  # too close to call
+    margin = (up_score - down_score) / total
+    if abs(margin) < 0.15:
+        return None
+
+    # Asymmetric quorum: bearish calls need more methodologies agreeing because
+    # markets drift up, so a "down" prediction has higher hurdle to clear.
+    if margin > 0 and len(up_votes) < min_methodologies_bull:
+        return None
+    if margin < 0 and len(down_votes) < min_methodologies_bear:
         return None
 
     direction = "up" if margin > 0 else "down"
@@ -195,7 +202,8 @@ def evaluate_meta_live(
     horizon: int,
     weights_per_horizon,
     methodology_acc_per_horizon: dict[str, dict[int, float]],
-    min_methodologies: int = 2,
+    min_methodologies_bull: int = 2,
+    min_methodologies_bear: int = 3,
 ) -> dict | None:
     """Same logic as `evaluate_meta_ensemble` but operates on live data
     (fired PatternSignal objects, not a stored BacktestSample).
@@ -232,16 +240,20 @@ def evaluate_meta_live(
             "accuracy": round(h_acc, 4),
         })
 
-    if len(votes) < min_methodologies:
-        return None
-
-    up_score = sum(c * w for d, c, w, _ in votes if d == "up")
-    down_score = sum(c * w for d, c, w, _ in votes if d == "down")
+    up_votes = [v for v in votes if v[0] == "up"]
+    down_votes = [v for v in votes if v[0] == "down"]
+    up_score = sum(c * w for _, c, w, _ in up_votes)
+    down_score = sum(c * w for _, c, w, _ in down_votes)
     total = up_score + down_score
     if total == 0:
         return None
     margin = (up_score - down_score) / total
     if abs(margin) < 0.15:
+        return None
+
+    if margin > 0 and len(up_votes) < min_methodologies_bull:
+        return None
+    if margin < 0 and len(down_votes) < min_methodologies_bear:
         return None
 
     direction = "up" if margin > 0 else "down"

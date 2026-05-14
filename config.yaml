@@ -22,7 +22,7 @@ horizons_days: [5, 10, 20, 60, 120, 252]
 
 # Backtesting configuration
 backtest:
-  samples_per_run: 1500         # random (ticker, date) samples per analysis run
+  samples_per_run: 3000         # bumped from 1500 to tighten per-horizon confidence intervals
   history_years: 10             # how far back to sample from (longer to give 252d horizon room)
   min_data_days: 252            # require at least 1 year of data before a cutoff
   threshold_up_pct: 1.0         # forward return >= this % counts as "up"
