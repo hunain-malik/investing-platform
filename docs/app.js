@@ -471,6 +471,10 @@ function renderRecommendationCard(s, cfg, rank) {
     ? tag("decorrelated", "confirm")
     : (s._source === "meta" ? tag("correlated meta", "neutral")
        : (s._source === "tentative" ? tag("tentative · all-ensemble only", "warn") : ""));
+  // For tentative signals, "voters" are individual patterns (n_fired), not
+  // methodologies. The meta/consensus tiers have explicit voters; the
+  // all-ensemble doesn't, so we use pattern-fire count instead.
+  const tentativeVoters = s._source === "tentative" ? (s.n_fired ?? 0) : null;
   // s.n_contributing (meta) vs s.n_families (consensus) — normalize for display
   const nVoters = s.n_families ?? s.n_contributing ?? 0;
   const voterType = s.n_families != null && s.n_families > 0 ? "families" : "methods";
@@ -482,12 +486,18 @@ function renderRecommendationCard(s, cfg, rank) {
         : "");
 
   const sentChip = sentimentChip(s.sentiment);
-  // Show contributing voters — different schemas for consensus vs meta sources
+  // Show contributing voters. Tentative cards don't have methodology-level
+  // voters; show a pattern-count note instead.
   const familyVoters = s.contributing_families || [];
   const methodVoters = s.contributing_methodologies || [];
-  const contribs = familyVoters.length > 0
-    ? familyVoters.map(c => `<span class="pattern-chip" title="${c.family} family voted ${c.direction.toUpperCase()} with ${(c.internal_confidence * 100).toFixed(0)}% internal agreement; accuracy weight ${(c.accuracy_weight * 100).toFixed(0)}% (from ${(c.accuracy * 100).toFixed(1)}% backtest accuracy)">${c.family} → ${c.direction.toUpperCase()}</span>`).join(" ")
-    : methodVoters.map(c => `<span class="pattern-chip" title="${c.methodology} fired ${c.direction.toUpperCase()} at confidence ${c.confidence}, weighted by ${(c.weight * 100).toFixed(0)}% (from accuracy ${(c.accuracy * 100).toFixed(1)}%)">${c.methodology} → ${c.direction.toUpperCase()}</span>`).join(" ");
+  let contribs;
+  if (isTentative) {
+    contribs = `<span class="pattern-chip" title="The all-ensemble combiner used ${tentativeVoters} individual patterns; methodology-level breakdown not available because no methodology fired for this ticker. Click ticker for full pattern detail.">${tentativeVoters} pattern${tentativeVoters === 1 ? '' : 's'} fired → ${s.direction.toUpperCase()} (no methodology breakdown — click ticker for detail)</span>`;
+  } else if (familyVoters.length > 0) {
+    contribs = familyVoters.map(c => `<span class="pattern-chip" title="${c.family} family voted ${c.direction.toUpperCase()} with ${(c.internal_confidence * 100).toFixed(0)}% internal agreement; accuracy weight ${(c.accuracy_weight * 100).toFixed(0)}% (from ${(c.accuracy * 100).toFixed(1)}% backtest accuracy)">${c.family} → ${c.direction.toUpperCase()}</span>`).join(" ");
+  } else {
+    contribs = methodVoters.map(c => `<span class="pattern-chip" title="${c.methodology} fired ${c.direction.toUpperCase()} at confidence ${c.confidence}, weighted by ${(c.weight * 100).toFixed(0)}% (from accuracy ${(c.accuracy * 100).toFixed(1)}%)">${c.methodology} → ${c.direction.toUpperCase()}</span>`).join(" ");
+  }
 
   let optsLine = "";
   if (opts && opts.strategy === "none") {
@@ -514,7 +524,13 @@ function renderRecommendationCard(s, cfg, rank) {
     `;
   }
 
-  const consensusPct = Math.abs(s.vote_margin * 100).toFixed(1);
+  // Tentative cards don't have a methodology-level vote_margin — they
+  // come from the all-ensemble where pattern agreement is implicit in
+  // confidence. Display differently to avoid misleading "0% consensus".
+  const isTentative = s._source === "tentative";
+  const consensusPct = isTentative
+    ? null
+    : Math.abs((s.vote_margin ?? 0) * 100).toFixed(1);
   const contradictionChip = sentimentContradictionChip(s.direction, s.sentiment);
   // Equity recommendation depends on direction:
   // - UP   -> long entry (buy shares, sell at target / stop below)
@@ -558,7 +574,7 @@ function renderRecommendationCard(s, cfg, rank) {
         ${rankBadge}
         <a href="#" class="rec-ticker ticker-link" data-ticker="${s.ticker}">${s.ticker}</a>
         <span class="tag ${dClass}">${s.direction.toUpperCase()}</span>
-        <span class="rec-meta" title="Consensus: how strongly the contributing voters agree on direction. 0% = tied, 100% = unanimous. NOT a price change prediction.">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · consensus ${consensusPct}% · ${nVoters} ${voterType} agree</span>
+        <span class="rec-meta" title="${isTentative ? 'N patterns fired in the all-ensemble. Meta/consensus methodologies did not validate this — treat as a weaker signal.' : 'Consensus: how strongly the contributing voters agree on direction. 0% = tied, 100% = unanimous. NOT a price change prediction.'}">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · ${isTentative ? `${tentativeVoters} patterns fired (all-ensemble)` : `consensus ${consensusPct}% · ${nVoters} ${voterType} agree`}</span>
         ${sourceBadge}
         ${earningsWarn}
         ${sentChip}
@@ -566,7 +582,7 @@ function renderRecommendationCard(s, cfg, rank) {
       </div>
       ${equityLine}
       ${optsLine}
-      <div class="rec-line muted small">Voted in favor: ${contribs}</div>
+      <div class="rec-line muted small">${isTentative ? "Pattern evidence" : "Voted in favor"}: ${contribs}</div>
       ${newsBlock}
     </div>
   `;
