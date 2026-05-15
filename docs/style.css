@@ -318,7 +318,12 @@ button.refresh-link {
   font-family: inherit;
 }
 
+/* Modals are hidden by default; only show when [hidden] is removed.
+   Reversed logic + !important to prevent accidental overlay-of-doom. */
 .modal-overlay {
+  display: none;
+}
+.modal-overlay:not([hidden]) {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.75);
   z-index: 100;
@@ -326,7 +331,7 @@ button.refresh-link {
   padding: 40px 16px;
   overflow-y: auto;
 }
-.modal-overlay[hidden] { display: none; }
+.modal-overlay[hidden] { display: none !important; }
 .modal-content {
   background: var(--panel);
   border: 1px solid var(--border);
