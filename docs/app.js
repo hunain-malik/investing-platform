@@ -138,6 +138,7 @@ const _agent = {
   signals: [],
   meta_signals: [],
   consensus_signals: [],
+  sentiments: {},
   horizons: [],
 };
 
@@ -160,6 +161,7 @@ function setupAgent(signalsPayload) {
   _agent.signals = signalsPayload?.signals || [];
   _agent.meta_signals = signalsPayload?.meta_signals || [];
   _agent.consensus_signals = signalsPayload?.consensus_signals || [];
+  _agent.sentiments = signalsPayload?.sentiments || {};
 
   // Horizons available from base all-ensemble signals (covers every ticker)
   const horizons = [...new Set(_agent.signals.map(s => s.horizon_days))].sort((a, b) => a - b);

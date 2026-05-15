@@ -291,8 +291,8 @@ def main() -> int:
         # Generate live signals for every horizon of THIS ticker. Must be
         # nested inside the ticker loop or only one ticker's signals survive.
         for sig in horizon_signals:
-            # Slim signal payload — fired_patterns + sentiment are stored
-            # separately so we don't duplicate them 400×8 times.
+            # Slim signal payload. The JS agent recomputes sizing/options
+            # using the user's actual capital, so we don't persist them here.
             sig_dict = {
                 "ticker": sig.ticker,
                 "as_of": sig.as_of.strftime("%Y-%m-%d"),
@@ -303,29 +303,12 @@ def main() -> int:
                 "price": round(sig.price, 4),
                 "atr": round(sig.atr, 4),
             }
-
-            sizing_plan = None
-            options_plan = None
+            # Log predictions for the live scoreboard (still tracked server-side)
             if sig.direction in ("up", "down") and sig.confidence >= sig_cfg["min_confidence"]:
-                sizing_plan = size_position(
-                    direction=sig.direction,
-                    entry=sig.price, atr=sig.atr, confidence=sig.confidence,
-                    capital_usd=portfolio["capital_usd"],
-                    risk_per_trade_pct=portfolio["risk_per_trade_pct"],
-                    max_position_pct=portfolio["max_position_pct"],
-                )
-                options_plan = recommend_options(
-                    direction=sig.direction, confidence=sig.confidence,
-                    spot=sig.price, atr=sig.atr,
-                    horizon_days=sig.horizon_days,
-                    options_allowed=portfolio.get("options_allowed", True),
-                )
                 if len(sig.fired_patterns) >= sig_cfg["min_patterns_for_signal"]:
                     predictions = log_predictions_from_signal(
                         sig, [sig.horizon_days], sig_cfg["min_confidence"], predictions
                     )
-            sig_dict["sizing"] = sizing_plan.to_dict() if sizing_plan else None
-            sig_dict["options"] = options_plan.to_dict() if options_plan else None
             live_signals.append(sig_dict)
 
         # Below: meta + consensus evaluation per horizon, also nested inside
