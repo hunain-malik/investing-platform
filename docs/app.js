@@ -309,9 +309,9 @@ function renderAgent() {
 
   const INITIAL_VISIBLE = 10;
   const top = ranked.slice(0, INITIAL_VISIBLE);
-  for (const s of top) {
-    container.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg));
-  }
+  top.forEach((s, i) => {
+    container.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg, i + 1));
+  });
   if (ranked.length > INITIAL_VISIBLE) {
     container.insertAdjacentHTML("beforeend", `
       <div class="show-more-toggle">
@@ -322,7 +322,9 @@ function renderAgent() {
       <div id="agent-recommendations-rest" style="display:none"></div>
     `);
     const rest = document.getElementById("agent-recommendations-rest");
-    for (const s of ranked.slice(INITIAL_VISIBLE)) rest.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg));
+    ranked.slice(INITIAL_VISIBLE).forEach((s, i) => {
+      rest.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg, INITIAL_VISIBLE + i + 1));
+    });
     const btn = document.getElementById("show-more-btn");
     btn.addEventListener("click", () => {
       const isHidden = rest.style.display === "none";
@@ -338,12 +340,14 @@ function renderAgent() {
   }
 }
 
-function renderRecommendationCard(s, cfg) {
+function renderRecommendationCard(s, cfg, rank) {
+  const rankBadge = rank != null ? `<span class="rec-rank">#${rank}</span>` : "";
   // no_signal entries get a dimmed, compact card
   if (s._source === "no_signal") {
     return `
       <div class="rec-card no-signal">
         <div class="rec-header">
+          ${rankBadge}
           <a href="#" class="rec-ticker ticker-link" data-ticker="${s.ticker}">${s.ticker}</a>
           <span class="tag neutral">no signal today</span>
           <span class="rec-meta muted">@ ${fmtUsd(s.price)} · ${s.horizon_days}d</span>
@@ -425,6 +429,7 @@ function renderRecommendationCard(s, cfg) {
   return `
     <div class="rec-card">
       <div class="rec-header">
+        ${rankBadge}
         <a href="#" class="rec-ticker ticker-link" data-ticker="${s.ticker}">${s.ticker}</a>
         <span class="tag ${dClass}">${s.direction.toUpperCase()}</span>
         <span class="rec-meta" title="Consensus: how strongly the contributing voters agree on direction. 0% = tied, 100% = unanimous. NOT a price change prediction.">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · consensus ${consensusPct}% · ${nVoters} ${voterType} agree</span>
