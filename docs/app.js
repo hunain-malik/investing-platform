@@ -718,9 +718,16 @@ function showTickerModal(ticker) {
       </div>`
     : "";
 
+  // TradingView Advanced Chart widget container — populated after innerHTML is set
+  const chartId = `tv-chart-${ticker}-${Date.now()}`;
   body.innerHTML = `
     <h2>${ticker} <span class="muted small">${price ? "@ " + fmtUsd(price) : ""}</span></h2>
     <p class="muted small">Today's snapshot ${sample?.as_of ? "as of " + sample.as_of : ""}.</p>
+    <div class="modal-section">
+      <h4>Live chart <span class="muted small">— powered by TradingView</span></h4>
+      <div id="${chartId}" class="tv-chart-container" style="height: 420px;"></div>
+      <p class="muted small" style="margin-top: 6px;">Pan, zoom, switch timeframes, draw trendlines. This is the same TradingView chart your broker uses.</p>
+    </div>
     ${metaHtml}
     ${patternsHtml}
     ${sentHtml}
@@ -728,6 +735,54 @@ function showTickerModal(ticker) {
     ${predsHtml}
   `;
   document.getElementById("ticker-modal").hidden = false;
+  // Mount the TradingView widget after DOM is in place
+  mountTradingViewChart(ticker, chartId);
+}
+
+// Loads TradingView's tv.js once, then renders the Advanced Chart widget.
+let _tvLoaded = null;
+function loadTradingViewScript() {
+  if (_tvLoaded) return _tvLoaded;
+  _tvLoaded = new Promise((resolve, reject) => {
+    if (window.TradingView && window.TradingView.widget) {
+      resolve();
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = "https://s3.tradingview.com/tv.js";
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("TradingView script failed to load"));
+    document.head.appendChild(s);
+  });
+  return _tvLoaded;
+}
+
+async function mountTradingViewChart(ticker, containerId) {
+  try {
+    await loadTradingViewScript();
+    if (!window.TradingView || !window.TradingView.widget) return;
+    new window.TradingView.widget({
+      autosize: true,
+      symbol: ticker, // TradingView auto-resolves exchange (NASDAQ:AAPL, etc.)
+      interval: "D",
+      timezone: "Etc/UTC",
+      theme: "dark",
+      style: "1", // 1 = candles, 8 = heikin ashi, 9 = line
+      locale: "en",
+      toolbar_bg: "#161b22",
+      enable_publishing: false,
+      allow_symbol_change: true,
+      hide_side_toolbar: false,
+      studies: ["MASimple@tv-basicstudies", "RSI@tv-basicstudies", "MACD@tv-basicstudies"],
+      container_id: containerId,
+    });
+  } catch (e) {
+    const el = document.getElementById(containerId);
+    if (el) {
+      el.innerHTML = `<p class="muted small">Could not load TradingView chart: ${e.message}. Network restriction or ad-blocker? You can still view the chart at <a href="https://www.tradingview.com/chart/?symbol=${ticker}" target="_blank" rel="noopener" style="color: var(--accent);">tradingview.com/chart/?symbol=${ticker}</a>.</p>`;
+    }
+  }
 }
 
 function setupTickerModal() {

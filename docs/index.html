@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>investing-platform · scoreboard</title>
-<link rel="stylesheet" href="style.css?v=20260515k" />
+<link rel="stylesheet" href="style.css?v=20260515l" />
 </head>
 <body>
 <header class="topbar">
@@ -362,6 +362,268 @@
     </details>
 
     <details class="detail-block">
+      <summary>📖 Glossary — what every badge, label, and number means</summary>
+      <p class="muted small">
+        Every visual element used elsewhere on the dashboard, with its actual rendering shown alongside the meaning.
+        Match what you see on a recommendation card to a row here.
+      </p>
+
+      <div class="glossary-category">
+        <h3>Direction tags</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag up">UP</span></div>
+            <div class="glossary-text"><strong>Bullish prediction</strong> — the model expects the price to rise over the chosen horizon. Action: go long (buy shares) or buy a call option.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag down">DOWN</span></div>
+            <div class="glossary-text"><strong>Bearish prediction</strong> — the model expects the price to fall. Action: short the stock (requires margin), buy a put option, or simply don't buy.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag neutral">—</span></div>
+            <div class="glossary-text"><strong>Neutral / no directional call</strong> — patterns are mixed or too weak to lean either way. The system isn't recommending an action.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>Recommendation source badges</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag confirm">decorrelated</span></div>
+            <div class="glossary-text"><strong>Decorrelated families consensus</strong> — the strongest source. At least 3 INDEPENDENT pattern families (trend, momentum, volatility, volume, candlestick, relative-strength) agreed on the direction. Bayesian-calibrated confidence, capped at 0.95.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag neutral">correlated meta</span></div>
+            <div class="glossary-text"><strong>Correlated meta-ensemble</strong> — older approach. Multiple methodologies agreed, but those methodologies share patterns (e.g., trend-following and trend-in-regime both include SMA crossovers), so the agreement is partially redundant. Lower trust than decorrelated.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag warn">tentative · all-ensemble only</span></div>
+            <div class="glossary-text"><strong>Tentative</strong> — neither meta nor consensus families fired, but the raw all-pattern ensemble has high conviction (≥0.75 confidence, ≥3 patterns fired). Worth considering but unvalidated by rigorous methodology. Treat as a weaker signal.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag neutral">no actionable signal</span></div>
+            <div class="glossary-text"><strong>No signal today</strong> — patterns are too few, too mixed, or too weak. The ticker is shown so you can still search/check it, but no recommendation. The card displays an "all-ensemble hint" with the raw direction if any.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>Numbers on a recommendation card</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong style="font-size: 1.05rem;">conf 0.738</strong></div>
+            <div class="glossary-text"><strong>Confidence</strong> = expected hit rate, calibrated 0.50 (no info) → 0.95 (hard cap, never claims certainty). A 0.74 means the system expects to be right about 74% of the time on signals like this one. Bayesian log-odds calibration for decorrelated; capped at 0.95.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong style="font-size: 1.05rem;">consensus 87.5%</strong></div>
+            <div class="glossary-text"><strong>Consensus</strong> = how unanimously the voting methodologies/families agreed. 0% = tied, 100% = unanimous. <em>NOT a price-change prediction.</em> A 100% consensus on DOWN means "everyone voted bearish," not "expects 100% price decline."</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong style="font-size: 1.05rem;">3 families agree</strong></div>
+            <div class="glossary-text"><strong>Voter count</strong> — number of independent pattern families (or methodologies, for the correlated meta tier) that fired the same direction. More agreement = more conviction.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong style="font-size: 1.05rem;">5 patterns fired</strong></div>
+            <div class="glossary-text"><strong>Pattern count</strong> (tentative cards only) — number of individual technical patterns that fired in the same direction. Replaces "consensus" labeling for the tentative tier since no methodology breakdown is available.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong style="font-size: 1.05rem;">#1</strong></div>
+            <div class="glossary-text"><strong>Rank</strong> — position within the current filtered list, sorted by confidence. #1 is your highest-conviction pick under the current filters.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>News sentiment chips</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag up">news bullish</span></div>
+            <div class="glossary-text"><strong>Recent news is positive</strong> for this ticker. VADER sentiment analysis on Yahoo Finance headlines scored ≥ +0.25 (asymmetric threshold to compensate for VADER's known positive bias on financial text).</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag down">news bearish</span></div>
+            <div class="glossary-text"><strong>Recent news is negative</strong>. Score ≤ -0.02 (lower threshold because VADER under-detects negative financial language).</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag neutral">news neutral</span></div>
+            <div class="glossary-text"><strong>Recent news doesn't lean strongly either way</strong>. Mixed or routine coverage.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag up">↑ vs peers</span></div>
+            <div class="glossary-text"><strong>News is bullish relative to today's universe</strong>. This ticker's sentiment score is more than 0.75 standard deviations above the median across all watchlist tickers today. Useful for catching mild positives that the absolute threshold missed.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag down">↓ vs peers</span></div>
+            <div class="glossary-text"><strong>News is bearish relative to peers</strong>. Below the universe median by ≥ 0.75σ. Often surfaces real negative signal that VADER's absolute scoring under-rates.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag warn">⚠ news disagrees</span></div>
+            <div class="glossary-text"><strong>Sentiment contradicts the model</strong>. E.g. model says DOWN but news is bullish. Either the news is noise (boilerplate upgrades after a run-up) or the model is wrong. Worth investigating before trading.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag confirm">✓ news agrees</span></div>
+            <div class="glossary-text"><strong>Sentiment confirms the model</strong>. News and model point the same direction — extra confirmation.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>Event risk warnings</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag down">⚠ earnings in 4d</span></div>
+            <div class="glossary-text"><strong>Earnings event before the horizon closes</strong>. Earnings reports cause large outsized moves unrelated to technical setup. The system flags this so you can avoid being caught by an earnings surprise. Personal Agent has a "Skip earnings" filter (on by default).</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="muted small">earnings in 32d (after horizon)</span></div>
+            <div class="glossary-text"><strong>Earnings exist but after the prediction horizon</strong>. Position should be closed before earnings, so it's informational only — no warning.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>Market regime tags (in tables / scoreboards)</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag up">bull</span></div>
+            <div class="glossary-text"><strong>Bull market regime</strong>. SPY is above its 200-day SMA AND the 200-day SMA is rising over the last 60 bars. Trend-following methods work best here.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag down">bear</span></div>
+            <div class="glossary-text"><strong>Bear market regime</strong>. SPY is below its 200-day SMA AND falling. Trend-following on the short side works; mean reversion is choppy.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag neutral">choppy</span></div>
+            <div class="glossary-text"><strong>Choppy / transitional regime</strong>. SPY is near or whipsawing around its 200-SMA. Mean reversion sometimes works; trend-following generally doesn't. The decorrelated families method handles this regime best.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>Horizons (how long to hold)</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>5d / 10d / 20d</strong></div>
+            <div class="glossary-text"><strong>Very short-term</strong> — patterns are noisy at these horizons; the system rarely produces actionable signals here. Coin-flip territory.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>30d / 45d / 60d / 90d / 120d</strong></div>
+            <div class="glossary-text"><strong>Trading horizons</strong> (1–6 months). Where most active trading happens. The Trading tab pre-selects from these.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>180d / 252d / 504d</strong></div>
+            <div class="glossary-text"><strong>Swing / Position horizons</strong> (6mo–2yr). Captures longer trends. The Swing tab pre-selects from these.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>1260d</strong></div>
+            <div class="glossary-text"><strong>Long-term / Roth horizon</strong> (5 years). Best for tax-advantaged accounts and buy-and-hold. The Long-term tab uses this.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>Position & risk concepts</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Long / Short</strong></div>
+            <div class="glossary-text"><strong>Long</strong> = buy shares, profit if price rises. <strong>Short</strong> = borrow + sell, profit if price falls. Shorting requires a margin account; not allowed in IRAs/Roth.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Stop-loss</strong></div>
+            <div class="glossary-text"><strong>Pre-defined exit price</strong> that limits loss. Set at 2× the 14-day ATR (Average True Range) below entry for longs / above entry for shorts. If price hits stop, the position closes automatically.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>ATR</strong></div>
+            <div class="glossary-text"><strong>Average True Range</strong> — a 14-day measure of typical daily price swing. Used to size stop-losses (volatile stocks get wider stops).</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Risk per trade %</strong></div>
+            <div class="glossary-text"><strong>Maximum % of your capital</strong> you're willing to lose on a single trade if the stop hits. 2% is the standard recommendation. The agent calculates share count to hit this risk ceiling exactly.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Max position %</strong></div>
+            <div class="glossary-text"><strong>Maximum % of capital in one position</strong>. Caps concentration regardless of how the stop math worked out. 25% is reasonable for a 4-position portfolio.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>Options concepts</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Long call / long put</strong></div>
+            <div class="glossary-text"><strong>Single-leg options</strong>. Long call = bet price rises (limited downside = premium paid, unlimited upside). Long put = bet price falls.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Bull call spread</strong></div>
+            <div class="glossary-text"><strong>Two-leg debit spread</strong>. Buy a call at strike A, sell a call at strike B (B &gt; A). Cheaper than a long call but caps your max profit at (B − A − net debit). Best for moderate bullish conviction.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Bear put spread</strong></div>
+            <div class="glossary-text"><strong>The bearish mirror image</strong>. Buy a put at strike B, sell a put at strike A (A &lt; B). Limited risk, capped profit, for moderate bearish conviction.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>DTE (Days To Expiration)</strong></div>
+            <div class="glossary-text"><strong>How many calendar days until the option expires</strong>. Standard retail directional plays use 30–90 DTE. The system targets `horizon + 30` days (clamped to 45–365). Options aren't recommended for horizons >1 year (LEAPS territory, illiquid).</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Strike</strong></div>
+            <div class="glossary-text"><strong>The price at which the option can be exercised</strong>. Long strike = the option you buy. Short strike = the option you sell (in a spread). System rounds to standard strike grids ($1 under $50, $2.50 under $200, $5 above).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>Pattern families</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Trend</strong></div>
+            <div class="glossary-text"><strong>Trend-following patterns</strong> — SMA crossovers (20/50, 50/200 = golden/death cross), MACD crossovers, multi-timeframe alignment (price > 5/20/50/200 SMA stack), Ichimoku Tenkan-Kijun cross.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Momentum</strong></div>
+            <div class="glossary-text"><strong>Oscillator extremes</strong> — RSI(14) oversold (&lt;30) or overbought (&gt;70) and turning, Stochastic %K crossing %D from extremes.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Volatility</strong></div>
+            <div class="glossary-text"><strong>Bollinger Band squeezes</strong> — when bandwidth contracts (low volatility) and then price breaks out. Squeeze + breakout up = bullish, squeeze + breakout down = bearish.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Volume</strong></div>
+            <div class="glossary-text"><strong>Volume conviction patterns</strong> — high-volume breakouts (z-score &gt; 2), volume dry-up at new lows (selling exhaustion), volume dry-top at new highs (rally without conviction).</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Candlestick</strong></div>
+            <div class="glossary-text"><strong>Single- and two-candle reversal patterns</strong> — bullish/bearish engulfing, hammer, shooting star, doji at support/resistance.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Relative strength</strong></div>
+            <div class="glossary-text"><strong>Out/under-performance vs SPY</strong> over 20 days. RS bull = ticker beat SPY by ≥3%; RS bear = ticker underperformed by ≥3%.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>Backtest accuracy metrics</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>K-fold accuracy</strong></div>
+            <div class="glossary-text"><strong>Out-of-sample accuracy</strong> from 5-fold cross-validation. The model is trained on 4 folds, tested on the held-out fold; repeated 5 times. This is the honest "expected real-world hit rate." <em>Trust this number.</em></div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><strong>In-sample accuracy</strong></div>
+            <div class="glossary-text"><strong>Accuracy on the training data</strong>. Always inflated vs out-of-sample. Shown only for comparison; do not act on this number.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag down">PRUNED</span></div>
+            <div class="glossary-text"><strong>Methodology pruned</strong> — its backtest accuracy is below 50% at every horizon, meaning it's net-harmful. Excluded from the meta-ensemble until it improves.</div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="detail-block">
       <summary>How it works (patterns + windows + sources)</summary>
       <div class="approach-grid">
         <div class="approach-card">
@@ -466,7 +728,7 @@
 
   <!-- Ticker deep-dive modal -->
   <div id="ticker-modal" class="modal-overlay" hidden>
-    <div class="modal-content">
+    <div class="modal-content" style="max-width: 1100px;">
       <button class="modal-close" id="ticker-modal-close">×</button>
       <div id="ticker-modal-body"></div>
     </div>
@@ -500,6 +762,6 @@
     }
   });
 </script>
-<script src="app.js?v=20260515k"></script>
+<script src="app.js?v=20260515l"></script>
 </body>
 </html>

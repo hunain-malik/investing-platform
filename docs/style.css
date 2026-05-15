@@ -354,6 +354,51 @@ button.refresh-link {
   border-radius: 8px;
 }
 .modal-section h4 { margin: 0 0 8px; font-size: 0.95rem; color: var(--accent); }
+.tv-chart-container {
+  background: #161b22;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Glossary visual specimens — display the actual UI element next to its definition */
+.glossary-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin: 12px 0;
+}
+.glossary-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: start;
+}
+.glossary-row:last-child { border-bottom: none; }
+.glossary-specimen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+}
+.glossary-text strong { color: var(--text); }
+.glossary-text .muted { font-size: 0.9rem; }
+.glossary-category {
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.glossary-category h3 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+@media (max-width: 700px) {
+  .glossary-row { grid-template-columns: 1fr; }
+}
 
 footer { color: var(--muted); padding: 24px 0; }
 footer a { color: var(--accent); }
