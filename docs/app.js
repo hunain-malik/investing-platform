@@ -344,6 +344,25 @@ function renderRecommendationCard(s, cfg) {
 
   const consensusPct = Math.abs(s.vote_margin * 100).toFixed(1);
   const contradictionChip = sentimentContradictionChip(s.direction, s.sentiment);
+  // Equity recommendation depends on direction:
+  // - UP   -> long entry (buy shares, sell at target / stop below)
+  // - DOWN -> short entry (sell-to-open, requires margin account; stop above)
+  let equityLine;
+  if (s.direction === "up") {
+    equityLine = `
+      <div class="rec-line">
+        <strong>Equity (long):</strong> <strong>Buy ${fmtNum(sizing.shares)} shares</strong> @ ${fmtUsd(s.price)} · stop-loss ${fmtUsd(sizing.stop)} · position ${fmtUsd(sizing.posUsd)} (${(sizing.pctOfCapital * 100).toFixed(1)}% of capital) · max risk ${fmtUsd(sizing.riskUsd)}
+      </div>`;
+  } else if (s.direction === "down") {
+    equityLine = `
+      <div class="rec-line">
+        <strong>Equity (short):</strong> <strong>Short-sell ${fmtNum(sizing.shares)} shares</strong> @ ${fmtUsd(s.price)} · stop-loss ${fmtUsd(sizing.stop)} (buy-to-cover if price rises here) · position ${fmtUsd(sizing.posUsd)} (${(sizing.pctOfCapital * 100).toFixed(1)}% of capital) · max risk ${fmtUsd(sizing.riskUsd)}
+      </div>
+      <div class="rec-line muted small">⚠ Shorting requires a margin-enabled brokerage account. Not allowed in IRAs/Roth IRAs. If you can't short, consider a put option (see below) or simply <em>avoid buying</em> this name until the bearish horizon resolves.</div>`;
+  } else {
+    equityLine = `<div class="rec-line muted">No directional call.</div>`;
+  }
+
   return `
     <div class="rec-card">
       <div class="rec-header">
@@ -354,9 +373,7 @@ function renderRecommendationCard(s, cfg) {
         ${sentChip}
         ${contradictionChip}
       </div>
-      <div class="rec-line">
-        <strong>Equity:</strong> Buy <strong>${fmtNum(sizing.shares)} shares</strong> @ ${fmtUsd(s.price)} · stop ${fmtUsd(sizing.stop)} · position ${fmtUsd(sizing.posUsd)} (${(sizing.pctOfCapital * 100).toFixed(1)}% of capital) · max risk ${fmtUsd(sizing.riskUsd)}
-      </div>
+      ${equityLine}
       ${optsLine}
       <div class="rec-line muted small">Voted in favor: ${contribs}</div>
       ${newsBlock}
