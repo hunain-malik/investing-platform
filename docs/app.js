@@ -217,6 +217,7 @@ function getAgentInputs() {
     direction: document.getElementById("agent-direction").value,
     optionsAllowed: document.getElementById("agent-options-allowed").checked,
     skipEarnings: document.getElementById("agent-skip-earnings").checked,
+    hideNoSignal: document.getElementById("agent-hide-no-signal").checked,
     mode: document.getElementById("agent-mode").value,
     portfolioN: parseInt(document.getElementById("agent-portfolio-n").value) || 5,
     tickerFilter: document.getElementById("agent-ticker-filter").value.trim().toUpperCase(),
@@ -240,6 +241,7 @@ function renderAgent() {
   if (cfg.direction !== "any") candidates = candidates.filter(s => s.direction === cfg.direction);
   if (cfg.minConf) candidates = candidates.filter(s => s._source === "no_signal" || s.confidence >= cfg.minConf);
   if (cfg.skipEarnings) candidates = candidates.filter(s => !s.earnings_in_horizon);
+  if (cfg.hideNoSignal) candidates = candidates.filter(s => s._source !== "no_signal");
   if (cfg.tickerFilter) {
     const tokens = cfg.tickerFilter.split(/[,\s]+/).filter(Boolean);
     candidates = candidates.filter(s => tokens.some(t => s.ticker.toUpperCase().startsWith(t)));
@@ -342,17 +344,25 @@ function renderAgent() {
 
 function renderRecommendationCard(s, cfg, rank) {
   const rankBadge = rank != null ? `<span class="rec-rank">#${rank}</span>` : "";
-  // no_signal entries get a dimmed, compact card
+  // no_signal entries get a dimmed, compact card showing the weak all-ensemble hint
   if (s._source === "no_signal") {
+    const base = s._baseSig || {};
+    const baseDirText = base.direction === "neutral"
+      ? `all-ensemble: neutral (no patterns of note fired)`
+      : `all-ensemble hint: ${base.direction?.toUpperCase()} at conf ${(base.confidence ?? 0.5).toFixed(3)} (too weak for meta/consensus to fire)`;
+    const firedCount = (base.fired_patterns || []).length;
+    const firedNote = firedCount > 0
+      ? `${firedCount} pattern${firedCount === 1 ? '' : 's'} fired but didn't cross threshold`
+      : "no patterns fired";
     return `
       <div class="rec-card no-signal">
         <div class="rec-header">
           ${rankBadge}
           <a href="#" class="rec-ticker ticker-link" data-ticker="${s.ticker}">${s.ticker}</a>
-          <span class="tag neutral">no signal today</span>
-          <span class="rec-meta muted">@ ${fmtUsd(s.price)} · ${s.horizon_days}d</span>
+          <span class="tag neutral">no actionable signal</span>
+          <span class="rec-meta muted">@ ${fmtUsd(base.price)} · ${s.horizon_days}d</span>
         </div>
-        <div class="rec-line muted small">No methodology fired with sufficient confidence. Click ticker for full breakdown.</div>
+        <div class="rec-line muted small">${baseDirText} — ${firedNote}. Click ticker for full breakdown.</div>
       </div>
     `;
   }
