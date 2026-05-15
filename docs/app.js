@@ -1360,14 +1360,21 @@ function renderPredictionsTable() {
   }
   rows.sort((a, b) => (b.made_at || "").localeCompare(a.made_at || ""));
   rows = rows.slice(0, 200);
-  if (rows.length === 0) { tbody.innerHTML = `<tr><td colspan="8" class="muted">No predictions match.</td></tr>`; return; }
+  if (rows.length === 0) { tbody.innerHTML = `<tr><td colspan="10" class="muted">No predictions match.</td></tr>`; return; }
   for (const p of rows) {
     const resolved = p.status === "resolved";
     const klass = !resolved ? "row-open" : p.correct ? "row-correct" : "row-wrong";
     const result = !resolved ? tag("OPEN", "open") : p.correct ? tag("CORRECT", "correct") : tag("WRONG", "wrong");
+    const method = p.methodology
+      ? (p.methodology === "consensus_families" ? tag("decorrelated", "confirm")
+         : p.methodology === "meta_ensemble" ? tag("meta", "neutral")
+         : `<span class="muted small">${p.methodology}</span>`)
+      : `<span class="muted small">legacy</span>`;
+    const sectorCell = p.sector ? `<span class="muted small">${p.sector}</span>` : `<span class="muted small">—</span>`;
     tbody.insertAdjacentHTML("beforeend", `
       <tr class="${klass}">
-        <td>${p.made_at}</td><td><a href="#" class="ticker-link" data-ticker="${p.ticker}"><strong>${p.ticker}</strong></a></td><td>${dirTag(p.predicted_direction)}</td>
+        <td>${p.made_at}</td><td><a href="#" class="ticker-link" data-ticker="${p.ticker}"><strong>${p.ticker}</strong></a></td>
+        <td>${method}</td><td>${sectorCell}</td><td>${dirTag(p.predicted_direction)}</td>
         <td>${p.ensemble_confidence.toFixed(3)}</td><td>${p.horizon_days}d</td><td>${p.status}</td>
         <td>${p.actual_return_pct == null ? "—" : fmtPctSigned(p.actual_return_pct)}</td><td>${result}</td>
       </tr>

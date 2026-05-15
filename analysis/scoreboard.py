@@ -49,6 +49,11 @@ class Prediction:
     actual_label: str | None = None
     correct: bool | None = None
     notes: str = ""
+    # Methodology that generated this prediction. Empty for legacy entries
+    # filed before this field existed. Populated for new predictions filed
+    # via meta_pseudo_signal / consensus_pseudo_signal in run.py.
+    methodology: str = ""
+    sector: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -89,6 +94,7 @@ def log_predictions_from_signal(
     horizons: list[int],
     min_confidence: float,
     existing: list[Prediction],
+    sector: str = "",
 ) -> list[Prediction]:
     """Append new predictions for `signal` (one per horizon) if not already logged.
 
@@ -114,6 +120,8 @@ def log_predictions_from_signal(
             predicted_direction=signal.direction,
             ensemble_confidence=signal.confidence,
             fired_patterns=[p.name for p in signal.fired_patterns],
+            methodology=signal.methodology or "",
+            sector=sector or "",
         ))
     return new
 

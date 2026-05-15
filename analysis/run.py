@@ -377,6 +377,7 @@ def main() -> int:
                 predictions = log_predictions_from_signal(
                     consensus_pseudo_signal, [sig.horizon_days],
                     sig_cfg["min_confidence"], predictions,
+                    sector=ticker_to_sector.get(ticker, ""),
                 )
             if consensus is not None:
                 cons_sizing = size_position(
@@ -466,6 +467,7 @@ def main() -> int:
                     predictions = log_predictions_from_signal(
                         meta_pseudo_signal, [sig.horizon_days],
                         sig_cfg["min_confidence"], predictions,
+                        sector=ticker_to_sector.get(ticker, ""),
                     )
 
     # Cross-sectional sentiment: re-label each ticker's sentiment relative

@@ -412,7 +412,7 @@
         <label>Search<input type="search" id="pred-search" placeholder="ticker" /></label>
         <label><input type="checkbox" id="pred-only-resolved" /> Only resolved</label>
       </div>
-      <div class="table-wrap"><table id="predictions-table"><thead><tr><th>Made</th><th>Ticker</th><th>Direction</th><th>Conf</th><th>Horizon</th><th>Status</th><th>Return</th><th>Result</th></tr></thead><tbody></tbody></table></div>
+      <div class="table-wrap"><table id="predictions-table"><thead><tr><th>Made</th><th>Ticker</th><th>Method</th><th>Sector</th><th>Direction</th><th>Conf</th><th>Horizon</th><th>Status</th><th>Return</th><th>Result</th></tr></thead><tbody></tbody></table></div>
     </details>
 
     <details class="detail-block">
@@ -484,6 +484,32 @@
           <div class="glossary-row">
             <div class="glossary-specimen"><strong style="font-size: 1.05rem;">#1</strong></div>
             <div class="glossary-text"><strong>Rank</strong> — position within the current filtered list, sorted by confidence. #1 is your highest-conviction pick under the current filters.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>Sector tags + volatility match</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag neutral">Technology ✓</span></div>
+            <div class="glossary-text"><strong>Sector with sector-aware weighting applied</strong>. The recommendation uses Technology's sector-specific methodology accuracies as weight overrides. The green checkmark means at least one methodology got a sector override (vs falling back to global accuracy). Hover for the override details.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag neutral">Healthcare</span></div>
+            <div class="glossary-text"><strong>Sector tag without override</strong>. The ticker's sector is identified but none of the methodologies had ≥20 sector-specific samples, so the system fell back to global per-horizon weights.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag confirm">mid-vol (vol-match 95%)</span></div>
+            <div class="glossary-text"><strong>Volatility matches your risk profile</strong>. ATR (Average True Range) as % of price falls in the 2–5% band ("mid-vol"). Match score is the bell-curve distance from your target ATR (set by Risk per trade %).</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag neutral">low-vol (vol-match 62%)</span></div>
+            <div class="glossary-text"><strong>Volatility is workable but not ideal for your risk profile</strong>. E.g., a low-vol blue-chip when you've set 5% risk (target ATR ~6%) — possible but not optimal.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="tag warn">high-vol (vol-match 25%)</span></div>
+            <div class="glossary-text"><strong>Volatility mismatch with your risk profile</strong>. E.g., a meme stock at 9% ATR when you've set 1% risk. The stock isn't excluded but is heavily de-prioritized in ranking.</div>
           </div>
         </div>
       </div>
@@ -666,12 +692,34 @@
             <div class="glossary-text"><strong>Out-of-sample accuracy</strong> from 5-fold cross-validation. The model is trained on 4 folds, tested on the held-out fold; repeated 5 times. This is the honest "expected real-world hit rate." <em>Trust this number.</em></div>
           </div>
           <div class="glossary-row">
+            <div class="glossary-specimen"><strong>Meta + sector weighting (K-fold)</strong></div>
+            <div class="glossary-text"><strong>Sector-aware K-fold accuracy</strong> — same protocol as plain K-fold but methodology weights are computed per-(sector, methodology) on each training fold. Tests whether sector-specific weighting actually improves out-of-sample accuracy. The delta line shows the lift vs the no-sector baseline; if positive (green), sector weighting helps. <em>Currently the delta is small or slightly negative — sector samples per cell aren't large enough for the weighting to outperform global; sectors are most useful for filtering (e.g., skipping Utilities entirely) rather than as fine-grained weights.</em></div>
+          </div>
+          <div class="glossary-row">
             <div class="glossary-specimen"><strong>In-sample accuracy</strong></div>
             <div class="glossary-text"><strong>Accuracy on the training data</strong>. Always inflated vs out-of-sample. Shown only for comparison; do not act on this number.</div>
           </div>
           <div class="glossary-row">
             <div class="glossary-specimen"><span class="tag down">PRUNED</span></div>
             <div class="glossary-text"><strong>Methodology pruned</strong> — its backtest accuracy is below 50% at every horizon, meaning it's net-harmful. Excluded from the meta-ensemble until it improves.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glossary-category">
+        <h3>Live data + refresh</h3>
+        <div class="glossary-grid">
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="live-chip"><span class="live-dot"></span>LIVE <strong>$180.42</strong> <span class="green">↑0.4%</span></span></div>
+            <div class="glossary-text"><strong>Live price chip during market hours</strong>. Pulsing green dot = data is flowing. Price + intraday change% update every 30 seconds. Source: Stooq via your Cloudflare Worker.</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen"><span class="live-chip"><span class="live-dot live-dot-static"></span>LAST CLOSE <strong>$180.42</strong> <span class="green">↑0.4%</span></span></div>
+            <div class="glossary-text"><strong>Live chip outside market hours</strong>. Static gray dot. Other labels: PRE-MKT (4-9:30 ET), AFTER-HRS (4-8 PM ET), LAST CLOSE (overnight / weekend).</div>
+          </div>
+          <div class="glossary-row">
+            <div class="glossary-specimen">↻ Refresh now</div>
+            <div class="glossary-text"><strong>Trigger a fresh full analysis run on demand</strong>. Click → progress modal → ~3-8 min → fresh data + page auto-reloads. Requires Cloudflare Worker setup (one-time, see <code>infrastructure/trigger-worker/README.md</code>).</div>
           </div>
         </div>
       </div>
@@ -816,6 +864,6 @@
     }
   });
 </script>
-<script src="app.js?v=20260515u"></script>
+<script src="app.js?v=20260515v"></script>
 </body>
 </html>
