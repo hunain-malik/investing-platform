@@ -241,6 +241,7 @@ def main() -> int:
     live_meta_signals = []
     live_consensus_signals = []
     sentiments_by_ticker: dict[str, dict] = {}
+    fired_patterns_by_ticker: dict[str, list] = {}
 
     # Load SPY once for live regime detection AND relative-strength patterns
     try:
@@ -282,12 +283,26 @@ def main() -> int:
             except Exception:  # noqa: BLE001
                 ticker_earnings_days = None
 
+        # Store fired patterns ONCE per ticker (looked up by modal on demand).
+        # Keeping them in every live_signals entry made signals.json 11MB.
+        if fired_today:
+            fired_patterns_by_ticker[ticker] = [p.to_dict() for p in fired_today]
+
         # Generate live signals for every horizon of THIS ticker. Must be
         # nested inside the ticker loop or only one ticker's signals survive.
         for sig in horizon_signals:
-            sig_dict = sig.to_dict()
-            sig_dict["sentiment"] = sentiments_by_ticker.get(ticker)
-            sig_dict["regime"] = live_regime
+            # Slim signal payload — fired_patterns + sentiment are stored
+            # separately so we don't duplicate them 400×8 times.
+            sig_dict = {
+                "ticker": sig.ticker,
+                "as_of": sig.as_of.strftime("%Y-%m-%d"),
+                "horizon_days": sig.horizon_days,
+                "direction": sig.direction,
+                "confidence": round(sig.confidence, 4),
+                "n_fired": len(sig.fired_patterns),
+                "price": round(sig.price, 4),
+                "atr": round(sig.atr, 4),
+            }
 
             sizing_plan = None
             options_plan = None
@@ -459,6 +474,7 @@ def main() -> int:
         "meta_signals": live_meta_signals,
         "consensus_signals": live_consensus_signals,
         "sentiments": sentiments_by_ticker,
+        "fired_patterns_by_ticker": fired_patterns_by_ticker,
     })
     write_json(DATA_DIR / "predictions.json", {
         "updated_at": _ts(),

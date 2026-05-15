@@ -350,7 +350,7 @@ function renderRecommendationCard(s, cfg, rank) {
     const baseDirText = base.direction === "neutral"
       ? `all-ensemble: neutral (no patterns of note fired)`
       : `all-ensemble hint: ${base.direction?.toUpperCase()} at conf ${(base.confidence ?? 0.5).toFixed(3)} (too weak for meta/consensus to fire)`;
-    const firedCount = (base.fired_patterns || []).length;
+    const firedCount = base.n_fired ?? (base.fired_patterns || []).length;
     const firedNote = firedCount > 0
       ? `${firedCount} pattern${firedCount === 1 ? '' : 's'} fired but didn't cross threshold`
       : "no patterns fired";
@@ -481,7 +481,8 @@ function showTickerModal(ticker) {
   const sample = allSigs[0] || metas[0];
   const price = sample?.price;
   const atr = sample?.atr;
-  const firedPatterns = sample?.fired_patterns || [];
+  // fired_patterns is stored once per ticker in fired_patterns_by_ticker, not per signal
+  const firedPatterns = _allData.signals?.fired_patterns_by_ticker?.[ticker] || sample?.fired_patterns || [];
 
   let metaHtml = "";
   if (metas.length > 0) {
