@@ -177,6 +177,15 @@ function _buildUnifiedRecs(horizon) {
         sentiment: meta.sentiment || sentiment,
       });
     } else {
+      // No meta or consensus signal — but if the all-ensemble has strong
+      // conviction (≥0.75 conf + ≥3 patterns fired), surface as a "tentative"
+      // recommendation. These haven't been validated by meta/consensus but
+      // they're not just noise either. Many horizons (esp. 60d) have no
+      // meta/consensus signals at all, so this is the only way to see
+      // anything actionable on those tabs.
+      const isStrong = baseSig.direction !== "neutral"
+        && (baseSig.confidence ?? 0) >= 0.75
+        && (baseSig.n_fired ?? 0) >= 3;
       out.push({
         ticker: t,
         as_of: baseSig.as_of,
@@ -194,7 +203,7 @@ function _buildUnifiedRecs(horizon) {
         n_families: 0,
         contributing_methodologies: [],
         contributing_families: [],
-        _source: "no_signal",
+        _source: isStrong ? "tentative" : "no_signal",
         _baseSig: baseSig,
       });
     }
@@ -310,25 +319,25 @@ function renderAgent() {
   }
 
   // Re-size each actionable candidate using the user's capital.
-  // no_signal entries skip sizing but are kept visible for searchability.
-  // Actionable signals where sizing returns null (capital too small for
-  // stop-distance, confidence below threshold, etc.) DOWNGRADE to no_signal
-  // display rather than throw on null.shares.
+  // Actionable sources: consensus, meta, tentative (all-ensemble high-conf).
+  // no_signal entries skip sizing.
+  // Actionable signals where sizing returns null (capital too small) get the
+  // 'unsizable' display rather than throwing on null.shares.
   let ranked = candidates.map(s => {
     if (s._source === "no_signal") return { ...s, _sizing: null, _options: null };
     const sizing = sizePosition(s.direction, s.price, s.atr, s.confidence, cfg.capital, cfg.riskPct, cfg.maxPosPct);
     const opts = recommendOptions(s.direction, s.confidence, s.price, s.atr, s.horizon_days, cfg.optionsAllowed);
     if (sizing == null) {
-      // Can't size given user's capital — surface as a "skipped" card
       return { ...s, _sizing: null, _options: null, _source: "unsizable" };
     }
     return { ...s, _sizing: sizing, _options: opts };
   });
-  // Actionable picks first (have sizing); no_signal entries after
+  // Sort: actionable (consensus → meta → tentative) first, then no_signal
+  const sourcePriority = (src) => ({ consensus: 4, meta: 3, tentative: 2, unsizable: 1, no_signal: 0 }[src] ?? 0);
   ranked.sort((a, b) => {
-    const aHas = a._sizing != null ? 1 : 0;
-    const bHas = b._sizing != null ? 1 : 0;
-    if (aHas !== bHas) return bHas - aHas;
+    const pa = sourcePriority(a._source);
+    const pb = sourcePriority(b._source);
+    if (pa !== pb) return pb - pa;
     return (b.confidence || 0) - (a.confidence || 0);
   });
 
@@ -375,8 +384,13 @@ function renderAgent() {
   }
 
   // Ranked mode (default)
+  const tentativeCount = ranked.filter(s => s._source === "tentative").length;
+  const validatedCount = ranked.filter(s => s._source === "consensus" || s._source === "meta").length;
+  const tentativeNote = tentativeCount > 0
+    ? ` (${validatedCount} validated by meta/consensus + ${tentativeCount} tentative all-ensemble picks where consensus didn't fire)`
+    : "";
   setText("agent-summary",
-    `${actionableCount} actionable picks out of ${ranked.length} tickers analyzed at ${cfg.horizon}d horizon (sized for ${fmtUsd(cfg.capital)} capital, ${cfg.riskPct}% risk per trade). Tickers without actionable signals shown below as "no signal".`);
+    `${actionableCount} actionable picks out of ${ranked.length} tickers analyzed at ${cfg.horizon}d horizon${tentativeNote}. Sized for ${fmtUsd(cfg.capital)} capital, ${cfg.riskPct}% risk per trade.`);
 
   const INITIAL_VISIBLE = 10;
   const top = ranked.slice(0, INITIAL_VISIBLE);
@@ -455,7 +469,8 @@ function renderRecommendationCard(s, cfg, rank) {
   const opts = s._options;
   const sourceBadge = s._source === "consensus"
     ? tag("decorrelated", "confirm")
-    : (s._source === "meta" ? tag("correlated meta", "neutral") : "");
+    : (s._source === "meta" ? tag("correlated meta", "neutral")
+       : (s._source === "tentative" ? tag("tentative · all-ensemble only", "warn") : ""));
   // s.n_contributing (meta) vs s.n_families (consensus) — normalize for display
   const nVoters = s.n_families ?? s.n_contributing ?? 0;
   const voterType = s.n_families != null && s.n_families > 0 ? "families" : "methods";
