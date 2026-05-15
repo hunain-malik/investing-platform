@@ -96,9 +96,12 @@ export default {
 
 
 /**
- * Fetches near-real-time quotes from Yahoo Finance's public quote API.
- * No auth required. Quotes update every minute or so during market hours.
- * Returns: { ok, quotes: { SYMBOL: { price, change, changePct, time, market } } }
+ * Fetches recent quotes from Stooq.com (free, no auth).
+ * Yahoo's quote API now requires a crumb + cookie dance; Stooq doesn't.
+ * Stooq data is typically real-time-ish during market hours.
+ *
+ * Stooq format: aapl.us,msft.us,ibm.us — US tickers get .us suffix.
+ * Returns CSV; we parse and emit the same JSON shape as before.
  */
 async function handleLivePrices(url, corsHeaders) {
   const symbolsParam = url.searchParams.get("symbols");
@@ -108,50 +111,83 @@ async function handleLivePrices(url, corsHeaders) {
     });
   }
   // Cap at 50 symbols per request to avoid abuse
-  const symbols = symbolsParam.split(",").map(s => s.trim()).filter(Boolean).slice(0, 50);
+  const symbols = symbolsParam.split(",").map(s => s.trim().toUpperCase()).filter(Boolean).slice(0, 50);
   if (symbols.length === 0) {
     return new Response(JSON.stringify({ ok: false, error: "empty symbols list" }), {
       status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
-  const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(","))}`;
-  let data;
+  // Stooq expects lowercase tickers with .us suffix for US equities/ETFs.
+  // BRK.B -> brk-b.us (dots replaced with hyphens).
+  const stooqSyms = symbols.map(s => `${s.toLowerCase().replace(/\./g, "-")}.us`);
+  const stooqUrl = `https://stooq.com/q/l/?s=${stooqSyms.join(",")}&f=sd2t2ohlcv&h&e=csv`;
+
+  let csv;
   try {
-    const yResp = await fetch(yahooUrl, {
+    const resp = await fetch(stooqUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; InvestingPlatformWorker/1.0)",
-        "Accept": "application/json",
+        "Accept": "text/csv,text/plain",
       },
-      cf: { cacheTtl: 30 }, // Cloudflare edge cache for 30s
+      cf: { cacheTtl: 30 },
     });
-    if (!yResp.ok) {
-      return new Response(JSON.stringify({ ok: false, status: yResp.status, error: "yahoo upstream error" }), {
+    if (!resp.ok) {
+      return new Response(JSON.stringify({ ok: false, status: resp.status, error: "stooq upstream error" }), {
         status: 502, headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
-    data = await yResp.json();
+    csv = await resp.text();
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: e.message || "fetch failed" }), {
       status: 502, headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
 
-  const result = (data?.quoteResponse?.result || []);
+  // Parse CSV: header row, then one row per symbol
+  // Example: "Symbol,Date,Time,Open,High,Low,Close,Volume"
+  const lines = csv.trim().split(/\r?\n/);
+  if (lines.length < 2) {
+    return new Response(JSON.stringify({ ok: false, error: "empty stooq response" }), {
+      status: 502, headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+  const header = lines[0].split(",").map(h => h.trim());
+  const idx = (name) => header.findIndex(h => h.toLowerCase() === name.toLowerCase());
+  const iSymbol = idx("Symbol");
+  const iDate = idx("Date");
+  const iTime = idx("Time");
+  const iOpen = idx("Open");
+  const iClose = idx("Close");
+
   const quotes = {};
-  for (const q of result) {
-    quotes[q.symbol] = {
-      price: q.regularMarketPrice ?? null,
-      change: q.regularMarketChange ?? null,
-      changePct: q.regularMarketChangePercent ?? null,
-      time: q.regularMarketTime ?? null, // epoch seconds
-      market: q.marketState ?? null, // REGULAR / CLOSED / PRE / POST
-      currency: q.currency ?? "USD",
+  for (let r = 1; r < lines.length; r++) {
+    const cols = lines[r].split(",");
+    const sym = (cols[iSymbol] || "").toUpperCase().replace(/-US$|\.US$/i, "").replace(/-/g, ".");
+    const open = parseFloat(cols[iOpen]);
+    const close = parseFloat(cols[iClose]);
+    if (!sym || isNaN(close)) continue;
+    const change = !isNaN(open) ? (close - open) : null;
+    const changePct = !isNaN(open) && open > 0 ? ((close - open) / open) * 100 : null;
+    // Build a timestamp from Stooq's date + time fields (UTC-ish — Stooq uses local exchange time)
+    let timeEpoch = null;
+    if (cols[iDate] && cols[iTime]) {
+      const dt = new Date(`${cols[iDate]}T${cols[iTime]}Z`);
+      if (!isNaN(dt.getTime())) timeEpoch = Math.floor(dt.getTime() / 1000);
+    }
+    quotes[sym] = {
+      price: close,
+      change: change != null ? Math.round(change * 10000) / 10000 : null,
+      changePct: changePct != null ? Math.round(changePct * 100) / 100 : null,
+      time: timeEpoch,
+      market: null, // Stooq doesn't expose market state
+      currency: "USD",
+      source: "stooq",
     };
   }
 
   return new Response(
-    JSON.stringify({ ok: true, quotes, fetched_at: Math.floor(Date.now() / 1000) }),
+    JSON.stringify({ ok: true, quotes, fetched_at: Math.floor(Date.now() / 1000), source: "stooq" }),
     {
       status: 200,
       headers: {
