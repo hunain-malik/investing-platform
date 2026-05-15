@@ -110,7 +110,10 @@ function sizePortfolioSlot(direction, entry, atr, slotCapital) {
 function recommendOptions(direction, confidence, spot, atr, horizon, allowed) {
   if (!allowed || (direction !== "up" && direction !== "down")) return null;
   if (confidence < 0.6) return null;
-  const dte = Math.max(30, horizon * 2);
+  // Skip options for very long horizons — listed options stop at LEAPS (~1y).
+  if (horizon > 252) return { strategy: "none", longStrike: null, shortStrike: null, dte: null, skipReason: `horizon ${horizon}d > 1y — equity only` };
+  // Retail-standard DTE: horizon + 30d buffer, clamped to [45, 365]
+  const dte = Math.max(45, Math.min(365, horizon + 30));
   const roundStrike = (p) => p < 50 ? Math.round(p) : p < 200 ? Math.round(p * 2) / 2 : Math.round(p / 5) * 5;
   if (direction === "up") {
     if (confidence >= 0.75 && horizon <= 20) {
@@ -320,7 +323,9 @@ function renderRecommendationCard(s, cfg) {
     .map(c => `<span class="pattern-chip" title="${c.methodology} fired ${c.direction.toUpperCase()} at confidence ${c.confidence}, weighted by ${(c.weight * 100).toFixed(0)}% (from accuracy ${(c.accuracy * 100).toFixed(1)}%)">${c.methodology} → ${c.direction.toUpperCase()}</span>`).join(" ");
 
   let optsLine = "";
-  if (opts) {
+  if (opts && opts.strategy === "none") {
+    optsLine = `<div class="rec-line muted">Options: <em>not recommended</em> — ${opts.skipReason}.</div>`;
+  } else if (opts) {
     const strat = opts.strategy.replaceAll("_", " ");
     const strikeStr = opts.shortStrike
       ? `long $${opts.longStrike} / short $${opts.shortStrike}`

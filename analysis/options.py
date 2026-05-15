@@ -18,9 +18,19 @@ Strike guidance:
     long put: slightly OTM (1-2% below spot)
     spread short leg: ~one ATR beyond the long leg in the direction of the move
 
-Expiration:
-    target_dte = max(30, horizon * 2)  -- gives time for the move to play out
-                                         without crushing all theta.
+Expiration (days to expiration, DTE):
+    Standard retail options practice — 30 to 90 DTE for directional plays.
+    Too short = gamma risk near expiry. Too long = pay too much time
+    premium that bleeds away (theta decay). Sweet spot is `horizon + 30d`
+    buffer.
+
+    For horizons beyond ~1 year (252 trading days), listed options
+    typically only go out to LEAPS (365 days) and most retail traders
+    avoid them entirely — we don't recommend options at those horizons,
+    just equity.
+
+    target_dte = clip(horizon_days + 30, 45, 365)
+                 -- and skip options entirely if horizon > 252.
 
 Risk capital estimation is a placeholder; the user replaces with actual quotes.
 """
@@ -80,7 +90,16 @@ def recommend_options(
             rationale=f"confidence {confidence:.2f} too low — use equity if anything",
         )
 
-    target_dte = max(30, horizon_days * 2)
+    # Skip options entirely for very long horizons — listed options don't
+    # extend much past 1 year, and LEAPS are illiquid + expensive theta.
+    if horizon_days > 252:
+        return OptionsPlan(
+            use_options=False, strategy="none",
+            rationale=f"horizon {horizon_days}d exceeds 1y — options unsuitable (theta decay, no LEAPS that long), use equity",
+        )
+
+    # Standard retail DTE: horizon + 30d buffer, clamped to [45, 365]
+    target_dte = max(45, min(365, horizon_days + 30))
 
     if direction == "up":
         if confidence >= 0.75 and horizon_days <= 20:
