@@ -31,6 +31,23 @@ const sentimentChip = (s) => {
   return `${tag(`news ${s.label}`, klass)}`;
 };
 
+// Detect when news sentiment contradicts the model's directional prediction.
+// Returns the contradiction note HTML, or "" if no conflict.
+function sentimentContradictionChip(direction, sentiment) {
+  if (!sentiment) return "";
+  if (direction === "up" && sentiment.label === "bearish") {
+    return `<span class="tag warn" title="Model expects price UP but recent news is bearish. Either the news is noise (e.g. backward-looking) or the model is wrong. Worth investigating before trading.">⚠ news disagrees</span>`;
+  }
+  if (direction === "down" && sentiment.label === "bullish") {
+    return `<span class="tag warn" title="Model expects price DOWN but recent news is bullish. Either the news is noise (analyst upgrades after a run-up, etc.) or the model is wrong. Worth investigating before trading.">⚠ news disagrees</span>`;
+  }
+  if ((direction === "up" && sentiment.label === "bullish") ||
+      (direction === "down" && sentiment.label === "bearish")) {
+    return `<span class="tag confirm" title="News sentiment agrees with the model's directional call — confirmation signal.">✓ news agrees</span>`;
+  }
+  return "";
+}
+
 // =========================================================================
 // PERSONAL AGENT
 // =========================================================================
@@ -326,6 +343,7 @@ function renderRecommendationCard(s, cfg) {
   }
 
   const consensusPct = Math.abs(s.vote_margin * 100).toFixed(1);
+  const contradictionChip = sentimentContradictionChip(s.direction, s.sentiment);
   return `
     <div class="rec-card">
       <div class="rec-header">
@@ -334,6 +352,7 @@ function renderRecommendationCard(s, cfg) {
         <span class="rec-meta" title="Consensus: how strongly the contributing methodologies agree on direction. 0% = tied, 100% = unanimous. NOT a price change prediction.">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · consensus ${consensusPct}% · ${s.n_contributing} methods agree</span>
         ${earningsWarn}
         ${sentChip}
+        ${contradictionChip}
       </div>
       <div class="rec-line">
         <strong>Equity:</strong> Buy <strong>${fmtNum(sizing.shares)} shares</strong> @ ${fmtUsd(s.price)} · stop ${fmtUsd(sizing.stop)} · position ${fmtUsd(sizing.posUsd)} (${(sizing.pctOfCapital * 100).toFixed(1)}% of capital) · max risk ${fmtUsd(sizing.riskUsd)}
