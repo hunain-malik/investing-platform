@@ -26,6 +26,16 @@
   <section id="agent" class="section featured">
     <h2>Personal Agent <span class="muted small">— recommendations sized for your wallet</span></h2>
 
+    <div class="strategy-tabs">
+      <button class="strategy-tab active" data-strategy="trading" data-horizons="60,120">📈 Trading <span class="muted small">(3–6 months)</span></button>
+      <button class="strategy-tab" data-strategy="swing" data-horizons="252,504">🔄 Swing / Position <span class="muted small">(1–2 years)</span></button>
+      <button class="strategy-tab" data-strategy="longterm" data-horizons="1260">🏦 Long-term / Roth <span class="muted small">(5+ years)</span></button>
+      <button class="strategy-tab" data-strategy="all" data-horizons="">⚙️ Custom (any horizon)</button>
+    </div>
+    <p class="muted small" id="strategy-description" style="margin: 4px 0 12px">
+      Trading: shorter holds aiming for momentum-driven moves. Best for active accounts.
+    </p>
+
     <form id="agent-form" class="agent-form">
       <div class="agent-field">
         <label>Capital ($)<input type="number" id="agent-capital" value="3000" min="100" step="100" /></label>
@@ -117,6 +127,7 @@
         <div class="label">Pattern-based meta-ensemble <span class="muted small">(K-fold, out-of-sample)</span></div>
         <div class="value-big" id="kfold-accuracy">—</div>
         <div class="sub" id="kfold-counts">—</div>
+        <div class="sub muted small" id="kfold-direction-split">—</div>
       </div>
       <div>
         <div class="label">Numerical model (logistic regression) <span class="muted small">(K-fold, out-of-sample)</span></div>
@@ -129,6 +140,16 @@
         <div class="sub" id="insample-counts">—</div>
       </div>
     </div>
+
+    <details class="explainer-block">
+      <summary>What do these numbers mean? <span class="muted small">(read this first)</span></summary>
+      <ul class="muted small">
+        <li><strong>Pattern meta-ensemble (K-fold)</strong> — combines multiple methodologies (trend-following, regime-filtered trend, etc.), drops any below 50% at this horizon, K-fold cross-validated so it's honest out-of-sample. <em>This is what to trust.</em></li>
+        <li><strong>Numerical model (K-fold)</strong> — pure logistic regression on continuous features (returns, RSI, MACD, SMA distances, volatility, etc.). No pattern recognition. Side-by-side benchmark.</li>
+        <li><strong>In-sample meta</strong> — same combiner but evaluated on training data. Optimistic and biased upward. We show it only so you can see how much K-fold corrects.</li>
+        <li><strong>All-patterns ensemble</strong> (in the Details section below) — naive baseline. Uses every fired pattern indiscriminately at every horizon. Has poor bearish accuracy because it includes noisy short horizons. Not what we recommend acting on.</li>
+      </ul>
+    </details>
 
     <details class="detail-block">
       <summary>K-fold meta accuracy broken out by regime and horizon</summary>
@@ -237,18 +258,26 @@
 
     <details class="detail-block">
       <summary>Backtest accuracy by horizon, regime, and confidence</summary>
+      <p class="muted small" style="padding-top:8px">
+        <strong>Why these numbers differ from the Methodology leaderboard above:</strong>
+        This panel shows the raw <em>"all-patterns" methodology</em> — combines every fired pattern across <em>every horizon</em>
+        (5d-1260d) including the noisy short horizons where edge is minimal. Bullish 63%, Bearish 28% are heavily dragged
+        by 5d/10d signals which are near coin-flip. The <strong>Pattern meta-ensemble (K-fold 61.7%)</strong> at the top
+        only uses methodologies that are above-chance at each specific horizon, which is why it's much higher. Always
+        trust the K-fold meta number for "what will this actually do in practice."
+      </p>
       <div class="tiles">
         <div class="tile big">
-          <div class="label">All-patterns ensemble accuracy (in-sample)</div>
+          <div class="label">All-patterns ensemble accuracy (in-sample, all horizons)</div>
           <div class="value" id="bt-accuracy">—</div>
           <div class="sub" id="bt-counts">—</div>
         </div>
         <div class="tile">
-          <div class="label">Bullish</div>
+          <div class="label">Bullish (all horizons)</div>
           <div class="value" id="bt-bullish">—</div>
         </div>
         <div class="tile">
-          <div class="label">Bearish</div>
+          <div class="label">Bearish (all horizons)</div>
           <div class="value" id="bt-bearish">—</div>
         </div>
       </div>

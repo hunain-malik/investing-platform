@@ -113,6 +113,21 @@ const _agent = {
   horizons: [],
 };
 
+const STRATEGY_DESCRIPTIONS = {
+  trading: "Trading: 3-6 month holds aimed at momentum and trend moves. Active position management.",
+  swing: "Swing / Position: 1-2 year holds. Captures longer trends without the noise of intraday.",
+  longterm: "Long-term / Roth: 5+ year holds. Best for tax-advantaged accounts; rides through multi-cycle moves.",
+  all: "Custom: pick any horizon from the dropdown below.",
+};
+
+function applyStrategyFilter() {
+  const activeTab = document.querySelector(".strategy-tab.active");
+  if (!activeTab) return null;
+  const allowed = activeTab.dataset.horizons;
+  if (!allowed) return null; // "all" mode
+  return allowed.split(",").map(s => parseInt(s));
+}
+
 function setupAgent(signalsPayload) {
   _agent.signals = signalsPayload?.signals || [];
   _agent.meta_signals = signalsPayload?.meta_signals || [];
@@ -126,7 +141,13 @@ function setupAgent(signalsPayload) {
     sel.innerHTML = `<option>—</option>`;
   } else {
     for (const h of horizons) sel.insertAdjacentHTML("beforeend", `<option value="${h}">${h}-day</option>`);
-    sel.value = String(horizons[horizons.length - 1]); // default to longest (best edge)
+    // Default to first horizon in the active strategy (or longest if all)
+    const allowed = applyStrategyFilter();
+    if (allowed && allowed.length > 0 && horizons.includes(allowed[0])) {
+      sel.value = String(allowed[0]);
+    } else {
+      sel.value = String(horizons[horizons.length - 1]);
+    }
   }
 
   document.getElementById("agent-form").addEventListener("input", renderAgent);
@@ -134,6 +155,26 @@ function setupAgent(signalsPayload) {
   document.getElementById("agent-mode").addEventListener("change", e => {
     document.getElementById("agent-portfolio-n-wrap").style.display = (e.target.value === "portfolio") ? "" : "none";
   });
+
+  // Strategy tab clicks
+  for (const tab of document.querySelectorAll(".strategy-tab")) {
+    tab.addEventListener("click", () => {
+      for (const t of document.querySelectorAll(".strategy-tab")) t.classList.remove("active");
+      tab.classList.add("active");
+      const strategy = tab.dataset.strategy;
+      setText("strategy-description", STRATEGY_DESCRIPTIONS[strategy] || "");
+      // If the strategy has horizons, default the horizon dropdown to the first
+      const allowed = applyStrategyFilter();
+      if (allowed && allowed.length > 0) {
+        const sel = document.getElementById("agent-horizon");
+        if ([...sel.options].some(o => parseInt(o.value) === allowed[0])) {
+          sel.value = String(allowed[0]);
+        }
+      }
+      renderAgent();
+    });
+  }
+
   renderAgent();
 }
 
@@ -430,6 +471,18 @@ function renderMethodologies(payload) {
   setText("kfold-counts", kfold.accuracy != null
     ? `${kfold.correct} correct / ${(kfold.signals_emitted ?? 0) - (kfold.correct ?? 0)} wrong of ${kfold.signals_emitted ?? 0} signals (k=${kfold.k}, ${kfold.n_samples} samples)`
     : (kfold.note || "—"));
+
+  // Bullish vs bearish K-fold split (derive from kfold direction breakdown if available;
+  // else compute from regime aggregates as approximation)
+  const kfoldDirSplit = kfold.by_direction || null;
+  if (kfoldDirSplit && (kfoldDirSplit.up || kfoldDirSplit.down)) {
+    const up = kfoldDirSplit.up || {};
+    const dn = kfoldDirSplit.down || {};
+    setText("kfold-direction-split",
+      `Bullish: ${fmtPct(up.accuracy)} (${up.signals ?? 0}) · Bearish: ${fmtPct(dn.accuracy)} (${dn.signals ?? 0})`);
+  } else {
+    setText("kfold-direction-split", "Bullish/bearish split: see by-regime + by-horizon tables below");
+  }
 
   // Numerical model side-by-side
   const num = payload.numerical_model_kfold || {};

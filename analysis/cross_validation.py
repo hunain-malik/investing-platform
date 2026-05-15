@@ -65,6 +65,7 @@ def kfold_meta_accuracy(samples, weights_per_horizon, k: int = 5, seed: int = 17
     total_signals = 0
     by_horizon: dict[int, dict[str, int]] = defaultdict(lambda: {"signals": 0, "correct": 0})
     by_regime: dict[str, dict[str, int]] = defaultdict(lambda: {"signals": 0, "correct": 0})
+    by_direction: dict[str, dict[str, int]] = defaultdict(lambda: {"signals": 0, "correct": 0})
 
     for fold_idx in range(k):
         test_idx = set(folds[fold_idx])
@@ -88,6 +89,10 @@ def kfold_meta_accuracy(samples, weights_per_horizon, k: int = 5, seed: int = 17
             br["signals"] += 1
             if r["correct"]:
                 br["correct"] += 1
+            bd = by_direction[r["direction"]]
+            bd["signals"] += 1
+            if r["correct"]:
+                bd["correct"] += 1
 
     return {
         "k": k,
@@ -111,5 +116,13 @@ def kfold_meta_accuracy(samples, weights_per_horizon, k: int = 5, seed: int = 17
                 "accuracy": round(v["correct"] / v["signals"], 4) if v["signals"] else None,
             }
             for r, v in by_regime.items()
+        },
+        "by_direction": {
+            d: {
+                "signals": v["signals"],
+                "correct": v["correct"],
+                "accuracy": round(v["correct"] / v["signals"], 4) if v["signals"] else None,
+            }
+            for d, v in by_direction.items()
         },
     }
