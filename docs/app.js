@@ -1005,6 +1005,157 @@ function _safeRun(label, fn) {
   catch (e) { console.error(`[${label}] failed:`, e); }
 }
 
+// =========================================================================
+// ON-SITE REFRESH — calls a Cloudflare Worker that triggers the workflow,
+// then polls for fresh data and reloads the page when it lands.
+// =========================================================================
+
+const REFRESH = {
+  pollIntervalMs: 30 * 1000,   // poll every 30s
+  maxPollMs: 15 * 60 * 1000,   // give up after 15 min
+  startedAt: 0,
+  lastUpdatedAt: null,
+  pollTimer: null,
+  elapsedTimer: null,
+};
+
+function getTriggerWorkerUrl() {
+  return (localStorage.getItem("triggerWorkerUrl") || "").trim();
+}
+
+function showRefreshSetup() {
+  const dlg = document.getElementById("refresh-setup");
+  if (!dlg) return;
+  const input = document.getElementById("refresh-worker-url");
+  input.value = getTriggerWorkerUrl();
+  dlg.hidden = false;
+}
+
+function hideRefreshSetup() {
+  const dlg = document.getElementById("refresh-setup");
+  if (dlg) dlg.hidden = true;
+}
+
+function showRefreshOverlay(initialMessage) {
+  const ov = document.getElementById("refresh-overlay");
+  if (!ov) return;
+  document.getElementById("refresh-progress").textContent = initialMessage || "Triggering workflow…";
+  document.getElementById("refresh-elapsed").textContent = "Elapsed: 0s";
+  ov.hidden = false;
+  REFRESH.startedAt = Date.now();
+  if (REFRESH.elapsedTimer) clearInterval(REFRESH.elapsedTimer);
+  REFRESH.elapsedTimer = setInterval(() => {
+    const sec = Math.round((Date.now() - REFRESH.startedAt) / 1000);
+    document.getElementById("refresh-elapsed").textContent = `Elapsed: ${sec}s`;
+  }, 1000);
+}
+
+function hideRefreshOverlay() {
+  const ov = document.getElementById("refresh-overlay");
+  if (ov) ov.hidden = true;
+  if (REFRESH.pollTimer) { clearInterval(REFRESH.pollTimer); REFRESH.pollTimer = null; }
+  if (REFRESH.elapsedTimer) { clearInterval(REFRESH.elapsedTimer); REFRESH.elapsedTimer = null; }
+}
+
+async function triggerWorkflow(workerUrl) {
+  const r = await fetch(workerUrl, { method: "POST" });
+  if (!r.ok) {
+    const txt = await r.text().catch(() => "");
+    throw new Error(`Trigger failed (HTTP ${r.status}): ${txt || r.statusText}`);
+  }
+  return r.json();
+}
+
+async function pollForFreshData() {
+  // Fetch the scoreboard.json (small file) and check updated_at.
+  // When it changes, we know the workflow finished a new run.
+  try {
+    const r = await fetch(`data/scoreboard.json?cb=${Date.now()}`, { cache: "no-store" });
+    if (!r.ok) return;
+    const data = await r.json();
+    const current = data.updated_at;
+    if (REFRESH.lastUpdatedAt && current && current !== REFRESH.lastUpdatedAt) {
+      // New data landed
+      document.getElementById("refresh-progress").textContent = "✓ Fresh data committed. Reloading…";
+      document.getElementById("refresh-stage").textContent = "Done";
+      setTimeout(() => { window.location.reload(); }, 800);
+      hideRefreshOverlay();
+    }
+  } catch (e) {
+    // ignore network blips
+  }
+}
+
+async function startRefresh() {
+  const workerUrl = getTriggerWorkerUrl();
+  if (!workerUrl) {
+    showRefreshSetup();
+    return;
+  }
+
+  // Record current updated_at so we know when fresh data lands
+  try {
+    const r = await fetch(`data/scoreboard.json?cb=${Date.now()}`, { cache: "no-store" });
+    const d = await r.json();
+    REFRESH.lastUpdatedAt = d.updated_at;
+  } catch (_) {
+    REFRESH.lastUpdatedAt = null;
+  }
+
+  showRefreshOverlay("Triggering workflow on GitHub Actions…");
+
+  try {
+    await triggerWorkflow(workerUrl);
+    document.getElementById("refresh-progress").textContent =
+      "Workflow triggered. Waiting for fresh data to commit… (typically 3–8 minutes)";
+  } catch (e) {
+    document.getElementById("refresh-progress").innerHTML =
+      `<span style="color: var(--red)">${e.message}</span><br /><br />` +
+      `Check that the worker URL is correct and the GITHUB_TOKEN secret is set. ` +
+      `You can also <a href="https://github.com/hunain-malik/investing-platform/actions/workflows/analysis.yml" target="_blank" rel="noopener" style="color: var(--accent)">trigger manually on GitHub</a>.`;
+    document.getElementById("refresh-spinner").style.display = "none";
+    return;
+  }
+
+  // Start polling
+  REFRESH.pollTimer = setInterval(() => {
+    pollForFreshData();
+    if (Date.now() - REFRESH.startedAt > REFRESH.maxPollMs) {
+      document.getElementById("refresh-progress").innerHTML =
+        `Polling timed out after 15 min. The workflow may still be running — try reloading the page in a few minutes.`;
+      document.getElementById("refresh-spinner").style.display = "none";
+      clearInterval(REFRESH.pollTimer);
+      REFRESH.pollTimer = null;
+    }
+  }, REFRESH.pollIntervalMs);
+}
+
+function setupRefreshButton() {
+  const btn = document.getElementById("refresh-now-btn");
+  if (btn) btn.addEventListener("click", startRefresh);
+
+  // Setup-dialog buttons
+  document.getElementById("refresh-setup-close")?.addEventListener("click", hideRefreshSetup);
+  document.getElementById("refresh-save-url")?.addEventListener("click", () => {
+    const url = document.getElementById("refresh-worker-url").value.trim();
+    if (!url) { alert("Paste a worker URL first."); return; }
+    if (!/^https:\/\//.test(url)) { alert("URL must start with https://"); return; }
+    localStorage.setItem("triggerWorkerUrl", url);
+    hideRefreshSetup();
+    startRefresh();
+  });
+  document.getElementById("refresh-fallback-github")?.addEventListener("click", () => {
+    hideRefreshSetup();
+    window.open(
+      "https://github.com/hunain-malik/investing-platform/actions/workflows/analysis.yml",
+      "_blank", "noopener"
+    );
+  });
+
+  // Overlay buttons
+  document.getElementById("refresh-cancel")?.addEventListener("click", hideRefreshOverlay);
+}
+
 async function main() {
   const [sb, signals, bt, methodologies, preds, weights] = await Promise.all([
     loadJson(FILES.scoreboard),
@@ -1017,6 +1168,7 @@ async function main() {
   _allData.signals = signals;
   _allData.backtest = bt;
   _allData.predictions = preds;
+  _safeRun("setupRefreshButton", () => setupRefreshButton());
   _safeRun("setupTickerModal", () => setupTickerModal());
   _safeRun("setupAgent",       () => setupAgent(signals));
   _safeRun("renderMethodologies", () => renderMethodologies(methodologies));

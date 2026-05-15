@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>investing-platform · scoreboard</title>
-<link rel="stylesheet" href="style.css?v=20260515d" />
+<link rel="stylesheet" href="style.css?v=20260515h" />
 </head>
 <body>
 <header class="topbar">
@@ -17,7 +17,7 @@
   </nav>
   <div class="updated">
     <span id="updated-at">—</span>
-    <a class="refresh-link" href="https://github.com/hunain-malik/investing-platform/actions/workflows/analysis.yml" target="_blank" rel="noopener" title="Trigger an immediate analysis run (~3 min)">↻ Refresh now</a>
+    <button type="button" class="refresh-link" id="refresh-now-btn" title="Trigger an immediate analysis run on-site (~3 min)">↻ Refresh now</button>
   </div>
 </header>
 
@@ -381,6 +381,55 @@
     </details>
   </section>
 
+  <!-- Refresh overlay -->
+  <div id="refresh-overlay" class="modal-overlay" hidden>
+    <div class="modal-content" style="text-align:center; max-width: 540px;">
+      <h2 style="margin-top:0">⏳ <span id="refresh-stage">Refreshing analysis…</span></h2>
+      <div id="refresh-progress" style="margin: 16px 0; font-size: 0.95rem; color: var(--muted);">
+        Triggering workflow on GitHub Actions…
+      </div>
+      <div id="refresh-spinner" class="spinner"></div>
+      <div id="refresh-elapsed" class="muted small" style="margin-top: 12px;">Elapsed: 0s</div>
+      <p class="muted small" style="margin-top: 16px;">
+        We'll be back shortly. The workflow runs the full backtest (3,000 random samples)
+        and regenerates every signal. Usually takes 3–8 minutes. The page will reload
+        automatically when fresh data is available.
+      </p>
+      <button type="button" id="refresh-cancel" class="show-more-button" style="margin-top: 12px; max-width: 200px;">
+        Hide this overlay
+      </button>
+    </div>
+  </div>
+
+  <!-- Refresh setup dialog (when no worker URL is configured) -->
+  <div id="refresh-setup" class="modal-overlay" hidden>
+    <div class="modal-content" style="max-width: 640px;">
+      <button class="modal-close" id="refresh-setup-close">×</button>
+      <h2 style="margin-top:0">⚙ Set up on-site refresh</h2>
+      <p class="muted">
+        On-site refresh needs a tiny serverless proxy (Cloudflare Worker, free, 10 min one-time setup)
+        because GitHub Pages can't trigger workflows directly without exposing a token publicly.
+      </p>
+      <p class="muted">
+        Full setup walkthrough:
+        <a href="https://github.com/hunain-malik/investing-platform/blob/main/infrastructure/trigger-worker/README.md" target="_blank" rel="noopener">
+          infrastructure/trigger-worker/README.md
+        </a>
+      </p>
+      <p>
+        <strong>Already deployed the worker?</strong> Paste its URL below to enable on-site refresh.
+        URL looks like: <code>https://investing-platform-trigger.YOUR-SUBDOMAIN.workers.dev</code>
+      </p>
+      <input type="url" id="refresh-worker-url" placeholder="https://...workers.dev" style="width: 100%; padding: 8px; background: var(--panel); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: monospace;" />
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <button type="button" id="refresh-save-url" class="show-more-button" style="max-width: 200px;">Save</button>
+        <button type="button" id="refresh-fallback-github" class="show-more-button" style="max-width: 280px; background: transparent;">
+          Skip — open GitHub Actions instead (current fallback)
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Ticker deep-dive modal -->
   <div id="ticker-modal" class="modal-overlay" hidden>
     <div class="modal-content">
@@ -417,6 +466,6 @@
     }
   });
 </script>
-<script src="app.js?v=20260515g"></script>
+<script src="app.js?v=20260515h"></script>
 </body>
 </html>

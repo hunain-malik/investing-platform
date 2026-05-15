@@ -283,6 +283,22 @@ tr.row-pruned { opacity: 0.5; }
 .news-list { margin: 6px 0 4px; padding-left: 18px; font-size: 0.85rem; color: var(--muted); }
 .news-list li { margin: 3px 0; }
 
+.spinner {
+  width: 48px; height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  margin: 0 auto;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+button.refresh-link {
+  background: var(--panel-2);
+  cursor: pointer;
+  font-family: inherit;
+}
+
 .modal-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.75);
