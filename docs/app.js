@@ -130,6 +130,8 @@ function recommendOptions(direction, confidence, spot, atr, horizon, allowed) {
 const _agent = {
   signals: [],
   meta_signals: [],
+  consensus_signals: [],
+  source: "consensus",  // "consensus" (decorrelated families) or "meta" (correlated methodologies)
   horizons: [],
 };
 
@@ -148,12 +150,23 @@ function applyStrategyFilter() {
   return allowed.split(",").map(s => parseInt(s));
 }
 
+function _currentAgentSignals() {
+  return _agent.source === "consensus"
+    ? (_agent.consensus_signals || [])
+    : (_agent.meta_signals || []);
+}
+
 function setupAgent(signalsPayload) {
   _agent.signals = signalsPayload?.signals || [];
   _agent.meta_signals = signalsPayload?.meta_signals || [];
+  _agent.consensus_signals = signalsPayload?.consensus_signals || [];
 
-  // Horizons available from meta signals (or fall back to signals)
-  const horizons = [...new Set(_agent.meta_signals.map(s => s.horizon_days))].sort((a, b) => a - b);
+  // Default to decorrelated consensus if available, else fall back to meta
+  if (_agent.consensus_signals.length === 0) _agent.source = "meta";
+
+  // Horizons available from current source
+  const source = _currentAgentSignals();
+  const horizons = [...new Set(source.map(s => s.horizon_days))].sort((a, b) => a - b);
   _agent.horizons = horizons;
   const sel = document.getElementById("agent-horizon");
   sel.innerHTML = "";
@@ -175,6 +188,21 @@ function setupAgent(signalsPayload) {
   document.getElementById("agent-mode").addEventListener("change", e => {
     document.getElementById("agent-portfolio-n-wrap").style.display = (e.target.value === "portfolio") ? "" : "none";
   });
+
+  // Source radio (decorrelated families vs correlated meta)
+  for (const r of document.querySelectorAll('input[name="agent-source"]')) {
+    r.addEventListener("change", e => {
+      _agent.source = e.target.value;
+      // Repopulate horizon dropdown — sources may have different horizons
+      const source = _currentAgentSignals();
+      const horizons = [...new Set(source.map(s => s.horizon_days))].sort((a, b) => a - b);
+      const sel = document.getElementById("agent-horizon");
+      sel.innerHTML = "";
+      for (const h of horizons) sel.insertAdjacentHTML("beforeend", `<option value="${h}">${h}-day</option>`);
+      if (horizons.length > 0) sel.value = String(horizons[horizons.length - 1]);
+      renderAgent();
+    });
+  }
 
   // Strategy tab clicks
   for (const tab of document.querySelectorAll(".strategy-tab")) {
@@ -219,15 +247,16 @@ function renderAgent() {
   const container = document.getElementById("agent-recommendations");
   container.innerHTML = "";
 
-  if (_agent.meta_signals.length === 0) {
-    setText("agent-summary", `No holistic meta signals fired today. The system needs ≥2 above-chance methodologies agreeing on the same direction at the same horizon. Check back after the next workflow run.`);
+  const sourceSignals = _currentAgentSignals();
+  if (sourceSignals.length === 0) {
+    setText("agent-summary", `No signals fired today for the selected source. The decorrelated consensus needs ≥3 independent pattern families agreeing. Try switching to the correlated meta-ensemble (less strict) using the toggle above.`);
     return;
   }
 
   // Diagnostics: how many at each filter step?
-  const totalAtHorizon = _agent.meta_signals.filter(s => s.horizon_days === cfg.horizon).length;
+  const totalAtHorizon = sourceSignals.filter(s => s.horizon_days === cfg.horizon).length;
 
-  let candidates = _agent.meta_signals.filter(s => s.horizon_days === cfg.horizon);
+  let candidates = sourceSignals.filter(s => s.horizon_days === cfg.horizon);
   if (cfg.direction !== "any") candidates = candidates.filter(s => s.direction === cfg.direction);
   if (cfg.minConf) candidates = candidates.filter(s => s.confidence >= cfg.minConf);
   if (cfg.skipEarnings) candidates = candidates.filter(s => !s.earnings_in_horizon);
@@ -311,6 +340,9 @@ function renderRecommendationCard(s, cfg) {
   const dClass = s.direction === "up" ? "up" : "down";
   const sizing = s._sizing;
   const opts = s._options;
+  // s.n_contributing (meta) vs s.n_families (consensus) — normalize for display
+  const nVoters = s.n_contributing ?? s.n_families ?? 0;
+  const voterType = s.n_families != null ? "families" : "methods";
 
   const earningsWarn = s.earnings_in_days != null && s.earnings_in_days <= s.horizon_days
     ? `<span class="tag down" title="Earnings ${s.earnings_in_days}d away — event risk">⚠ earnings in ${s.earnings_in_days}d</span>`
@@ -319,8 +351,12 @@ function renderRecommendationCard(s, cfg) {
         : "");
 
   const sentChip = sentimentChip(s.sentiment);
-  const contribs = (s.contributing_methodologies || [])
-    .map(c => `<span class="pattern-chip" title="${c.methodology} fired ${c.direction.toUpperCase()} at confidence ${c.confidence}, weighted by ${(c.weight * 100).toFixed(0)}% (from accuracy ${(c.accuracy * 100).toFixed(1)}%)">${c.methodology} → ${c.direction.toUpperCase()}</span>`).join(" ");
+  // Show contributing voters — different schemas for consensus vs meta sources
+  const familyVoters = s.contributing_families || [];
+  const methodVoters = s.contributing_methodologies || [];
+  const contribs = familyVoters.length > 0
+    ? familyVoters.map(c => `<span class="pattern-chip" title="${c.family} family voted ${c.direction.toUpperCase()} with ${(c.internal_confidence * 100).toFixed(0)}% internal agreement; accuracy weight ${(c.accuracy_weight * 100).toFixed(0)}% (from ${(c.accuracy * 100).toFixed(1)}% backtest accuracy)">${c.family} → ${c.direction.toUpperCase()}</span>`).join(" ")
+    : methodVoters.map(c => `<span class="pattern-chip" title="${c.methodology} fired ${c.direction.toUpperCase()} at confidence ${c.confidence}, weighted by ${(c.weight * 100).toFixed(0)}% (from accuracy ${(c.accuracy * 100).toFixed(1)}%)">${c.methodology} → ${c.direction.toUpperCase()}</span>`).join(" ");
 
   let optsLine = "";
   if (opts && opts.strategy === "none") {
@@ -373,7 +409,7 @@ function renderRecommendationCard(s, cfg) {
       <div class="rec-header">
         <a href="#" class="rec-ticker ticker-link" data-ticker="${s.ticker}">${s.ticker}</a>
         <span class="tag ${dClass}">${s.direction.toUpperCase()}</span>
-        <span class="rec-meta" title="Consensus: how strongly the contributing methodologies agree on direction. 0% = tied, 100% = unanimous. NOT a price change prediction.">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · consensus ${consensusPct}% · ${s.n_contributing} methods agree</span>
+        <span class="rec-meta" title="Consensus: how strongly the contributing voters agree on direction. 0% = tied, 100% = unanimous. NOT a price change prediction.">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · consensus ${consensusPct}% · ${nVoters} ${voterType} agree</span>
         ${earningsWarn}
         ${sentChip}
         ${contradictionChip}

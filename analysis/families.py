@@ -121,6 +121,22 @@ def evaluate_family_vote(
     return None  # tied — no vote
 
 
+def evaluate_consensus_families_live(
+    fired_pattern_signals: list,
+    family_accuracies_at_horizon: dict[str, float] | None = None,
+    min_families: int = 3,
+    min_margin: float = 0.30,
+) -> dict | None:
+    """Live-data version: takes a list of fired PatternSignal objects
+    (with .name and .direction) instead of a stored dict. Useful for
+    operating on today's signals as opposed to historical samples.
+    """
+    fired_dict = {p.name: p.direction for p in fired_pattern_signals}
+    return evaluate_consensus_families(
+        fired_dict, family_accuracies_at_horizon, min_families, min_margin,
+    )
+
+
 def evaluate_consensus_families(
     fired_patterns_with_directions: dict[str, str],
     family_accuracies_at_horizon: dict[str, float] | None = None,

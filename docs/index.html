@@ -32,6 +32,11 @@
       <button class="strategy-tab" data-strategy="longterm" data-horizons="1260">🏦 Long-term / Roth <span class="muted small">(5+ years)</span></button>
       <button class="strategy-tab" data-strategy="all" data-horizons="">⚙️ Custom (any horizon)</button>
     </div>
+    <div class="source-toggle">
+      <span class="muted small">Signal source:</span>
+      <label><input type="radio" name="agent-source" value="consensus" checked /> Decorrelated families <span class="muted small">(≥3 independent signal types must agree)</span></label>
+      <label><input type="radio" name="agent-source" value="meta" /> Correlated meta-ensemble <span class="muted small">(less strict; older approach)</span></label>
+    </div>
     <p class="muted small" id="strategy-description" style="margin: 4px 0 12px">
       Trading: shorter holds aiming for momentum-driven moves. Best for active accounts.
     </p>

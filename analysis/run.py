@@ -40,6 +40,7 @@ from .data import fetch_history_cached
 from .earnings import days_until_earnings
 from .numerical_model import evaluate_numerical_model
 from .indicators import compute_all
+from .families import evaluate_consensus_families_live
 from .methodologies import (
     METHODOLOGIES,
     aggregate_consensus_families,
@@ -184,7 +185,15 @@ def main() -> int:
     # Decorrelated family-based meta — patterns grouped into 6 independent
     # families, each casts one vote. Addresses the correlated-methodology
     # vote-inflation issue.
-    methodology_stats["consensus_families"] = aggregate_consensus_families(samples)
+    consensus_families_stats = aggregate_consensus_families(samples)
+    methodology_stats["consensus_families"] = consensus_families_stats
+
+    # Extract per-horizon family accuracies for use in LIVE signal generation
+    family_acc_per_h_for_live: dict[int, dict[str, float]] = {}
+    for fam_name, hd in (consensus_families_stats.get("family_accuracies_per_horizon", {})).items():
+        for h_str, acc in hd.items():
+            h = int(h_str)
+            family_acc_per_h_for_live.setdefault(h, {})[fam_name] = float(acc)
 
     # Auto-prune methodologies whose accuracy is below 0.5 at EVERY horizon
     # they had data for. These are net-harmful and shouldn't be acted on.
@@ -222,6 +231,7 @@ def main() -> int:
     # ---- 5. Generate live signals (per horizon) using updated weights ----
     live_signals = []
     live_meta_signals = []
+    live_consensus_signals = []
     sentiments_by_ticker: dict[str, dict] = {}
 
     # Load SPY once for live regime detection AND relative-strength patterns
@@ -301,6 +311,44 @@ def main() -> int:
                 weights_per_horizon=weights,
                 methodology_acc_per_horizon=method_acc_per_h,
             )
+            # Consensus families live evaluation (decorrelated)
+            fam_acc_at_h = family_acc_per_h_for_live.get(sig.horizon_days, {})
+            consensus = evaluate_consensus_families_live(
+                fired_today,
+                family_accuracies_at_horizon=fam_acc_at_h if fam_acc_at_h else None,
+            )
+            if consensus is not None:
+                cons_sizing = size_position(
+                    direction=consensus["direction"], entry=sig.price, atr=sig.atr,
+                    confidence=consensus["confidence"],
+                    capital_usd=portfolio["capital_usd"],
+                    risk_per_trade_pct=portfolio["risk_per_trade_pct"],
+                    max_position_pct=portfolio["max_position_pct"],
+                )
+                cons_options = recommend_options(
+                    direction=consensus["direction"], confidence=consensus["confidence"],
+                    spot=sig.price, atr=sig.atr, horizon_days=sig.horizon_days,
+                    options_allowed=portfolio.get("options_allowed", True),
+                )
+                live_consensus_signals.append({
+                    "ticker": ticker,
+                    "as_of": sig.as_of.strftime("%Y-%m-%d"),
+                    "horizon_days": sig.horizon_days,
+                    "regime": live_regime,
+                    "direction": consensus["direction"],
+                    "confidence": round(consensus["confidence"], 4),
+                    "vote_margin": consensus["vote_margin"],
+                    "n_families": consensus["n_families"],
+                    "contributing_families": consensus["contributing_families"],
+                    "price": round(sig.price, 4),
+                    "atr": round(sig.atr, 4),
+                    "sentiment": sentiments_by_ticker.get(ticker),
+                    "earnings_in_days": ticker_earnings_days,
+                    "earnings_in_horizon": (ticker_earnings_days is not None and ticker_earnings_days <= sig.horizon_days),
+                    "sizing": cons_sizing.to_dict() if cons_sizing else None,
+                    "options": cons_options.to_dict() if cons_options else None,
+                })
+
             if meta is not None:
                 meta_sizing = size_position(
                     direction=meta["direction"], entry=sig.price, atr=sig.atr,
@@ -366,6 +414,7 @@ def main() -> int:
         "live_regime": live_regime,
         "signals": live_signals,
         "meta_signals": live_meta_signals,
+        "consensus_signals": live_consensus_signals,
         "sentiments": sentiments_by_ticker,
     })
     write_json(DATA_DIR / "predictions.json", {
