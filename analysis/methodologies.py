@@ -142,6 +142,12 @@ def evaluate_meta_ensemble(
     methodology_acc_per_horizon: dict[str, dict[int, float]],
     min_methodologies_bull: int = 2,
     min_methodologies_bear: int = 3,
+    # Sector-aware weighting (mirrors evaluate_meta_live). When provided
+    # along with the sample's ticker sector, per-sector methodology
+    # accuracy overrides the horizon-only accuracy where samples permit.
+    sector: str | None = None,
+    sector_methodology_acc: dict[str, dict[str, dict]] | None = None,
+    min_sector_n: int = 20,
 ) -> dict | None:
     """Stacked / holistic ensemble. Per-horizon filtering.
 
@@ -158,6 +164,11 @@ def evaluate_meta_ensemble(
         if m.name == "meta_ensemble":
             continue
         h_acc = methodology_acc_per_horizon.get(m.name, {}).get(h)
+        # Sector override: use sector-specific accuracy if available
+        if sector and sector_methodology_acc:
+            sm = sector_methodology_acc.get(sector, {}).get(m.name, {})
+            if sm.get("n", 0) >= min_sector_n and sm.get("accuracy") is not None:
+                h_acc = sm["accuracy"]
         if h_acc is None or h_acc < 0.5:
             continue
         r = evaluate_methodology(m, sample, weights_per_horizon)

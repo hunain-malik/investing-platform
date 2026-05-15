@@ -38,7 +38,7 @@ from .backtest import (
     update_weights_per_horizon,
 )
 from .sectors import get_sectors
-from .cross_validation import kfold_meta_accuracy
+from .cross_validation import kfold_meta_accuracy, kfold_meta_accuracy_sector_aware
 from .data import fetch_history_cached
 from .earnings import days_until_earnings
 from .numerical_model import evaluate_numerical_model
@@ -222,7 +222,9 @@ def main() -> int:
         else:
             stats["pruned"] = False
 
-    # K-fold cross-validated meta accuracy — the honest, out-of-sample number
+    # K-fold cross-validated meta accuracy — the honest, out-of-sample number.
+    # We run BOTH the global and sector-aware versions so we can compare the
+    # lift from per-sector methodology weighting.
     kfold_result = kfold_meta_accuracy(samples, weights, k=5)
 
     # Numerical-model methodology: pure logistic regression on continuous features,
@@ -242,6 +244,14 @@ def main() -> int:
     sector_ensemble_stats = aggregate_by_sector(samples, ticker_to_sector)
     sector_methodology_stats = aggregate_methodology_by_sector(
         samples, ticker_to_sector, weights,
+    )
+
+    # K-fold WITH sector-aware weighting — same protocol as kfold_result above
+    # but each fold uses train-fold-derived sector × methodology accuracies as
+    # weight overrides. Lets us measure the lift from sector-aware vs global.
+    log.info("running sector-aware K-fold cross-validation...")
+    kfold_result_sector = kfold_meta_accuracy_sector_aware(
+        samples, ticker_to_sector, weights, k=5,
     )
 
     # ---- 4. Update per-horizon pattern weights from backtest --------------
@@ -518,6 +528,7 @@ def main() -> int:
         "updated_at": _ts(),
         "n_samples": len(samples),
         "meta_kfold": kfold_result,
+        "meta_kfold_sector_aware": kfold_result_sector,
         "numerical_model_kfold": numerical_result,
         "pruned": pruned,
         "meta_bearish_suppressed": suppress_meta_bearish,

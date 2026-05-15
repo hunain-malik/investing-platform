@@ -949,6 +949,23 @@ function renderMethodologies(payload) {
     ? `${kfold.correct} / ${kfold.signals_emitted ?? 0} signals`
     : (kfold.note || "—"));
 
+  // Sector-aware K-fold side-by-side
+  const kfoldSec = payload.meta_kfold_sector_aware || {};
+  setText("kfold-sector-accuracy", fmtPct(kfoldSec.accuracy));
+  setText("kfold-sector-counts", kfoldSec.accuracy != null
+    ? `${kfoldSec.correct} / ${kfoldSec.signals_emitted ?? 0} signals (sector-tuned weights per fold)`
+    : (kfoldSec.note || "—"));
+  // Delta vs baseline
+  if (kfoldSec.accuracy != null && kfold.accuracy != null) {
+    const delta = (kfoldSec.accuracy - kfold.accuracy) * 100;
+    const sign = delta >= 0 ? "+" : "";
+    const klass = delta >= 0.5 ? "green" : delta <= -0.5 ? "red" : "muted";
+    setHTML("kfold-sector-delta",
+      `<span class="${klass}">${sign}${delta.toFixed(1)}pp vs no-sector baseline</span>`);
+  } else {
+    setText("kfold-sector-delta", "—");
+  }
+
   // Decorrelated families banner (the actual recommendation source)
   const families = (payload.methodologies || {}).consensus_families || {};
   setText("families-accuracy", fmtPct(families.accuracy));
