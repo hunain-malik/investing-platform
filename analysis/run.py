@@ -37,6 +37,7 @@ from .backtest import (
     run_batch,
     update_weights_per_horizon,
 )
+from .halal import halal_status_map
 from .sectors import get_sectors
 from .cross_validation import kfold_meta_accuracy, kfold_meta_accuracy_sector_aware
 from .data import fetch_history_cached
@@ -525,6 +526,7 @@ def main() -> int:
         "by_sector": sector_ensemble_stats,
         "sector_methodology": sector_methodology_stats,
         "ticker_sectors": ticker_to_sector,
+        "halal_status": halal_status_map(bt_universe),
     })
     write_json(DATA_DIR / "methodologies.json", {
         "updated_at": _ts(),

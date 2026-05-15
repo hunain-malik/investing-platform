@@ -143,6 +143,7 @@ const _agent = {
   tickerSectors: {},    // {ticker: sector}
   sectorStats: {},      // {sector: {accuracy, n}}
   selectedSectors: null, // null = all selected, Set otherwise
+  halalStatus: {},      // {ticker: {compliant: bool, exclusion_reason: str|null}}
 };
 
 // Build a unified per-(ticker, horizon) recommendation list at one horizon.
@@ -243,6 +244,7 @@ function setupAgent(signalsPayload) {
   // Sector data — pulled from backtest.json (set up in main())
   _agent.tickerSectors = _allData.backtest?.ticker_sectors || {};
   _agent.sectorStats = _allData.backtest?.by_sector || {};
+  _agent.halalStatus = _allData.backtest?.halal_status || {};
   _setupSectorCheckboxes();
 
   // Horizons available from base all-ensemble signals (covers every ticker)
@@ -417,6 +419,7 @@ function getAgentInputs() {
     maxPrice: parseFloat(document.getElementById("agent-max-price")?.value) || 1e9,
     volatility: document.getElementById("agent-volatility")?.value || "any",
     minPatterns: parseInt(document.getElementById("agent-min-patterns")?.value) || 0,
+    halalOnly: document.getElementById("agent-halal-only")?.checked || false,
   };
   // Apply style preset overlays (gentle — only adjusts if user left defaults)
   if (cfg.style === "conservative") {
@@ -483,6 +486,13 @@ function renderAgent() {
     if (_agent.selectedSectors && s.sector) {
       if (!_agent.selectedSectors.has(s.sector)) {
         misses.push(`sector "${s.sector}" not in your selected sectors`);
+      }
+    }
+    // Halal filter
+    if (cfg.halalOnly) {
+      const status = _agent.halalStatus[s.ticker];
+      if (status && status.compliant === false) {
+        misses.push(`not Halal-compliant: ${status.exclusion_reason || "general exclusion"}`);
       }
     }
     return misses;
@@ -571,10 +581,24 @@ function renderAgent() {
       return;
     }
 
+    // Sector concentration cap: limit each sector to floor(N/3) positions
+    // so a portfolio isn't 5 mega-cap tech stocks pretending to be diversified.
+    // Per-position correlation isn't computed (we don't have correlation data
+    // in the dashboard), but sector overlap is a strong proxy.
+    const maxPerSector = Math.max(1, Math.floor(targetN / 3));
+    const sectorCounts = {};
+    const sectorFiltered = [];
+    for (const s of affordable) {
+      const sec = s.sector || "Unknown";
+      if ((sectorCounts[sec] || 0) >= maxPerSector) continue;
+      sectorFiltered.push(s);
+      sectorCounts[sec] = (sectorCounts[sec] || 0) + 1;
+    }
+
     // If fewer affordable than requested, reduce N to fit
-    const actualN = Math.min(targetN, affordable.length);
+    const actualN = Math.min(targetN, sectorFiltered.length);
     const actualSlot = cfg.capital / actualN;
-    const picks = affordable.slice(0, actualN).map(s => {
+    const picks = sectorFiltered.slice(0, actualN).map(s => {
       const sizing = sizePortfolioSlot(s.direction, s.price, s.atr, actualSlot);
       const opts = recommendOptions(s.direction, s.confidence, s.price, s.atr, s.horizon_days, cfg.optionsAllowed);
       return { ...s, _sizing: sizing, _options: opts };
@@ -585,8 +609,11 @@ function renderAgent() {
     const adjustedNote = actualN < targetN
       ? ` (reduced from ${targetN} because not enough affordable stocks fit at ${fmtUsd(cfg.capital / targetN)}/slot)`
       : "";
+    const sectorBreakdown = picks.reduce((acc, s) => { acc[s.sector || "Unknown"] = (acc[s.sector || "Unknown"] || 0) + 1; return acc; }, {});
+    const sectorBreakdownText = Object.entries(sectorBreakdown).map(([s, n]) => `${s}: ${n}`).join(" · ");
     setText("agent-summary",
-      `Portfolio mode: ${picks.length} positions${adjustedNote}, ~${fmtUsd(actualSlot)} each. Total deployed ${fmtUsd(totalPosUsd)} (${(totalPosUsd/cfg.capital*100).toFixed(0)}% of capital), at-risk ${fmtUsd(totalRiskUsd)} (${(totalRiskUsd/cfg.capital*100).toFixed(1)}%). Sized to allocate slot capital (ignores per-trade risk cap so you actually get diversified positions).`);
+      `Portfolio mode: ${picks.length} positions${adjustedNote}, ~${fmtUsd(actualSlot)} each. Total deployed ${fmtUsd(totalPosUsd)} (${(totalPosUsd/cfg.capital*100).toFixed(0)}% of capital), at-risk ${fmtUsd(totalRiskUsd)} (${(totalRiskUsd/cfg.capital*100).toFixed(1)}%). ` +
+      `Sector cap applied (max ${maxPerSector} per sector — prevents 'all tech' fake diversification). Breakdown: ${sectorBreakdownText}.`);
     for (const s of picks) container.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg));
     return;
   }
@@ -602,10 +629,15 @@ function renderAgent() {
     : cfg.riskPct <= 2 ? "balanced (prefers mid-vol)"
     : cfg.riskPct <= 3 ? "moderate (prefers medium-to-high vol)"
     : "aggressive (prefers high-vol / momentum names)";
-  setText("agent-summary",
+  // Long-horizon advisory: technical signals on individual stocks at 5+ year
+  // horizons make less sense than just holding broad-market ETFs.
+  const longHorizonNote = cfg.horizon >= 1260
+    ? ` <span style="color: var(--yellow);">⚠ At 5y horizon, technical analysis on individual stocks has limited evidence. For long-term / Roth IRA money, broad-market ETFs (VTI, VOO, SPY, QQQ) with periodic rebalancing have stronger historical evidence than stock-picking.</span>`
+    : "";
+  setHTML("agent-summary",
     `${actionableCount} actionable picks out of ${ranked.length} tickers at ${cfg.horizon}d horizon${tentativeNote}. ` +
     `Sized for ${fmtUsd(cfg.capital)} capital. Risk profile ${cfg.riskPct}% = ${riskLabel} — ` +
-    `stocks ranked by volatility match: target ATR ~${preferredAtrPct.toFixed(1)}% of price.`);
+    `stocks ranked by volatility match: target ATR ~${preferredAtrPct.toFixed(1)}% of price.${longHorizonNote}`);
 
   const INITIAL_VISIBLE = 10;
   const top = ranked.slice(0, INITIAL_VISIBLE);
@@ -1021,6 +1053,26 @@ function setupTickerModal() {
 // METHODOLOGY LEADERBOARD
 // =========================================================================
 
+// Realistic transaction cost — IBKR / Fidelity / Schwab effective round-trip
+// cost on liquid US stocks ranges 0.05% (mega-cap, instant execution) to 0.3%
+// (smaller names with wider spreads). Use 0.2% as a reasonable default.
+const TXN_COST_ROUND_TRIP_PCT = 0.2;
+
+function _accAfterCosts(rawAccPct, txnCostPct) {
+  // Quick approximation: if your raw accuracy is p, you win some by some amount
+  // and lose some by another. We deduct the round-trip txn cost from BOTH the
+  // expected win and the expected loss (you pay it whether right or wrong).
+  // Simpler proxy: just shift accuracy down by a constant tied to txn cost
+  // and the threshold. With a 1% directional move threshold and 0.2% costs,
+  // an accuracy of 55% effectively becomes ~52-53% after costs because some
+  // of your "wins" only barely cleared the threshold.
+  if (rawAccPct == null) return null;
+  // Approximation: each percentage point of txn cost shaves ~2pp of accuracy
+  // when the directional threshold is 1%. Conservative; real impact varies
+  // by trade-by-trade distribution.
+  return Math.max(0, rawAccPct - txnCostPct * 2);
+}
+
 function renderMethodologies(payload) {
   if (!payload) return;
   const kfold = payload.meta_kfold || {};
@@ -1032,8 +1084,11 @@ function renderMethodologies(payload) {
   // Sector-aware K-fold side-by-side
   const kfoldSec = payload.meta_kfold_sector_aware || {};
   setText("kfold-sector-accuracy", fmtPct(kfoldSec.accuracy));
+  // Show after-cost accuracy alongside raw — honest disclosure about real-world economics
+  const rawSec = (kfoldSec.accuracy ?? 0) * 100;
+  const afterCostSec = _accAfterCosts(rawSec, TXN_COST_ROUND_TRIP_PCT);
   setText("kfold-sector-counts", kfoldSec.accuracy != null
-    ? `${kfoldSec.correct} / ${kfoldSec.signals_emitted ?? 0} signals (sector-tuned weights per fold)`
+    ? `${kfoldSec.correct} / ${kfoldSec.signals_emitted ?? 0} signals · raw ${rawSec.toFixed(1)}% / after 0.2% costs ≈ ${afterCostSec.toFixed(1)}%`
     : (kfoldSec.note || "—"));
   // Delta vs baseline
   if (kfoldSec.accuracy != null && kfold.accuracy != null) {

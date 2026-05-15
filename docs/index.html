@@ -138,6 +138,38 @@
         </div>
       </form>
 
+      <div class="sector-filter-block" style="background: rgba(46, 160, 67, 0.05); border-color: rgba(46, 160, 67, 0.3);">
+        <div class="sector-filter-header">
+          <strong>🕌 Halal / Shariah-compliant filter</strong>
+          <span class="muted small">— general-consensus screening, not certified</span>
+        </div>
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="checkbox" id="agent-halal-only" />
+          <span><strong>Halal-compliant only</strong> — excludes conventional banks, insurance, alcohol, tobacco, gambling, and weapons stocks per general Islamic-finance consensus.</span>
+        </label>
+        <details style="margin-top: 8px;">
+          <summary class="muted small">What gets excluded + caveats (click to expand)</summary>
+          <div class="muted small" style="margin-top: 8px;">
+            <p><strong>Excluded when filter is on:</strong></p>
+            <ul style="padding-left: 20px;">
+              <li><strong>Conventional banks:</strong> JPM, BAC, WFC, C, GS, MS, USB, AXP, SCHW, etc. (interest-based deposits + lending = riba)</li>
+              <li><strong>Conventional insurance:</strong> AIG, MET, PRU, TRV, AFL, ALL, CB (interest-bearing reserves)</li>
+              <li><strong>Alcohol:</strong> BUD, STZ, DEO, TAP, SAM</li>
+              <li><strong>Tobacco:</strong> MO, PM</li>
+              <li><strong>Gambling / sports betting:</strong> WYNN, LVS, MGM, DKNG, PENN, CZR, FLUT</li>
+              <li><strong>Weapons manufacturers:</strong> LMT, RTX, NOC, GD (controversial — some scholars permit defensive)</li>
+            </ul>
+            <p><strong>Important caveats:</strong></p>
+            <ul style="padding-left: 20px;">
+              <li>This is a <strong>general-consensus filter</strong>, not certified by any Shariah board.</li>
+              <li>For strict compliance, use a certified index: Dow Jones Islamic Market, S&amp;P Shariah, MSCI Islamic, IdealRatings, or Refinitiv Islamic.</li>
+              <li>We don't screen on financial ratios (debt/market cap &lt; 33%, interest income &lt; 5% of revenue) because we don't have the fundamental data. A company may pass the industry screen but fail a ratio screen — verify with a certified screener.</li>
+              <li>Payment networks (V, MA, PYPL, SQ) and fintech services (FIS, FISV) are NOT excluded — they're transaction-fee businesses, not interest-bearing.</li>
+            </ul>
+          </div>
+        </details>
+      </div>
+
       <div class="sector-filter-block">
         <div class="sector-filter-header">
           <strong>Sector filter</strong>
@@ -216,6 +248,14 @@
         <div class="value-mid" id="insample-accuracy">—</div>
         <div class="sub" id="insample-counts">—</div>
       </div>
+    </div>
+
+    <div class="explainer-block" style="background: rgba(210, 153, 34, 0.05); border-color: rgba(210, 153, 34, 0.3);">
+      <p class="muted small" style="margin: 0;">
+        💸 <strong>Transaction cost reality check:</strong> The K-fold accuracy numbers above are <em>raw</em> — they don't subtract the bid-ask spread, commissions, and slippage you pay on each trade.
+        Realistic round-trip costs on liquid US stocks are <strong>0.05–0.3%</strong>. A 55% raw accuracy on 5-day trades with a 1% directional threshold effectively becomes <strong>~51-53% after costs</strong>.
+        Always assume your real edge is 2-4pp lower than the headline number when deciding whether to actually trade a signal.
+      </p>
     </div>
 
     <details class="explainer-block">
@@ -870,6 +910,6 @@
     }
   });
 </script>
-<script src="app.js?v=20260515v"></script>
+<script src="app.js?v=20260515w"></script>
 </body>
 </html>
