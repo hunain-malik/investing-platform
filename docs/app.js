@@ -114,8 +114,16 @@ function sizePortfolioSlot(direction, entry, atr, slotCapital) {
 }
 
 // Mirror of analysis/options.py heuristic
-function recommendOptions(direction, confidence, spot, atr, horizon, allowed) {
+function recommendOptions(direction, confidence, spot, atr, horizon, allowed, halalOnly) {
   if (!allowed || (direction !== "up" && direction !== "down")) return null;
+  // Conventional listed options (calls, puts, vertical spreads) are widely
+  // considered non-compliant in mainstream Islamic finance scholarship — AAOIFI
+  // Sharia Standard 20 cites gharar (excessive uncertainty), maysir (speculative
+  // / gambling element), and absence of underlying ownership transfer. When the
+  // Halal filter is on we suppress all option tactics and recommend equity only.
+  if (halalOnly) {
+    return { strategy: "none", longStrike: null, shortStrike: null, dte: null, skipReason: "conventional options are non-compliant per AAOIFI (gharar / maysir) — equity only under Halal filter" };
+  }
   if (confidence < 0.6) return null;
   // Skip options for very long horizons — listed options stop at LEAPS (~1y).
   if (horizon > 252) return { strategy: "none", longStrike: null, shortStrike: null, dte: null, skipReason: `horizon ${horizon}d > 1y — equity only` };
@@ -519,7 +527,7 @@ function renderAgent() {
   let ranked = candidates.map(s => {
     if (s._source === "no_signal") return { ...s, _sizing: null, _options: null };
     const sizing = sizePosition(s.direction, s.price, s.atr, s.confidence, cfg.capital, cfg.riskPct, cfg.maxPosPct);
-    const opts = recommendOptions(s.direction, s.confidence, s.price, s.atr, s.horizon_days, cfg.optionsAllowed);
+    const opts = recommendOptions(s.direction, s.confidence, s.price, s.atr, s.horizon_days, cfg.optionsAllowed, cfg.halalOnly);
     if (sizing == null) {
       return { ...s, _sizing: null, _options: null, _source: "unsizable" };
     }
@@ -600,7 +608,7 @@ function renderAgent() {
     const actualSlot = cfg.capital / actualN;
     const picks = sectorFiltered.slice(0, actualN).map(s => {
       const sizing = sizePortfolioSlot(s.direction, s.price, s.atr, actualSlot);
-      const opts = recommendOptions(s.direction, s.confidence, s.price, s.atr, s.horizon_days, cfg.optionsAllowed);
+      const opts = recommendOptions(s.direction, s.confidence, s.price, s.atr, s.horizon_days, cfg.optionsAllowed, cfg.halalOnly);
       return { ...s, _sizing: sizing, _options: opts };
     }).filter(s => s._sizing !== null);
 
@@ -805,7 +813,13 @@ function renderRecommendationCard(s, cfg, rank) {
         <strong>Equity (long):</strong> <strong>Buy ${fmtNum(sizing.shares)} shares</strong> @ ${fmtUsd(s.price)} · stop-loss ${fmtUsd(sizing.stop)} · position ${fmtUsd(sizing.posUsd)} (${(sizing.pctOfCapital * 100).toFixed(1)}% of capital) · max risk ${fmtUsd(sizing.riskUsd)}
       </div>`;
   } else if (s.direction === "down") {
+    const halalShortCaveat = cfg.halalOnly
+      ? `<div class="rec-line muted small" style="background: rgba(46, 160, 67, 0.06); border-left: 3px solid rgba(46, 160, 67, 0.5); padding: 6px 10px; margin: 4px 0;">
+           🕌 <strong>Halal-mode note:</strong> conventional short-selling is also widely considered non-compliant per AAOIFI (bay' al-ma'dum — selling what you don't own — plus interest-based margin borrow fees). The Halal-friendly move on a bearish signal is usually to <strong>simply avoid the position</strong>, not to short it. Below is shown for transparency only.
+         </div>`
+      : "";
     equityLine = `
+      ${halalShortCaveat}
       <div class="rec-line">
         <strong>Equity (short):</strong> <strong>Short-sell ${fmtNum(sizing.shares)} shares</strong> @ ${fmtUsd(s.price)} · stop-loss ${fmtUsd(sizing.stop)} (buy-to-cover if price rises here) · position ${fmtUsd(sizing.posUsd)} (${(sizing.pctOfCapital * 100).toFixed(1)}% of capital) · max risk ${fmtUsd(sizing.riskUsd)}
       </div>
