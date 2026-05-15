@@ -212,6 +212,118 @@ def aggregate_pattern_accuracy_per_horizon(
     return out
 
 
+def aggregate_by_sector(
+    samples: list[BacktestSample],
+    ticker_to_sector: dict[str, str],
+) -> dict[str, dict]:
+    """Per-sector directional accuracy. Asks: do tech stocks follow
+    different patterns than pharma?
+
+    For each sector, reports:
+        n samples, n directional, accuracy, bullish acc, bearish acc,
+        best/worst horizon, best methodology (if patterns_by_methodology
+        info is available — not used here, methodologies module handles it).
+    """
+    stats: dict[str, dict] = {}
+    for s in samples:
+        sector = ticker_to_sector.get(s.ticker, "Unknown")
+        if s.ensemble_direction not in ("up", "down"):
+            continue
+        d = stats.setdefault(sector, {
+            "n": 0, "correct": 0,
+            "up": 0, "up_correct": 0,
+            "down": 0, "down_correct": 0,
+            "by_horizon": {},
+        })
+        d["n"] += 1
+        if s.ensemble_direction == "up":
+            d["up"] += 1
+            if s.ensemble_correct:
+                d["up_correct"] += 1
+        else:
+            d["down"] += 1
+            if s.ensemble_correct:
+                d["down_correct"] += 1
+        if s.ensemble_correct:
+            d["correct"] += 1
+        hb = d["by_horizon"].setdefault(s.horizon_days, {"n": 0, "correct": 0})
+        hb["n"] += 1
+        if s.ensemble_correct:
+            hb["correct"] += 1
+
+    out = {}
+    for sector, d in stats.items():
+        by_h = {}
+        best_h, best_acc = None, -1
+        for h, hd in sorted(d["by_horizon"].items()):
+            acc = hd["correct"] / hd["n"] if hd["n"] else None
+            by_h[h] = {"n": hd["n"], "correct": hd["correct"], "accuracy": round(acc, 4) if acc is not None else None}
+            if acc is not None and acc > best_acc:
+                best_acc = acc
+                best_h = h
+        out[sector] = {
+            "n": d["n"],
+            "correct": d["correct"],
+            "accuracy": round(d["correct"] / d["n"], 4) if d["n"] else None,
+            "up_n": d["up"],
+            "up_accuracy": round(d["up_correct"] / d["up"], 4) if d["up"] else None,
+            "down_n": d["down"],
+            "down_accuracy": round(d["down_correct"] / d["down"], 4) if d["down"] else None,
+            "by_horizon": by_h,
+            "best_horizon": best_h,
+            "best_horizon_accuracy": round(best_acc, 4) if best_h else None,
+        }
+    return out
+
+
+def aggregate_methodology_by_sector(
+    samples: list[BacktestSample],
+    ticker_to_sector: dict[str, str],
+    weights_per_horizon: dict[str, dict[int, float]],
+) -> dict[str, dict[str, dict]]:
+    """For each (sector, methodology), compute accuracy.
+
+    Reveals which methodology works best for which sector.
+    Returns: {sector: {methodology_name: {n_signals, n_correct, accuracy}}}
+    """
+    from .methodologies import METHODOLOGIES, evaluate_methodology
+    from .families import evaluate_consensus_families
+
+    out: dict[str, dict[str, dict]] = {}
+
+    # Pass 1: each methodology
+    for m in METHODOLOGIES:
+        for s in samples:
+            sector = ticker_to_sector.get(s.ticker, "Unknown")
+            if m.regime_filter is not None and s.regime not in m.regime_filter:
+                continue
+            r = evaluate_methodology(m, s, weights_per_horizon)
+            if r is None:
+                continue
+            cell = out.setdefault(sector, {}).setdefault(m.name, {"n": 0, "correct": 0})
+            cell["n"] += 1
+            if r["correct"]:
+                cell["correct"] += 1
+
+    # Pass 2: consensus_families (different signature)
+    for s in samples:
+        sector = ticker_to_sector.get(s.ticker, "Unknown")
+        r = evaluate_consensus_families(s.pattern_directions)
+        if r is None or r["direction"] not in ("up", "down"):
+            continue
+        cell = out.setdefault(sector, {}).setdefault("consensus_families", {"n": 0, "correct": 0})
+        cell["n"] += 1
+        correct = (r["direction"] == s.actual_label)
+        if correct:
+            cell["correct"] += 1
+
+    # Compute accuracies
+    for sector, methods in out.items():
+        for name, cell in methods.items():
+            cell["accuracy"] = round(cell["correct"] / cell["n"], 4) if cell["n"] else None
+    return out
+
+
 def aggregate_per_ticker(samples: list[BacktestSample], min_samples: int = 10) -> dict[str, dict]:
     """Per-ticker directional accuracy. Tickers with fewer than `min_samples`
     backtest hits are still returned but flagged via the `n` count so the

@@ -28,13 +28,16 @@ import pandas as pd
 import yaml
 
 from .backtest import (
+    aggregate_by_sector,
     aggregate_ensemble_accuracy,
+    aggregate_methodology_by_sector,
     aggregate_pattern_accuracy_flat,
     aggregate_pattern_accuracy_per_horizon,
     aggregate_per_ticker,
     run_batch,
     update_weights_per_horizon,
 )
+from .sectors import get_sectors
 from .cross_validation import kfold_meta_accuracy
 from .data import fetch_history_cached
 from .earnings import days_until_earnings
@@ -229,6 +232,17 @@ def main() -> int:
 
     # Per-ticker accuracy
     per_ticker_stats = aggregate_per_ticker(samples)
+
+    # Sector-stratified analysis. Fetches & caches ticker -> sector mapping
+    # on first run; subsequent runs hit cache. Reveals whether different
+    # market sectors require different methodologies.
+    log.info("fetching/loading sector mappings...")
+    ticker_to_sector = get_sectors(bt_universe)
+    log.info("running sector-stratified aggregations...")
+    sector_ensemble_stats = aggregate_by_sector(samples, ticker_to_sector)
+    sector_methodology_stats = aggregate_methodology_by_sector(
+        samples, ticker_to_sector, weights,
+    )
 
     # ---- 4. Update per-horizon pattern weights from backtest --------------
     if pattern_acc_per_h:
@@ -489,6 +503,9 @@ def main() -> int:
         "patterns_flat": pattern_acc_flat,
         "patterns_per_horizon": pattern_acc_per_h,
         "per_ticker": per_ticker_stats,
+        "by_sector": sector_ensemble_stats,
+        "sector_methodology": sector_methodology_stats,
+        "ticker_sectors": ticker_to_sector,
     })
     write_json(DATA_DIR / "methodologies.json", {
         "updated_at": _ts(),

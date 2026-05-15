@@ -344,6 +344,30 @@
     </details>
 
     <details class="detail-block">
+      <summary>📊 Sector analysis — do different sectors need different methods?</summary>
+      <p class="muted small">
+        Each backtest sample is tagged with the ticker's sector (Technology, Healthcare,
+        Financial Services, etc.). This lets us see whether sectors follow different
+        patterns — e.g., tech stocks may respond to momentum differently than utilities.
+      </p>
+      <h3>Ensemble accuracy by sector</h3>
+      <div class="table-wrap">
+        <table id="sector-overview-table">
+          <thead><tr><th>Sector</th><th>Samples</th><th>Accuracy</th><th>Bullish acc</th><th>Bearish acc</th><th>Best horizon</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <h3>Best methodology per sector</h3>
+      <p class="muted small">For each sector, shows which methodology had the highest accuracy on that sector's samples.</p>
+      <div class="table-wrap">
+        <table id="sector-method-table">
+          <thead><tr><th>Sector</th><th>Best methodology</th><th>Accuracy</th><th>Signals</th><th>All methods</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="detail-block">
       <summary>Per-ticker accuracy</summary>
       <div class="signals-controls">
         <label>Search<input type="search" id="ticker-search" placeholder="ticker" /></label>
@@ -767,6 +791,6 @@
     }
   });
 </script>
-<script src="app.js?v=20260515q"></script>
+<script src="app.js?v=20260515r"></script>
 </body>
 </html>

@@ -1178,6 +1178,64 @@ function renderPerTickerTable() {
     `);
   }
 }
+function renderSectorAnalysis(bt) {
+  // Ensemble accuracy by sector
+  const sectors = bt?.by_sector || {};
+  const tbody = document.querySelector("#sector-overview-table tbody");
+  if (tbody) {
+    tbody.innerHTML = "";
+    const rows = Object.entries(sectors).sort((a, b) => (b[1].accuracy ?? 0) - (a[1].accuracy ?? 0));
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="muted">No sector data yet — workflow needs to run with sector fetching enabled.</td></tr>`;
+    } else {
+      for (const [sector, s] of rows) {
+        tbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td><strong>${sector}</strong></td>
+            <td>${s.n}</td>
+            <td><strong>${fmtPct(s.accuracy)}</strong></td>
+            <td>${s.up_n}/${fmtPct(s.up_accuracy)}</td>
+            <td>${s.down_n}/${fmtPct(s.down_accuracy)}</td>
+            <td>${s.best_horizon ? `${s.best_horizon}d (${fmtPct(s.best_horizon_accuracy)})` : "—"}</td>
+          </tr>
+        `);
+      }
+    }
+  }
+
+  // Best methodology per sector
+  const sectorMethod = bt?.sector_methodology || {};
+  const mtbody = document.querySelector("#sector-method-table tbody");
+  if (mtbody) {
+    mtbody.innerHTML = "";
+    const rows = Object.entries(sectorMethod);
+    if (rows.length === 0) {
+      mtbody.innerHTML = `<tr><td colspan="5" class="muted">No sector-methodology data yet.</td></tr>`;
+    } else {
+      for (const [sector, methods] of rows) {
+        const entries = Object.entries(methods);
+        if (entries.length === 0) continue;
+        // Find the best methodology by accuracy (with minimum signal count for fairness)
+        const sorted = entries.sort((a, b) => (b[1].accuracy ?? 0) - (a[1].accuracy ?? 0));
+        const validSorted = sorted.filter(([_, v]) => v.n >= 5);
+        const best = validSorted[0] || sorted[0];
+        const allMethodsText = sorted
+          .map(([name, v]) => `<span class="pattern-chip" title="${v.n} signals">${name}: ${fmtPct(v.accuracy)}</span>`)
+          .join(" ");
+        mtbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td><strong>${sector}</strong></td>
+            <td><strong>${best?.[0] || "—"}</strong></td>
+            <td>${fmtPct(best?.[1]?.accuracy)}</td>
+            <td>${best?.[1]?.n ?? 0}</td>
+            <td><div class="patterns-list">${allMethodsText}</div></td>
+          </tr>
+        `);
+      }
+    }
+  }
+}
+
 function renderPerTicker(bt) {
   _tickerState.all = bt?.per_ticker || {};
   document.getElementById("ticker-search").addEventListener("input", e => { _tickerState.search = e.target.value.trim(); renderPerTickerTable(); });
@@ -1504,6 +1562,7 @@ async function main() {
   _safeRun("renderScoreboard", () => renderScoreboard(sb));
   _safeRun("renderBacktest",   () => renderBacktest(bt));
   _safeRun("renderPatterns",   () => renderPatterns(bt, weights));
+  _safeRun("renderSectorAnalysis", () => renderSectorAnalysis(bt));
   _safeRun("renderPerTicker",  () => renderPerTicker(bt));
   _safeRun("renderPredictions",() => renderPredictions(preds));
   _safeRun("startLivePricePolling", () => startLivePricePolling());
