@@ -757,12 +757,18 @@
         <div class="approach-card">
           <h3>Cross-cutting</h3>
           <ul>
-            <li>Per-horizon weight tuning</li>
-            <li>5-fold cross-validation for out-of-sample accuracy</li>
+            <li>Per-horizon weight tuning across 12 horizons (5d–1260d)</li>
+            <li>5-fold cross-validation for honest out-of-sample accuracy</li>
+            <li>K-fold WITH sector-aware methodology weighting (the "lift test" panel)</li>
             <li>Auto-pruning of below-chance methodologies</li>
-            <li>Earnings-date awareness via Yahoo Finance calendar</li>
-            <li>Headline sentiment (VADER) on Yahoo Finance news</li>
+            <li>Auto-suppress bearish meta when its accuracy is &lt; 45% (numerical model handles bearish better)</li>
             <li>Asymmetric bearish quorum (markets drift up; bearish calls need 3+ methodologies vs 2 for bullish)</li>
+            <li><strong>Sector-aware methodology weighting</strong> on live signals: Tech uses Tech's best methods, Energy uses Energy's, Utilities mostly silenced</li>
+            <li><strong>Risk-adjusted ranking</strong>: top picks match your risk-per-trade volatility profile (2% risk → target ATR ~3% of price)</li>
+            <li>Earnings-date awareness via Yahoo Finance calendar</li>
+            <li>Headline sentiment (VADER) with asymmetric thresholds + cross-sectional relative labels to compensate for VADER's positive bias</li>
+            <li><strong>Live price overlay</strong> via Cloudflare Worker proxy (~30s polling during market hours)</li>
+            <li>9 hourly workflow runs per US market day + after-close + after-hours sweep (~1,584 min/month — under GitHub Actions free tier)</li>
           </ul>
         </div>
       </div>
