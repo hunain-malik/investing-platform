@@ -435,13 +435,38 @@ function renderAgent() {
     }
     return { ...s, _sizing: sizing, _options: opts };
   });
-  // Sort: actionable (consensus → meta → tentative) first, then no_signal
+  // Risk-adjusted ranking. Same recommendations are AVAILABLE regardless of
+  // risk %, but the ORDER changes so the user sees stocks matching their
+  // volatility appetite at the top.
+  //
+  // Map risk % to a preferred ATR% (rough heuristic — your daily price
+  // swing should be commensurate with how much you're willing to risk):
+  //   0.5% risk → prefer ATR ~1.5% (boring blue-chip)
+  //   2.0% risk → prefer ATR ~3%   (typical mid-cap)
+  //   5.0% risk → prefer ATR ~6%   (meme / high-vol momentum)
+  // Stocks score highest when their ATR% is close to the preferred value;
+  // a bell curve penalizes both too-boring and too-wild for the user's risk.
+  const preferredAtrPct = 1 + cfg.riskPct;
+  const _volMatchFactor = (atrPct) => {
+    if (atrPct == null) return 0.7; // unknown vol → neutral
+    const diff = atrPct - preferredAtrPct;
+    return Math.exp(-(diff * diff) / 8); // bell curve, sigma ~2
+  };
+  // Annotate each candidate with its risk-adjusted score
+  ranked.forEach(s => {
+    const atrPct = (s.atr && s.price) ? (s.atr / s.price * 100) : null;
+    s._volMatch = _volMatchFactor(atrPct);
+    s._atrPct = atrPct;
+    // Composite score: confidence × (0.5 + 0.5 × volMatch), capped at 1.0
+    s._riskScore = (s.confidence ?? 0.5) * (0.5 + 0.5 * s._volMatch);
+  });
+  // Sort: source priority first, then risk-adjusted score (descending)
   const sourcePriority = (src) => ({ consensus: 4, meta: 3, tentative: 2, unsizable: 1, no_signal: 0 }[src] ?? 0);
   ranked.sort((a, b) => {
     const pa = sourcePriority(a._source);
     const pb = sourcePriority(b._source);
     if (pa !== pb) return pb - pa;
-    return (b.confidence || 0) - (a.confidence || 0);
+    return (b._riskScore || 0) - (a._riskScore || 0);
   });
 
   if (ranked.length === 0) {
@@ -492,8 +517,15 @@ function renderAgent() {
   const tentativeNote = tentativeCount > 0
     ? ` (${validatedCount} validated by meta/consensus + ${tentativeCount} tentative all-ensemble picks where consensus didn't fire)`
     : "";
+  // Risk profile label so user understands what's affecting the order
+  const riskLabel = cfg.riskPct <= 1 ? "conservative (prefers low-vol blue-chips)"
+    : cfg.riskPct <= 2 ? "balanced (prefers mid-vol)"
+    : cfg.riskPct <= 3 ? "moderate (prefers medium-to-high vol)"
+    : "aggressive (prefers high-vol / momentum names)";
   setText("agent-summary",
-    `${actionableCount} actionable picks out of ${ranked.length} tickers analyzed at ${cfg.horizon}d horizon${tentativeNote}. Sized for ${fmtUsd(cfg.capital)} capital, ${cfg.riskPct}% risk per trade.`);
+    `${actionableCount} actionable picks out of ${ranked.length} tickers at ${cfg.horizon}d horizon${tentativeNote}. ` +
+    `Sized for ${fmtUsd(cfg.capital)} capital. Risk profile ${cfg.riskPct}% = ${riskLabel} — ` +
+    `stocks ranked by volatility match: target ATR ~${preferredAtrPct.toFixed(1)}% of price.`);
 
   const INITIAL_VISIBLE = 10;
   const top = ranked.slice(0, INITIAL_VISIBLE);
@@ -579,6 +611,15 @@ function renderRecommendationCard(s, cfg, rank) {
   // methodologies. The meta/consensus tiers have explicit voters; the
   // all-ensemble doesn't, so we use pattern-fire count instead.
   const tentativeVoters = isTentative ? (s.n_fired ?? 0) : null;
+  // Volatility match badge — shows whether this stock's volatility matches
+  // the user's risk profile.
+  let volBadge = "";
+  if (s._volMatch != null && s._atrPct != null) {
+    const matchPct = (s._volMatch * 100).toFixed(0);
+    const badgeClass = s._volMatch > 0.8 ? "confirm" : s._volMatch > 0.4 ? "neutral" : "warn";
+    const volLabel = s._atrPct < 2 ? "low-vol" : s._atrPct < 5 ? "mid-vol" : "high-vol";
+    volBadge = `<span class="tag ${badgeClass}" title="Stock's ATR is ${s._atrPct.toFixed(1)}% of price (${volLabel}). Match score vs your risk profile: ${matchPct}%.">${volLabel} (vol-match ${matchPct}%)</span>`;
+  }
   // s.n_contributing (meta) vs s.n_families (consensus) — normalize for display
   const nVoters = s.n_families ?? s.n_contributing ?? 0;
   const voterType = s.n_families != null && s.n_families > 0 ? "families" : "methods";
@@ -691,6 +732,7 @@ function renderRecommendationCard(s, cfg, rank) {
         <span class="tag ${dClass}">${s.direction.toUpperCase()}</span>
         <span class="rec-meta" title="${isTentative ? 'N patterns fired in the all-ensemble. Meta/consensus methodologies did not validate this — treat as a weaker signal.' : 'Consensus: how strongly the contributing voters agree on direction. 0% = tied, 100% = unanimous. NOT a price change prediction.'}">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · ${isTentative ? `${tentativeVoters} patterns fired (all-ensemble)` : `consensus ${consensusPct}% · ${nVoters} ${voterType} agree`}</span>
         ${sourceBadge}
+        ${volBadge}
         ${earningsWarn}
         ${sentChip}
         ${contradictionChip}
