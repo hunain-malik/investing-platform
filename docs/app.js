@@ -325,12 +325,13 @@ function renderRecommendationCard(s, cfg) {
     `;
   }
 
+  const consensusPct = Math.abs(s.vote_margin * 100).toFixed(1);
   return `
     <div class="rec-card">
       <div class="rec-header">
         <a href="#" class="rec-ticker ticker-link" data-ticker="${s.ticker}">${s.ticker}</a>
         <span class="tag ${dClass}">${s.direction.toUpperCase()}</span>
-        <span class="rec-meta">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · margin ${(s.vote_margin * 100).toFixed(1)}% · ${s.n_contributing} methods agree</span>
+        <span class="rec-meta" title="Consensus: how strongly the contributing methodologies agree on direction. 0% = tied, 100% = unanimous. NOT a price change prediction.">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · consensus ${consensusPct}% · ${s.n_contributing} methods agree</span>
         ${earningsWarn}
         ${sentChip}
       </div>
@@ -375,13 +376,14 @@ function showTickerModal(ticker) {
   if (metas.length > 0) {
     metaHtml = `<div class="modal-section">
       <h4>Holistic meta-ensemble across horizons</h4>
-      <table style="width:100%"><thead><tr><th>Horizon</th><th>Direction</th><th>Confidence</th><th>Margin</th><th>Methods</th></tr></thead><tbody>
+      <p class="muted small">Consensus = how unanimously the contributing methodologies agree on direction (100% = all agree). Not a price change.</p>
+      <table style="width:100%"><thead><tr><th>Horizon</th><th>Direction</th><th>Confidence</th><th>Consensus</th><th>Methods</th></tr></thead><tbody>
       ${metas.sort((a,b) => a.horizon_days - b.horizon_days).map(m => `
         <tr>
           <td>${m.horizon_days}d</td>
           <td>${dirTag(m.direction)}</td>
           <td>${m.confidence.toFixed(3)}</td>
-          <td>${(m.vote_margin * 100).toFixed(1)}%</td>
+          <td>${Math.abs(m.vote_margin * 100).toFixed(1)}%</td>
           <td>${m.contributing_methodologies.map(c => `<span class="pattern-chip">${c.methodology} ${c.direction[0].toUpperCase()}</span>`).join(" ")}</td>
         </tr>
       `).join("")}
