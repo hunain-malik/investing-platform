@@ -86,6 +86,54 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 3px; font-si
   background: var(--panel-2);
 }
 .advanced-filters > form { padding: 0 14px 14px; }
+
+.sector-filter-block {
+  margin: 12px 14px 14px;
+  padding: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.sector-filter-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.sector-filter-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+.sector-filter-actions .show-more-button {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  width: auto;
+}
+.sector-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+}
+.sector-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.sector-checkbox-row:hover { background: var(--border); }
+.sector-checkbox-row input { cursor: pointer; }
+.sector-checkbox-row .sector-stat {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
 .agent-field label {
   display: flex; flex-direction: column; gap: 4px;
   font-size: 0.85rem; color: var(--muted);

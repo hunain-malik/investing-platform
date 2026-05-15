@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>investing-platform · scoreboard</title>
-<link rel="stylesheet" href="style.css?v=20260515p" />
+<link rel="stylesheet" href="style.css?v=20260515u" />
 </head>
 <body>
 <header class="topbar">
@@ -137,6 +137,25 @@
           <label>Min pattern count<input type="number" id="agent-min-patterns" value="0" min="0" max="10" step="1" title="Only show stocks where at least N patterns fired (more patterns = more conviction)" /></label>
         </div>
       </form>
+
+      <div class="sector-filter-block">
+        <div class="sector-filter-header">
+          <strong>Sector filter</strong>
+          <span class="muted small">— include only stocks from these sectors</span>
+          <div class="sector-filter-actions">
+            <button type="button" id="agent-sector-all" class="show-more-button" style="max-width: 100px;">All</button>
+            <button type="button" id="agent-sector-none" class="show-more-button" style="max-width: 100px;">None</button>
+            <button type="button" id="agent-sector-invert" class="show-more-button" style="max-width: 100px;">Invert</button>
+          </div>
+        </div>
+        <div id="agent-sector-checkboxes" class="sector-checkboxes">
+          <span class="muted small">Loading sectors…</span>
+        </div>
+        <p class="muted small" style="margin-top: 6px;">
+          💡 <strong>Tip:</strong> Sector analysis shows Tech / Industrials / Energy have the strongest backtest accuracy.
+          Utilities had below-50% accuracy — consider unchecking it.
+        </p>
+      </div>
     </details>
 
     <div id="agent-summary" class="agent-summary muted small">Adjust inputs above to get personalized recommendations.</div>
@@ -797,6 +816,6 @@
     }
   });
 </script>
-<script src="app.js?v=20260515t"></script>
+<script src="app.js?v=20260515u"></script>
 </body>
 </html>

@@ -140,6 +140,9 @@ const _agent = {
   consensus_signals: [],
   sentiments: {},
   horizons: [],
+  tickerSectors: {},    // {ticker: sector}
+  sectorStats: {},      // {sector: {accuracy, n}}
+  selectedSectors: null, // null = all selected, Set otherwise
 };
 
 // Build a unified per-(ticker, horizon) recommendation list at one horizon.
@@ -162,12 +165,16 @@ function _buildUnifiedRecs(horizon) {
     const sentiment = _agent.sentiments?.[t] || null;
     const consensus = consensusByTicker.get(t);
     const meta = metaByTicker.get(t);
+    // Sector lookup — fall back to ticker_sectors map if meta/consensus
+    // didn't carry sector directly
+    const tickerSector = consensus?.sector || meta?.sector || _agent.tickerSectors[t] || "Unknown";
     if (consensus) {
       out.push({
         ...consensus,
         _source: "consensus",
         _baseSig: baseSig,
         sentiment: consensus.sentiment || sentiment,
+        sector: tickerSector,
       });
     } else if (meta) {
       out.push({
@@ -175,6 +182,7 @@ function _buildUnifiedRecs(horizon) {
         _source: "meta",
         _baseSig: baseSig,
         sentiment: meta.sentiment || sentiment,
+        sector: tickerSector,
       });
     } else {
       // No meta or consensus signal — but if the all-ensemble has strong
@@ -195,6 +203,7 @@ function _buildUnifiedRecs(horizon) {
         price: baseSig.price,
         atr: baseSig.atr,
         sentiment: sentiment,
+        sector: tickerSector,
         n_fired: baseSig.n_fired ?? (baseSig.fired_patterns || []).length,
         earnings_in_days: null,
         earnings_in_horizon: false,
@@ -231,6 +240,10 @@ function setupAgent(signalsPayload) {
   _agent.meta_signals = signalsPayload?.meta_signals || [];
   _agent.consensus_signals = signalsPayload?.consensus_signals || [];
   _agent.sentiments = signalsPayload?.sentiments || {};
+  // Sector data — pulled from backtest.json (set up in main())
+  _agent.tickerSectors = _allData.backtest?.ticker_sectors || {};
+  _agent.sectorStats = _allData.backtest?.by_sector || {};
+  _setupSectorCheckboxes();
 
   // Horizons available from base all-ensemble signals (covers every ticker)
   const horizons = [...new Set(_agent.signals.map(s => s.horizon_days))].sort((a, b) => a - b);
@@ -257,6 +270,11 @@ function setupAgent(signalsPayload) {
   document.getElementById("agent-mode").addEventListener("change", e => {
     document.getElementById("agent-portfolio-n-wrap").style.display = (e.target.value === "portfolio") ? "" : "none";
   });
+
+  // Sector quick-action buttons
+  document.getElementById("agent-sector-all")?.addEventListener("click", () => _setSectorCheckboxes("all"));
+  document.getElementById("agent-sector-none")?.addEventListener("click", () => _setSectorCheckboxes("none"));
+  document.getElementById("agent-sector-invert")?.addEventListener("click", () => _setSectorCheckboxes("invert"));
 
   // Clear all filters — reset to defaults, no preset, no preferences
   document.getElementById("agent-clear-btn")?.addEventListener("click", () => {
@@ -321,6 +339,61 @@ function setupAgent(signalsPayload) {
     });
   }
 
+  renderAgent();
+}
+
+function _setupSectorCheckboxes() {
+  const container = document.getElementById("agent-sector-checkboxes");
+  if (!container) return;
+  // Collect all unique sectors from tickerSectors + sectorStats (union)
+  const sectorSet = new Set([
+    ...Object.values(_agent.tickerSectors),
+    ...Object.keys(_agent.sectorStats),
+  ]);
+  // Order: by sector accuracy (desc), Unknown/NONE/etc at the bottom
+  const sectorList = [...sectorSet].sort((a, b) => {
+    const accA = _agent.sectorStats[a]?.accuracy ?? -1;
+    const accB = _agent.sectorStats[b]?.accuracy ?? -1;
+    return accB - accA;
+  });
+  container.innerHTML = "";
+  if (sectorList.length === 0) {
+    container.innerHTML = `<span class="muted small">No sector data yet (workflow needs to run with sector fetching).</span>`;
+    return;
+  }
+  for (const sector of sectorList) {
+    const stat = _agent.sectorStats[sector];
+    const accStr = stat?.accuracy != null ? `${(stat.accuracy * 100).toFixed(0)}%` : "—";
+    const nTickers = Object.values(_agent.tickerSectors).filter(s => s === sector).length;
+    container.insertAdjacentHTML("beforeend", `
+      <label class="sector-checkbox-row" data-sector="${sector}">
+        <input type="checkbox" class="sector-checkbox" value="${sector}" checked />
+        <span>${sector}</span>
+        <span class="sector-stat">${accStr} acc · ${nTickers} stocks</span>
+      </label>
+    `);
+  }
+  // Wire up change handler
+  container.querySelectorAll(".sector-checkbox").forEach(cb => {
+    cb.addEventListener("change", renderAgent);
+  });
+  // Initialize selectedSectors to all
+  _refreshSelectedSectors();
+}
+
+function _refreshSelectedSectors() {
+  const checked = [...document.querySelectorAll(".sector-checkbox:checked")].map(cb => cb.value);
+  const all = [...document.querySelectorAll(".sector-checkbox")].map(cb => cb.value);
+  _agent.selectedSectors = (checked.length === all.length) ? null : new Set(checked);
+}
+
+function _setSectorCheckboxes(mode) {
+  document.querySelectorAll(".sector-checkbox").forEach(cb => {
+    if (mode === "all") cb.checked = true;
+    else if (mode === "none") cb.checked = false;
+    else if (mode === "invert") cb.checked = !cb.checked;
+  });
+  _refreshSelectedSectors();
   renderAgent();
 }
 
@@ -404,6 +477,13 @@ function renderAgent() {
     if (cfg.minPatterns > 0) {
       const count = s.n_fired ?? s.n_families ?? s.n_contributing ?? 0;
       if (count < cfg.minPatterns) misses.push(`only ${count} patterns fired (you require ≥ ${cfg.minPatterns})`);
+    }
+    // Sector filter: refresh from checkboxes each call so it stays in sync
+    _refreshSelectedSectors();
+    if (_agent.selectedSectors && s.sector) {
+      if (!_agent.selectedSectors.has(s.sector)) {
+        misses.push(`sector "${s.sector}" not in your selected sectors`);
+      }
     }
     return misses;
   }
