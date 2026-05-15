@@ -303,12 +303,11 @@ def main() -> int:
                 "price": round(sig.price, 4),
                 "atr": round(sig.atr, 4),
             }
-            # Log predictions for the live scoreboard (still tracked server-side)
-            if sig.direction in ("up", "down") and sig.confidence >= sig_cfg["min_confidence"]:
-                if len(sig.fired_patterns) >= sig_cfg["min_patterns_for_signal"]:
-                    predictions = log_predictions_from_signal(
-                        sig, [sig.horizon_days], sig_cfg["min_confidence"], predictions
-                    )
+            # NOTE: we DO NOT log all-ensemble predictions to the scoreboard.
+            # The scoreboard tracks methodology-validated predictions only —
+            # meta_ensemble and consensus_families log their own predictions
+            # in the second loop below. Logging raw all-ensemble here polluted
+            # the log with low-quality, saturated-confidence predictions.
             live_signals.append(sig_dict)
 
         # Below: meta + consensus evaluation per horizon, also nested inside
@@ -331,6 +330,25 @@ def main() -> int:
                 fired_today,
                 family_accuracies_at_horizon=fam_acc_at_h if fam_acc_at_h else None,
             )
+            # Log consensus_families predictions for the scoreboard (validated by
+            # >=2 independent pattern families agreeing — much more reliable
+            # than the raw all-ensemble).
+            if consensus is not None and consensus.get("confidence", 0) >= sig_cfg["min_confidence"]:
+                consensus_pseudo_signal = EnsembleSignal(
+                    ticker=ticker,
+                    as_of=sig.as_of,
+                    horizon_days=sig.horizon_days,
+                    direction=consensus["direction"],
+                    confidence=consensus["confidence"],
+                    fired_patterns=sig.fired_patterns,
+                    price=sig.price,
+                    atr=sig.atr,
+                    methodology="consensus_families",
+                )
+                predictions = log_predictions_from_signal(
+                    consensus_pseudo_signal, [sig.horizon_days],
+                    sig_cfg["min_confidence"], predictions,
+                )
             if consensus is not None:
                 cons_sizing = size_position(
                     direction=consensus["direction"], entry=sig.price, atr=sig.atr,

@@ -86,7 +86,12 @@ def combine(
 
     agreement = abs(weighted_vote) / firepower
     intensity = min(1.0, firepower / FIREPOWER_TARGET)
-    confidence = 0.5 + 0.5 * agreement * intensity
+    # Cap at 0.95 — the baseline combine() can saturate at 1.0 when all
+    # patterns agree at full firepower, which is misleading: it's still
+    # the same pattern set, not multi-source independent confirmation.
+    # Higher tiers (meta_ensemble, consensus_families) apply their own
+    # Bayesian caps; this matches that behavior at the bottom layer.
+    confidence = min(0.95, 0.5 + 0.5 * agreement * intensity)
 
     if weighted_vote > 0:
         direction = "up"
