@@ -467,14 +467,15 @@ function renderRecommendationCard(s, cfg, rank) {
   const dClass = s.direction === "up" ? "up" : "down";
   const sizing = s._sizing;
   const opts = s._options;
+  const isTentative = s._source === "tentative";
   const sourceBadge = s._source === "consensus"
     ? tag("decorrelated", "confirm")
     : (s._source === "meta" ? tag("correlated meta", "neutral")
-       : (s._source === "tentative" ? tag("tentative · all-ensemble only", "warn") : ""));
+       : (isTentative ? tag("tentative · all-ensemble only", "warn") : ""));
   // For tentative signals, "voters" are individual patterns (n_fired), not
   // methodologies. The meta/consensus tiers have explicit voters; the
   // all-ensemble doesn't, so we use pattern-fire count instead.
-  const tentativeVoters = s._source === "tentative" ? (s.n_fired ?? 0) : null;
+  const tentativeVoters = isTentative ? (s.n_fired ?? 0) : null;
   // s.n_contributing (meta) vs s.n_families (consensus) — normalize for display
   const nVoters = s.n_families ?? s.n_contributing ?? 0;
   const voterType = s.n_families != null && s.n_families > 0 ? "families" : "methods";
@@ -527,7 +528,6 @@ function renderRecommendationCard(s, cfg, rank) {
   // Tentative cards don't have a methodology-level vote_margin — they
   // come from the all-ensemble where pattern agreement is implicit in
   // confidence. Display differently to avoid misleading "0% consensus".
-  const isTentative = s._source === "tentative";
   const consensusPct = isTentative
     ? null
     : Math.abs((s.vote_margin ?? 0) * 100).toFixed(1);
