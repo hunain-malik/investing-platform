@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>investing-platform · scoreboard</title>
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css?v=20260515c" />
 </head>
 <body>
 <header class="topbar">
@@ -399,6 +399,24 @@
   </footer>
 </main>
 
-<script src="app.js"></script>
+<div id="js-error-banner" style="display:none;position:fixed;top:0;left:0;right:0;background:#f85149;color:#fff;padding:12px;z-index:1000;font-family:monospace;font-size:0.85rem;white-space:pre-wrap;"></div>
+<script>
+  // Catch any global JS error and show it on the page so the user sees what broke.
+  window.addEventListener('error', (e) => {
+    const banner = document.getElementById('js-error-banner');
+    if (banner) {
+      banner.style.display = 'block';
+      banner.textContent = `JS error: ${e.message}\nat ${e.filename}:${e.lineno}:${e.colno}`;
+    }
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    const banner = document.getElementById('js-error-banner');
+    if (banner) {
+      banner.style.display = 'block';
+      banner.textContent = `Promise rejection: ${e.reason?.message || e.reason}`;
+    }
+  });
+</script>
+<script src="app.js?v=20260515c"></script>
 </body>
 </html>
