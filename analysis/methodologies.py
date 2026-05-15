@@ -215,6 +215,7 @@ def evaluate_meta_live(
     methodology_acc_per_horizon: dict[str, dict[int, float]],
     min_methodologies_bull: int = 2,
     min_methodologies_bear: int = 3,
+    suppress_bearish: bool = False,
 ) -> dict | None:
     """Same logic as `evaluate_meta_ensemble` but operates on live data
     (fired PatternSignal objects, not a stored BacktestSample).
@@ -265,6 +266,12 @@ def evaluate_meta_live(
     if margin > 0 and len(up_votes) < min_methodologies_bull:
         return None
     if margin < 0 and len(down_votes) < min_methodologies_bear:
+        return None
+    # Optionally suppress bearish meta signals when their historical accuracy
+    # is below chance (markets drift up, meta bearish has been consistently
+    # ~30% accurate — worse than coin flip). Caller decides based on recent
+    # backtest stats.
+    if margin < 0 and suppress_bearish:
         return None
 
     direction = "up" if margin > 0 else "down"

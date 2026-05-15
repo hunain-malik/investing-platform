@@ -179,9 +179,17 @@ def main() -> int:
             int(h): float(v["accuracy"]) for h, v in by_h.items()
             if v.get("accuracy") is not None
         }
-    methodology_stats["meta_ensemble"] = aggregate_meta_ensemble(
-        samples, weights, method_acc_per_h,
-    )
+    meta_stats_only = aggregate_meta_ensemble(samples, weights, method_acc_per_h)
+    methodology_stats["meta_ensemble"] = meta_stats_only
+
+    # Auto-detect if meta_ensemble bearish accuracy is below chance — if so,
+    # we'll suppress bearish meta signals in live data (they'd be net-harmful
+    # to act on). Markets drift up, bearish predictions face structural
+    # headwind. The numerical model handles bearish much better and will
+    # cover that direction.
+    meta_bearish_acc = meta_stats_only.get("by_direction", {}).get("down", {}).get("accuracy")
+    suppress_meta_bearish = bool(meta_bearish_acc is not None and meta_bearish_acc < 0.45)
+
     # Decorrelated family-based meta — patterns grouped into 6 independent
     # families, each casts one vote. Addresses the correlated-methodology
     # vote-inflation issue.
@@ -329,13 +337,16 @@ def main() -> int:
             sig_dict["options"] = options_plan.to_dict() if options_plan else None
             live_signals.append(sig_dict)
 
-            # Meta-ensemble live evaluation using per-horizon methodology accs
+            # Meta-ensemble live evaluation using per-horizon methodology accs.
+            # Suppress bearish meta signals if their backtest accuracy < 45%
+            # (currently ~29% — actively wrong; numerical model covers bearish).
             meta = evaluate_meta_live(
                 fired_patterns=fired_today,
                 regime=live_regime,
                 horizon=sig.horizon_days,
                 weights_per_horizon=weights,
                 methodology_acc_per_horizon=method_acc_per_h,
+                suppress_bearish=suppress_meta_bearish,
             )
             # Consensus families live evaluation (decorrelated)
             fam_acc_at_h = family_acc_per_h_for_live.get(sig.horizon_days, {})
@@ -462,6 +473,8 @@ def main() -> int:
         "meta_kfold": kfold_result,
         "numerical_model_kfold": numerical_result,
         "pruned": pruned,
+        "meta_bearish_suppressed": suppress_meta_bearish,
+        "meta_bearish_accuracy_recent": meta_bearish_acc,
         "methodologies": methodology_stats,
         "definitions": [
             {"name": m.name, "description": m.description,

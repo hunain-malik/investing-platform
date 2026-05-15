@@ -149,11 +149,12 @@
     <details class="explainer-block">
       <summary>What do these numbers mean? <span class="muted small">(read this first)</span></summary>
       <ul class="muted small">
-        <li><strong>Pattern meta-ensemble (K-fold)</strong> — combines multiple methodologies (trend-following, regime-filtered trend, etc.), K-fold cross-validated out-of-sample. <em>Caveat: those methodologies share patterns so their votes are partially correlated.</em></li>
-        <li><strong>Numerical model (K-fold)</strong> — pure logistic regression on continuous features (returns, RSI, MACD, SMA distances, volatility, etc.). Independent of pattern recognition.</li>
-        <li><strong>Consensus families</strong> (in methodology table below) — decorrelated version: patterns grouped into 6 INDEPENDENT families (trend, momentum, volatility, volume, candlestick, relative strength). Each family casts ONE vote. Requires ≥3 families agreeing. This is the honest "how many independent things point this way" reading.</li>
-        <li><strong>In-sample meta</strong> — same combiner but evaluated on training data. Optimistic and biased upward.</li>
-        <li><strong>All-patterns ensemble</strong> (in Details below) — naive baseline. Uses every fired pattern at every horizon. Has poor bearish numbers because it includes noisy short horizons.</li>
+        <li><strong>Pattern meta-ensemble (K-fold)</strong> — combines methodologies, K-fold out-of-sample. Caveat: methodologies share patterns so votes are partially correlated. <strong>Bearish meta signals are auto-suppressed when their backtest accuracy is &lt; 45% (markets drift up; bearish meta has been ~29% accurate — the numerical model handles bearish instead).</strong></li>
+        <li><strong>Numerical model (K-fold)</strong> — pure logistic regression on continuous features. Independent of pattern recognition. <em>Currently the strongest single source — including for bearish predictions.</em></li>
+        <li><strong>Consensus families</strong> — decorrelated: 6 INDEPENDENT pattern families (trend, momentum, volatility, volume, candlestick, RS), each casts ONE vote. Bayesian log-odds calibration with 0.95 confidence cap.</li>
+        <li><strong>Confidence</strong> = expected hit rate (Bayesian-calibrated). Hard cap at 0.95. <strong>Consensus</strong> = how unanimously voters agree (separate metric — could be 100% consensus with only 60% confidence if voters have modest accuracy).</li>
+        <li><strong>In-sample meta</strong> — same combiner, evaluated on training data. Optimistic and biased upward.</li>
+        <li><strong>All-patterns ensemble</strong> (in Details below) — naive baseline. Includes noisy short horizons.</li>
       </ul>
     </details>
 
