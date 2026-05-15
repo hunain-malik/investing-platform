@@ -311,10 +311,17 @@ function renderAgent() {
 
   // Re-size each actionable candidate using the user's capital.
   // no_signal entries skip sizing but are kept visible for searchability.
+  // Actionable signals where sizing returns null (capital too small for
+  // stop-distance, confidence below threshold, etc.) DOWNGRADE to no_signal
+  // display rather than throw on null.shares.
   let ranked = candidates.map(s => {
     if (s._source === "no_signal") return { ...s, _sizing: null, _options: null };
     const sizing = sizePosition(s.direction, s.price, s.atr, s.confidence, cfg.capital, cfg.riskPct, cfg.maxPosPct);
     const opts = recommendOptions(s.direction, s.confidence, s.price, s.atr, s.horizon_days, cfg.optionsAllowed);
+    if (sizing == null) {
+      // Can't size given user's capital — surface as a "skipped" card
+      return { ...s, _sizing: null, _options: null, _source: "unsizable" };
+    }
     return { ...s, _sizing: sizing, _options: opts };
   });
   // Actionable picks first (have sizing); no_signal entries after
@@ -406,6 +413,21 @@ function renderAgent() {
 
 function renderRecommendationCard(s, cfg, rank) {
   const rankBadge = rank != null ? `<span class="rec-rank">#${rank}</span>` : "";
+  // Unsizable: actionable signal but capital too small / confidence factor 0
+  if (s._source === "unsizable") {
+    const dClass = s.direction === "up" ? "up" : "down";
+    return `
+      <div class="rec-card no-signal">
+        <div class="rec-header">
+          ${rankBadge}
+          <a href="#" class="rec-ticker ticker-link" data-ticker="${s.ticker}">${s.ticker}</a>
+          <span class="tag ${dClass}">${s.direction.toUpperCase()}</span>
+          <span class="rec-meta muted">@ ${fmtUsd(s.price)} · ${s.horizon_days}d · conf ${s.confidence.toFixed(3)}</span>
+        </div>
+        <div class="rec-line muted small">Cannot size: at your capital + risk settings, this position rounds to &lt; 1 share. Click ticker for full breakdown, or increase capital / risk %.</div>
+      </div>
+    `;
+  }
   // no_signal entries get a dimmed, compact card showing the weak all-ensemble hint
   if (s._source === "no_signal") {
     const base = s._baseSig || {};
@@ -929,6 +951,12 @@ function renderPredictions(payload) {
 // MAIN
 // =========================================================================
 
+// Defensive wrapper — if one renderer throws, the others should still run.
+function _safeRun(label, fn) {
+  try { fn(); }
+  catch (e) { console.error(`[${label}] failed:`, e); }
+}
+
 async function main() {
   const [sb, signals, bt, methodologies, preds, weights] = await Promise.all([
     loadJson(FILES.scoreboard),
@@ -941,14 +969,14 @@ async function main() {
   _allData.signals = signals;
   _allData.backtest = bt;
   _allData.predictions = preds;
-  setupTickerModal();
-  setupAgent(signals);
-  renderMethodologies(methodologies);
-  renderScoreboard(sb);
-  renderBacktest(bt);
-  renderPatterns(bt, weights);
-  renderPerTicker(bt);
-  renderPredictions(preds);
+  _safeRun("setupTickerModal", () => setupTickerModal());
+  _safeRun("setupAgent",       () => setupAgent(signals));
+  _safeRun("renderMethodologies", () => renderMethodologies(methodologies));
+  _safeRun("renderScoreboard", () => renderScoreboard(sb));
+  _safeRun("renderBacktest",   () => renderBacktest(bt));
+  _safeRun("renderPatterns",   () => renderPatterns(bt, weights));
+  _safeRun("renderPerTicker",  () => renderPerTicker(bt));
+  _safeRun("renderPredictions",() => renderPredictions(preds));
 }
 
 main();
