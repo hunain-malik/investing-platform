@@ -4,11 +4,19 @@ Pulls recent news headlines from Yahoo Finance via `yfinance.Ticker.news`
 (no API key required), scores them with VADER, and aggregates into a
 per-ticker sentiment score in [-1, 1].
 
-LIMITATION: yfinance only exposes ~recent news (last 1-2 weeks). We cannot
-fetch historical headlines for a past cutoff date, so sentiment patterns
-fire on LIVE signals only — they're excluded from the backtest because we
-cannot validate them against history. Their accuracy will become visible
-in the live scoreboard as predictions resolve.
+LIMITATIONS:
+1. yfinance only exposes ~recent news (last 1-2 weeks). We cannot fetch
+   historical headlines for past cutoff dates, so sentiment cannot be
+   backtested — it only informs live signals.
+2. VADER is a general-purpose lexicon sentiment model, not financial-domain
+   trained. It systematically scores financial news as positive: routine
+   analyst language ("reports earnings", "announces", "upgrade target")
+   reads bullish, and many negative-context phrases ("lawsuit", "downgrade",
+   "missed estimates") are scored mildly negative at most. We compensate
+   with asymmetric thresholds (bullish requires +0.25, bearish requires only
+   -0.02) but the underlying signal is noisy.
+3. For more reliable financial sentiment, FinBERT or a paid news API with
+   domain-tuned scoring would be needed. Flagged for future work.
 """
 
 from __future__ import annotations
@@ -78,9 +86,15 @@ def fetch_sentiment(ticker: str) -> SentimentResult | None:
 
     scores = [_ANALYZER.polarity_scores(t)["compound"] for t in titles]
     mean_score = sum(scores) / len(scores)
-    if mean_score >= 0.15:
+    # VADER systematically scores financial news positive — analyst language
+    # ("reports earnings", "announces", "targets") reads as mildly positive
+    # even for neutral or negative substantive news. Use asymmetric thresholds:
+    # require a meaningfully positive score for "bullish" but flag even mildly
+    # negative scores as "bearish" because they're already swimming against
+    # VADER's positive prior.
+    if mean_score >= 0.25:
         label = "bullish"
-    elif mean_score <= -0.15:
+    elif mean_score <= -0.02:
         label = "bearish"
     else:
         label = "neutral"

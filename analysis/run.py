@@ -274,6 +274,32 @@ def main() -> int:
             except Exception:  # noqa: BLE001
                 ticker_earnings_days = None
 
+    # Cross-sectional sentiment: re-label each ticker's sentiment relative to
+    # today's universe so we can see "bearish RELATIVE to peers" even when
+    # absolute VADER score is mild. Adds a `relative_label` field.
+    if sentiments_by_ticker:
+        all_scores = [v["score"] for v in sentiments_by_ticker.values()]
+        try:
+            import statistics
+            median_today = statistics.median(all_scores)
+            stdev_today = statistics.pstdev(all_scores) if len(all_scores) > 1 else 0.0
+        except Exception:  # noqa: BLE001
+            median_today, stdev_today = 0.0, 0.0
+        for t, sent in sentiments_by_ticker.items():
+            score = sent["score"]
+            if stdev_today > 0:
+                z = (score - median_today) / stdev_today
+                sent["relative_z"] = round(z, 3)
+                if z > 0.75:
+                    sent["relative_label"] = "bullish_vs_peers"
+                elif z < -0.75:
+                    sent["relative_label"] = "bearish_vs_peers"
+                else:
+                    sent["relative_label"] = "neutral_vs_peers"
+            else:
+                sent["relative_z"] = 0.0
+                sent["relative_label"] = "neutral_vs_peers"
+
         for sig in horizon_signals:
             sig_dict = sig.to_dict()
             sig_dict["sentiment"] = sentiments_by_ticker.get(ticker)

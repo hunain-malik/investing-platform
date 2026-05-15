@@ -28,7 +28,14 @@ const dirTag = (d) => d === "up" ? tag("UP", "up") : d === "down" ? tag("DOWN", 
 const sentimentChip = (s) => {
   if (!s) return "";
   const klass = s.label === "bullish" ? "up" : s.label === "bearish" ? "down" : "neutral";
-  return `${tag(`news ${s.label}`, klass)}`;
+  let chip = tag(`news ${s.label}`, klass);
+  // Show cross-sectional relative label too (which compensates for VADER's positive bias)
+  if (s.relative_label && s.relative_label !== "neutral_vs_peers") {
+    const relText = s.relative_label === "bullish_vs_peers" ? "↑ vs peers" : "↓ vs peers";
+    const relKlass = s.relative_label === "bullish_vs_peers" ? "up" : "down";
+    chip += ` ${tag(relText, relKlass)}`;
+  }
+  return chip;
 };
 
 // Detect when news sentiment contradicts the model's directional prediction.
