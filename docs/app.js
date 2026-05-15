@@ -138,7 +138,6 @@ const _agent = {
   signals: [],
   meta_signals: [],
   consensus_signals: [],
-  source: "consensus",  // "consensus" (decorrelated families) or "meta" (correlated methodologies)
   horizons: [],
 };
 
@@ -155,12 +154,6 @@ function applyStrategyFilter() {
   const allowed = activeTab.dataset.horizons;
   if (!allowed) return null; // "all" mode
   return allowed.split(",").map(s => parseInt(s));
-}
-
-function _currentAgentSignals() {
-  return _agent.source === "consensus"
-    ? (_agent.consensus_signals || [])
-    : (_agent.meta_signals || []);
 }
 
 function setupAgent(signalsPayload) {
