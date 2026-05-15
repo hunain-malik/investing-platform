@@ -142,6 +142,66 @@ const _agent = {
   horizons: [],
 };
 
+// Build a unified per-(ticker, horizon) recommendation list at one horizon.
+// Source priority per ticker: consensus_families → meta → no_signal fallback.
+// Tickers without an actionable signal still get a placeholder so they remain
+// visible/searchable in the agent.
+function _buildUnifiedRecs(horizon) {
+  const out = [];
+  const consensusByTicker = new Map();
+  for (const s of _agent.consensus_signals || []) {
+    if (s.horizon_days === horizon) consensusByTicker.set(s.ticker, s);
+  }
+  const metaByTicker = new Map();
+  for (const s of _agent.meta_signals || []) {
+    if (s.horizon_days === horizon) metaByTicker.set(s.ticker, s);
+  }
+  for (const baseSig of _agent.signals || []) {
+    if (baseSig.horizon_days !== horizon) continue;
+    const t = baseSig.ticker;
+    const sentiment = _agent.sentiments?.[t] || null;
+    const consensus = consensusByTicker.get(t);
+    const meta = metaByTicker.get(t);
+    if (consensus) {
+      out.push({
+        ...consensus,
+        _source: "consensus",
+        _baseSig: baseSig,
+        sentiment: consensus.sentiment || sentiment,
+      });
+    } else if (meta) {
+      out.push({
+        ...meta,
+        _source: "meta",
+        _baseSig: baseSig,
+        sentiment: meta.sentiment || sentiment,
+      });
+    } else {
+      out.push({
+        ticker: t,
+        as_of: baseSig.as_of,
+        horizon_days: baseSig.horizon_days,
+        direction: baseSig.direction,
+        confidence: baseSig.confidence,
+        price: baseSig.price,
+        atr: baseSig.atr,
+        sentiment: sentiment,
+        n_fired: baseSig.n_fired ?? (baseSig.fired_patterns || []).length,
+        earnings_in_days: null,
+        earnings_in_horizon: false,
+        vote_margin: null,
+        n_contributing: 0,
+        n_families: 0,
+        contributing_methodologies: [],
+        contributing_families: [],
+        _source: "no_signal",
+        _baseSig: baseSig,
+      });
+    }
+  }
+  return out;
+}
+
 const STRATEGY_DESCRIPTIONS = {
   trading: "Trading: 3-6 month holds aimed at momentum and trend moves. Active position management.",
   swing: "Swing / Position: 1-2 year holds. Captures longer trends without the noise of intraday.",
