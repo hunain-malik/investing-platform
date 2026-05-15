@@ -94,6 +94,36 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 3px; font-si
   border: 1px solid var(--border);
   border-radius: 8px;
 }
+
+/* Halal filter sits prominently in the main agent box (not buried under Advanced) */
+.halal-filter-block {
+  margin: 12px 0 16px;
+  padding: 12px 16px;
+  background: rgba(46, 160, 67, 0.08);
+  border: 1px solid rgba(46, 160, 67, 0.35);
+  border-radius: 8px;
+}
+.halal-filter-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.halal-icon { font-size: 1.4rem; }
+.halal-disclosure { margin-left: auto; min-width: 0; }
+.halal-disclosure summary {
+  cursor: pointer;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.halal-disclosure[open] {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
+@media (max-width: 700px) {
+  .halal-disclosure { margin-left: 0; }
+}
 .sector-filter-header {
   display: flex;
   align-items: center;

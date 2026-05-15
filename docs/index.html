@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>investing-platform · scoreboard</title>
-<link rel="stylesheet" href="style.css?v=20260515u" />
+<link rel="stylesheet" href="style.css?v=20260515y" />
 </head>
 <body>
 <header class="topbar">
@@ -106,6 +106,48 @@
       <!-- end-of-basic-form anchor -->
     </form>
 
+    <div class="halal-filter-block">
+      <div class="halal-filter-header">
+        <span class="halal-icon">🕌</span>
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1;">
+          <input type="checkbox" id="agent-halal-only" />
+          <span><strong>Halal / Shariah-compliant only</strong>
+            <span class="muted small"> — excludes conventional banks, insurance, alcohol, tobacco, gambling, weapons</span>
+          </span>
+        </label>
+        <details class="halal-disclosure">
+          <summary class="muted small">Details + caveats</summary>
+          <div class="muted small" style="margin-top: 8px;">
+            <p><strong>Excluded when filter is on:</strong></p>
+            <ul style="padding-left: 20px;">
+              <li><strong>Conventional banks:</strong> JPM, BAC, WFC, C, GS, MS, USB, AXP, SCHW, etc. (interest-based deposits + lending = riba)</li>
+              <li><strong>Conventional insurance:</strong> AIG, MET, PRU, TRV, AFL, ALL, CB (interest-bearing reserves)</li>
+              <li><strong>Alcohol:</strong> BUD, STZ, DEO, TAP, SAM</li>
+              <li><strong>Tobacco:</strong> MO, PM</li>
+              <li><strong>Gambling / sports betting:</strong> WYNN, LVS, MGM, DKNG, PENN, CZR, FLUT</li>
+              <li><strong>Weapons manufacturers:</strong> LMT, RTX, NOC, GD (controversial — some scholars permit defensive)</li>
+            </ul>
+            <p><strong>Important caveats — verify on a certified screener before trading:</strong></p>
+            <ul style="padding-left: 20px;">
+              <li>This is a <strong>general-consensus industry filter</strong>, not certified by any Shariah board.</li>
+              <li><strong>Recommended verification tool: <a href="https://zoya.finance/" target="_blank" rel="noopener" style="color: var(--accent);">Zoya</a></strong> — popular retail Shariah screener using AAOIFI standards with full financial ratio checks. Free tier covers most US stocks.</li>
+              <li>Alternative certified screeners: Dow Jones Islamic Market Index, S&amp;P Shariah, MSCI Islamic, IdealRatings, Refinitiv Islamic.</li>
+              <li><strong>What my filter MISSES that Zoya catches:</strong>
+                <ul style="padding-left: 20px; margin: 4px 0;">
+                  <li>Debt-to-market-cap &gt; 33% (excessive leverage).</li>
+                  <li>Interest income &gt; 5% of revenue (large treasury holdings earning yield).</li>
+                  <li>Non-compliant revenue &gt; 5% (hotels with alcohol service, mixed menus).</li>
+                  <li>Purification calculations on dividends.</li>
+                </ul>
+              </li>
+              <li><strong>Verify on Zoya before trading:</strong> NFLX/DIS/WBD, MAR/HLT, DPZ/MCD/YUM/SBUX, REITs, high-debt names (T, VZ, F, GM).</li>
+              <li>Payment networks (V, MA, PYPL, SQ) and fintech services (FIS, FISV) are NOT excluded — transaction-fee businesses. Zoya typically agrees.</li>
+            </ul>
+          </div>
+        </details>
+      </div>
+    </div>
+
     <details class="advanced-filters">
       <summary>Advanced filters <span class="muted small">— refine to your scenario</span></summary>
       <form id="agent-advanced-form" class="agent-form">
@@ -137,47 +179,6 @@
           <label>Min pattern count<input type="number" id="agent-min-patterns" value="0" min="0" max="10" step="1" title="Only show stocks where at least N patterns fired (more patterns = more conviction)" /></label>
         </div>
       </form>
-
-      <div class="sector-filter-block" style="background: rgba(46, 160, 67, 0.05); border-color: rgba(46, 160, 67, 0.3);">
-        <div class="sector-filter-header">
-          <strong>🕌 Halal / Shariah-compliant filter</strong>
-          <span class="muted small">— general-consensus screening, not certified</span>
-        </div>
-        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-          <input type="checkbox" id="agent-halal-only" />
-          <span><strong>Halal-compliant only</strong> — excludes conventional banks, insurance, alcohol, tobacco, gambling, and weapons stocks per general Islamic-finance consensus.</span>
-        </label>
-        <details style="margin-top: 8px;">
-          <summary class="muted small">What gets excluded + caveats (click to expand)</summary>
-          <div class="muted small" style="margin-top: 8px;">
-            <p><strong>Excluded when filter is on:</strong></p>
-            <ul style="padding-left: 20px;">
-              <li><strong>Conventional banks:</strong> JPM, BAC, WFC, C, GS, MS, USB, AXP, SCHW, etc. (interest-based deposits + lending = riba)</li>
-              <li><strong>Conventional insurance:</strong> AIG, MET, PRU, TRV, AFL, ALL, CB (interest-bearing reserves)</li>
-              <li><strong>Alcohol:</strong> BUD, STZ, DEO, TAP, SAM</li>
-              <li><strong>Tobacco:</strong> MO, PM</li>
-              <li><strong>Gambling / sports betting:</strong> WYNN, LVS, MGM, DKNG, PENN, CZR, FLUT</li>
-              <li><strong>Weapons manufacturers:</strong> LMT, RTX, NOC, GD (controversial — some scholars permit defensive)</li>
-            </ul>
-            <p><strong>Important caveats — verify on a certified screener before trading:</strong></p>
-            <ul style="padding-left: 20px;">
-              <li>This is a <strong>general-consensus industry filter</strong>, not certified by any Shariah board.</li>
-              <li><strong>Recommended verification tool: <a href="https://zoya.finance/" target="_blank" rel="noopener" style="color: var(--accent);">Zoya</a></strong> — popular retail Shariah screener using AAOIFI standards with full financial ratio checks. Free tier covers most US stocks.</li>
-              <li>Alternative certified screeners: Dow Jones Islamic Market Index, S&amp;P Shariah, MSCI Islamic, IdealRatings, Refinitiv Islamic.</li>
-              <li><strong>What my filter MISSES that Zoya catches:</strong>
-                <ul style="padding-left: 20px; margin: 4px 0;">
-                  <li>Debt-to-market-cap &gt; 33% (excessive leverage). Examples: some high-debt large-caps may pass my filter but fail Zoya's ratio screen.</li>
-                  <li>Interest income &gt; 5% of revenue (e.g., companies with large treasury holdings earning yield).</li>
-                  <li>Non-compliant revenue &gt; 5% (hotels with alcohol service, retailers with tobacco shelves, restaurants serving wine/beer).</li>
-                  <li>Purification calculations (how much of dividends should be donated due to mixed income).</li>
-                </ul>
-              </li>
-              <li><strong>Stocks I'd specifically verify on Zoya:</strong> NFLX/DIS/WBD (content), MAR/HLT (hotels), DPZ/MCD/YUM/SBUX (mixed menus), REITs (tenant mix), high-debt names like T/VZ/F/GM.</li>
-              <li>Payment networks (V, MA, PYPL, SQ) and fintech services (FIS, FISV) are NOT excluded — they're transaction-fee businesses, not interest-bearing. Zoya typically agrees.</li>
-            </ul>
-          </div>
-        </details>
-      </div>
 
       <div class="sector-filter-block">
         <div class="sector-filter-header">
@@ -919,6 +920,6 @@
     }
   });
 </script>
-<script src="app.js?v=20260515x"></script>
+<script src="app.js?v=20260515y"></script>
 </body>
 </html>
