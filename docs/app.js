@@ -722,11 +722,17 @@ function showTickerModal(ticker) {
   const chartId = `tv-chart-${ticker}-${Date.now()}`;
   body.innerHTML = `
     <h2>${ticker} <span class="muted small">${price ? "@ " + fmtUsd(price) : ""}</span></h2>
-    <p class="muted small">Today's snapshot ${sample?.as_of ? "as of " + sample.as_of : ""}.</p>
+    <div class="modal-section" style="background: rgba(88, 166, 255, 0.05); border: 1px solid rgba(88, 166, 255, 0.2);">
+      <p class="muted small" style="margin: 0;">
+        <strong>Two different timelines on this page:</strong>
+        <br>📈 <strong>Chart below</strong> = live (TradingView free tier, ~15 min delayed for most US stocks). Times shown in Eastern (market) time.
+        <br>📊 <strong>Our analysis</strong> (patterns / predictions / sizing) = snapshot from the last workflow run${sample?.as_of ? ` on <strong>${sample.as_of}</strong>` : ""}. To re-run with current prices, click <strong>↻ Refresh now</strong> in the header (~3 min).
+      </p>
+    </div>
     <div class="modal-section">
-      <h4>Live chart <span class="muted small">— powered by TradingView</span></h4>
+      <h4>📈 Live chart <span class="muted small">— TradingView (Eastern Time, ~15 min delayed)</span></h4>
       <div id="${chartId}" class="tv-chart-container" style="height: 420px;"></div>
-      <p class="muted small" style="margin-top: 6px;">Pan, zoom, switch timeframes, draw trendlines. This is the same TradingView chart your broker uses.</p>
+      <p class="muted small" style="margin-top: 6px;">Pan, zoom, switch timeframes (1m, 5m, 1h, daily, weekly), draw trendlines, change indicators. Times shown in Eastern Time so they match market hours (9:30 AM – 4:00 PM ET on weekdays).</p>
     </div>
     ${metaHtml}
     ${patternsHtml}
@@ -762,11 +768,15 @@ async function mountTradingViewChart(ticker, containerId) {
   try {
     await loadTradingViewScript();
     if (!window.TradingView || !window.TradingView.widget) return;
+    // Use the exchange's native timezone (Eastern Time for US stocks) so
+    // chart times match market hours naturally (9:30 AM – 4:00 PM ET).
+    // Users hovering candles will see times that match when trades actually
+    // happened, not UTC offsets they have to mentally convert.
     new window.TradingView.widget({
       autosize: true,
       symbol: ticker, // TradingView auto-resolves exchange (NASDAQ:AAPL, etc.)
       interval: "D",
-      timezone: "Etc/UTC",
+      timezone: "America/New_York",
       theme: "dark",
       style: "1", // 1 = candles, 8 = heikin ashi, 9 = line
       locale: "en",
