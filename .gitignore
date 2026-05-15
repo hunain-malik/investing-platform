@@ -26,3 +26,7 @@ data_cache/
 
 # Local state that should NOT be committed (the committed source of truth lives in state/)
 *.log
+
+# Cloudflare Wrangler local cache (user-specific, never commit)
+infrastructure/trigger-worker/.wrangler/
+infrastructure/trigger-worker/node_modules/
