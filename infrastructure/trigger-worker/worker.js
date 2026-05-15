@@ -17,6 +17,7 @@ const ALLOWED_ORIGIN = "https://hunain-malik.github.io";
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
+    const url = new URL(request.url);
     const corsHeaders = {
       "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
       "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
@@ -29,7 +30,12 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // GET = health check
+    // GET /live-prices — proxies Yahoo Finance quote API for real-time-ish prices
+    if (request.method === "GET" && url.pathname === "/live-prices") {
+      return handleLivePrices(url, corsHeaders);
+    }
+
+    // GET = health check (default for any other GET)
     if (request.method === "GET") {
       return new Response(JSON.stringify({ ok: true, name: "investing-platform-trigger" }), {
         status: 200,
@@ -87,3 +93,72 @@ export default {
     );
   },
 };
+
+
+/**
+ * Fetches near-real-time quotes from Yahoo Finance's public quote API.
+ * No auth required. Quotes update every minute or so during market hours.
+ * Returns: { ok, quotes: { SYMBOL: { price, change, changePct, time, market } } }
+ */
+async function handleLivePrices(url, corsHeaders) {
+  const symbolsParam = url.searchParams.get("symbols");
+  if (!symbolsParam) {
+    return new Response(JSON.stringify({ ok: false, error: "no symbols param" }), {
+      status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+  // Cap at 50 symbols per request to avoid abuse
+  const symbols = symbolsParam.split(",").map(s => s.trim()).filter(Boolean).slice(0, 50);
+  if (symbols.length === 0) {
+    return new Response(JSON.stringify({ ok: false, error: "empty symbols list" }), {
+      status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
+  const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(","))}`;
+  let data;
+  try {
+    const yResp = await fetch(yahooUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; InvestingPlatformWorker/1.0)",
+        "Accept": "application/json",
+      },
+      cf: { cacheTtl: 30 }, // Cloudflare edge cache for 30s
+    });
+    if (!yResp.ok) {
+      return new Response(JSON.stringify({ ok: false, status: yResp.status, error: "yahoo upstream error" }), {
+        status: 502, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    data = await yResp.json();
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, error: e.message || "fetch failed" }), {
+      status: 502, headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
+  const result = (data?.quoteResponse?.result || []);
+  const quotes = {};
+  for (const q of result) {
+    quotes[q.symbol] = {
+      price: q.regularMarketPrice ?? null,
+      change: q.regularMarketChange ?? null,
+      changePct: q.regularMarketChangePercent ?? null,
+      time: q.regularMarketTime ?? null, // epoch seconds
+      market: q.marketState ?? null, // REGULAR / CLOSED / PRE / POST
+      currency: q.currency ?? "USD",
+    };
+  }
+
+  return new Response(
+    JSON.stringify({ ok: true, quotes, fetched_at: Math.floor(Date.now() / 1000) }),
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=20",
+        ...corsHeaders,
+      },
+    }
+  );
+}

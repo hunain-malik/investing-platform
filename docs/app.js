@@ -1262,6 +1262,102 @@ function setupRefreshButton() {
   document.getElementById("refresh-cancel")?.addEventListener("click", hideRefreshOverlay);
 }
 
+// =========================================================================
+// LIVE PRICE OVERLAY — polls /live-prices on the Cloudflare Worker every
+// 30s during US market hours. Updates each visible ticker card with the
+// current Yahoo quote so users can see how far prices have drifted from
+// the analysis snapshot.
+// =========================================================================
+
+const LIVE = {
+  pollIntervalMs: 30 * 1000,
+  timer: null,
+  latest: {}, // symbol -> quote
+};
+
+function isUSMarketHoursApprox() {
+  // 9:30 AM – 4:00 PM Eastern Time on weekdays. Approximation in browser
+  // local time via UTC conversion — accurate enough for poll throttling.
+  const now = new Date();
+  const dow = now.getUTCDay(); // 0=Sun, 6=Sat
+  if (dow === 0 || dow === 6) return false;
+  // ET = UTC - 4 (EDT) or - 5 (EST). Approximate as UTC-4 (DST-favoring).
+  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const etMinutes = (utcMinutes - 4 * 60 + 24 * 60) % (24 * 60);
+  const marketOpen = 9 * 60 + 30;
+  const marketClose = 16 * 60;
+  return etMinutes >= marketOpen && etMinutes <= marketClose;
+}
+
+async function fetchLiveQuotes(symbols) {
+  const workerUrl = (localStorage.getItem("triggerWorkerUrl") || "").trim();
+  if (!workerUrl) return null;
+  const url = `${workerUrl.replace(/\/+$/, "")}/live-prices?symbols=${encodeURIComponent(symbols.join(","))}`;
+  try {
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+function _collectVisibleTickers() {
+  const set = new Set();
+  document.querySelectorAll(".rec-card .ticker-link").forEach(a => {
+    const t = (a.dataset.ticker || a.textContent || "").trim();
+    if (t && /^[A-Z.\-]{1,10}$/.test(t)) set.add(t);
+  });
+  return [...set];
+}
+
+function _applyLiveQuoteToCards(symbol, quote) {
+  if (!quote || quote.price == null) return;
+  const dir = (quote.changePct ?? 0) >= 0 ? "up" : "down";
+  const cls = dir === "up" ? "green" : "red";
+  const arrow = dir === "up" ? "↑" : "↓";
+  const chipHtml = `
+    <span class="live-chip" data-live-for="${symbol}" title="Live quote from Yahoo Finance via the Cloudflare Worker. Updated every 30s. Market: ${quote.market || 'unknown'}.">
+      <span class="live-dot"></span>LIVE
+      <strong>${fmtUsd(quote.price)}</strong>
+      <span class="${cls}">${arrow}${Math.abs(quote.changePct ?? 0).toFixed(2)}%</span>
+    </span>`;
+  // Find every rec-card for this ticker (multiple horizons, multiple tabs)
+  document.querySelectorAll(`.ticker-link[data-ticker="${symbol}"]`).forEach(a => {
+    const card = a.closest(".rec-card");
+    if (!card) return;
+    // Remove old chip if present
+    card.querySelectorAll(`.live-chip[data-live-for="${symbol}"]`).forEach(el => el.remove());
+    // Insert into the rec-header area, after the last existing chip
+    const header = card.querySelector(".rec-header");
+    if (header) header.insertAdjacentHTML("beforeend", chipHtml);
+  });
+}
+
+async function pollLivePrices() {
+  if (!isUSMarketHoursApprox()) return; // skip polling outside market hours
+  const symbols = _collectVisibleTickers();
+  if (symbols.length === 0) return;
+  // Yahoo accepts batches; chunk by 50
+  const chunks = [];
+  for (let i = 0; i < symbols.length; i += 50) chunks.push(symbols.slice(i, i + 50));
+  for (const chunk of chunks) {
+    const data = await fetchLiveQuotes(chunk);
+    if (!data?.ok || !data.quotes) continue;
+    for (const [sym, quote] of Object.entries(data.quotes)) {
+      LIVE.latest[sym] = quote;
+      _applyLiveQuoteToCards(sym, quote);
+    }
+  }
+}
+
+function startLivePricePolling() {
+  if (LIVE.timer) return;
+  // Initial tick after a short delay (let cards render first)
+  setTimeout(() => pollLivePrices(), 1500);
+  LIVE.timer = setInterval(pollLivePrices, LIVE.pollIntervalMs);
+}
+
 async function main() {
   const [sb, signals, bt, methodologies, preds, weights] = await Promise.all([
     loadJson(FILES.scoreboard),
@@ -1283,6 +1379,7 @@ async function main() {
   _safeRun("renderPatterns",   () => renderPatterns(bt, weights));
   _safeRun("renderPerTicker",  () => renderPerTicker(bt));
   _safeRun("renderPredictions",() => renderPredictions(preds));
+  _safeRun("startLivePricePolling", () => startLivePricePolling());
 }
 
 main();

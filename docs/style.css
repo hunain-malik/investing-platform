@@ -234,6 +234,28 @@ tr.row-pruned { opacity: 0.5; }
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
 }
 
+/* Live price chip — pulsing dot indicates live data flowing */
+.live-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(88, 166, 255, 0.10);
+  border: 1px solid rgba(88, 166, 255, 0.35);
+  padding: 2px 8px; border-radius: 12px;
+  font-size: 0.78rem;
+  color: var(--text);
+}
+.live-chip strong { color: var(--accent); }
+.live-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  background: #2ea043;
+  border-radius: 50%;
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
 /* ==== Signals controls (inputs above tables) ==== */
 .signals-controls {
   display: flex; gap: 16px; margin: 12px 0;
