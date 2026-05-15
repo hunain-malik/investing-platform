@@ -185,11 +185,17 @@ def evaluate_meta_ensemble(
         return None
 
     direction = "up" if margin > 0 else "down"
-    # Confidence reflects agreement quality. Min-methodologies + vote_margin
-    # already gate evidence quantity, so we don't penalize for the absolute
-    # magnitude of methodology weights (which are small when accuracies
-    # hover near chance and would otherwise squash confidence to 0.50-0.55).
-    confidence = 0.5 + 0.5 * abs(margin)
+    # Bayesian-flavored calibration: confidence reflects agreement scaled by
+    # voter accuracy, never reaches certainty. See families.py for the
+    # principled log-odds version; this is a lighter-weight cap on the
+    # correlated meta_ensemble for consistency.
+    raw = 0.5 + 0.5 * abs(margin)
+    # Penalize for fewer voters and for low average accuracy
+    avg_acc = sum(w / 2 + 0.5 for _, _, w, _ in votes) / len(votes) if votes else 0.55
+    voter_factor = min(1.0, len(votes) / 4)  # saturates at 4+ voters
+    accuracy_factor = min(1.0, (avg_acc - 0.5) * 4)  # 0 at 50% acc, 1 at 75%
+    confidence = 0.5 + (raw - 0.5) * voter_factor * accuracy_factor
+    confidence = min(0.95, confidence)  # hard cap
 
     correct = (direction == sample.actual_label)
     return {
@@ -262,11 +268,16 @@ def evaluate_meta_live(
         return None
 
     direction = "up" if margin > 0 else "down"
-    # See evaluate_meta_ensemble — same simplified formula.
-    confidence = 0.5 + 0.5 * abs(margin)
+    # Same calibration as evaluate_meta_ensemble — see there for rationale.
+    raw = 0.5 + 0.5 * abs(margin)
+    avg_acc = sum(c["accuracy"] for c in contributing_details) / len(contributing_details) if contributing_details else 0.55
+    voter_factor = min(1.0, len(votes) / 4)
+    accuracy_factor = min(1.0, (avg_acc - 0.5) * 4)
+    confidence = 0.5 + (raw - 0.5) * voter_factor * accuracy_factor
+    confidence = min(0.95, confidence)
     return {
         "direction": direction,
-        "confidence": confidence,
+        "confidence": round(confidence, 4),
         "vote_margin": round(margin, 4),
         "contributing_methodologies": contributing_details,
         "n_contributing": len(votes),
