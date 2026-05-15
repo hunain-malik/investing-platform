@@ -607,6 +607,13 @@ function renderRecommendationCard(s, cfg, rank) {
     ? tag("decorrelated", "confirm")
     : (s._source === "meta" ? tag("correlated meta", "neutral")
        : (isTentative ? tag("tentative · all-ensemble only", "warn") : ""));
+  // Sector badge — shows the ticker's sector and whether sector-aware
+  // weighting was applied to this signal.
+  const sectorBadge = s.sector
+    ? `<span class="tag neutral" title="${(s.sector_overrides_used && s.sector_overrides_used.length > 0)
+        ? 'Sector-aware weighting applied: ' + s.sector_overrides_used.map(o => o.methodology + ' (sector acc ' + (o.sector_accuracy * 100).toFixed(0) + '%)').join(', ')
+        : 'Sector identified; no sector-specific overrides applied (insufficient sector samples for any methodology).'}">${s.sector}${(s.sector_overrides_used && s.sector_overrides_used.length > 0) ? ' ✓' : ''}</span>`
+    : "";
   // For tentative signals, "voters" are individual patterns (n_fired), not
   // methodologies. The meta/consensus tiers have explicit voters; the
   // all-ensemble doesn't, so we use pattern-fire count instead.
@@ -732,6 +739,7 @@ function renderRecommendationCard(s, cfg, rank) {
         <span class="tag ${dClass}">${s.direction.toUpperCase()}</span>
         <span class="rec-meta" title="${isTentative ? 'N patterns fired in the all-ensemble. Meta/consensus methodologies did not validate this — treat as a weaker signal.' : 'Consensus: how strongly the contributing voters agree on direction. 0% = tied, 100% = unanimous. NOT a price change prediction.'}">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · ${isTentative ? `${tentativeVoters} patterns fired (all-ensemble)` : `consensus ${consensusPct}% · ${nVoters} ${voterType} agree`}</span>
         ${sourceBadge}
+        ${sectorBadge}
         ${volBadge}
         ${earningsWarn}
         ${sentChip}

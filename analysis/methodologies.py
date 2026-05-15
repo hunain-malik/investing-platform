@@ -216,6 +216,14 @@ def evaluate_meta_live(
     min_methodologies_bull: int = 2,
     min_methodologies_bear: int = 3,
     suppress_bearish: bool = False,
+    # Sector-aware weighting: per-sector × per-methodology accuracy from
+    # backtest. When provided AND the ticker's sector has >= MIN_SECTOR_N
+    # samples for a methodology, that sector-specific accuracy overrides
+    # the horizon-only accuracy. This lets the system use Tech's best
+    # methodologies for Tech, Energy's for Energy, etc.
+    sector: str | None = None,
+    sector_methodology_acc: dict[str, dict[str, dict]] | None = None,
+    min_sector_n: int = 20,
 ) -> dict | None:
     """Same logic as `evaluate_meta_ensemble` but operates on live data
     (fired PatternSignal objects, not a stored BacktestSample).
@@ -225,14 +233,29 @@ def evaluate_meta_live(
     weights_h = {p: hw.get(horizon, 1.0) for p, hw in weights_per_horizon.items()}
     votes = []
     contributing_details = []
+    sector_overrides_used = []
     for m in METHODOLOGIES:
         if m.name == "meta_ensemble":
             continue
         if m.regime_filter is not None and regime not in m.regime_filter:
             continue
         h_acc = methodology_acc_per_horizon.get(m.name, {}).get(horizon)
-        if h_acc is None or h_acc < 0.5:
+        # Sector override: if this ticker's sector has enough samples for
+        # this methodology, use the sector-specific accuracy instead.
+        # That way Tech uses Tech's edge, Energy uses Energy's, etc.
+        sector_specific_acc = None
+        if sector and sector_methodology_acc:
+            sm = sector_methodology_acc.get(sector, {}).get(m.name, {})
+            if sm.get("n", 0) >= min_sector_n and sm.get("accuracy") is not None:
+                sector_specific_acc = sm["accuracy"]
+        if sector_specific_acc is not None:
+            acc_to_use = sector_specific_acc
+            sector_overrides_used.append((m.name, sector_specific_acc))
+        else:
+            acc_to_use = h_acc
+        if acc_to_use is None or acc_to_use < 0.5:
             continue
+        h_acc = acc_to_use  # rename so rest of fn uses sector-tuned value
         if m.pattern_filter is not None:
             filtered = [p for p in fired_patterns if p.name in m.pattern_filter]
         else:
@@ -288,6 +311,8 @@ def evaluate_meta_live(
         "vote_margin": round(margin, 4),
         "contributing_methodologies": contributing_details,
         "n_contributing": len(votes),
+        "sector": sector,
+        "sector_overrides_used": [{"methodology": m, "sector_accuracy": round(a, 4)} for m, a in sector_overrides_used],
     }
 
 

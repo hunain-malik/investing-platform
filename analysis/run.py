@@ -327,9 +327,12 @@ def main() -> int:
         # Below: meta + consensus evaluation per horizon, also nested inside
         # the ticker loop. (Bug fix — used to be incorrectly de-nested.)
         for sig in horizon_signals:
-            # Meta-ensemble live evaluation using per-horizon methodology accs.
-            # Suppress bearish meta signals if their backtest accuracy < 45%
-            # (currently ~29% — actively wrong; numerical model covers bearish).
+            # Meta-ensemble live evaluation. Sector-aware: looks up the
+            # ticker's sector and uses sector-specific methodology accuracy
+            # where samples are sufficient. Tech uses Tech's best methods,
+            # Energy uses Energy's, etc. Methodologies below chance in a
+            # given sector are dropped just for that sector's tickers.
+            ticker_sector = ticker_to_sector.get(ticker)
             meta = evaluate_meta_live(
                 fired_patterns=fired_today,
                 regime=live_regime,
@@ -337,6 +340,8 @@ def main() -> int:
                 weights_per_horizon=weights,
                 methodology_acc_per_horizon=method_acc_per_h,
                 suppress_bearish=suppress_meta_bearish,
+                sector=ticker_sector,
+                sector_methodology_acc=sector_methodology_stats,
             )
             # Consensus families live evaluation (decorrelated)
             fam_acc_at_h = family_acc_per_h_for_live.get(sig.horizon_days, {})
@@ -424,6 +429,8 @@ def main() -> int:
                     "vote_margin": meta["vote_margin"],
                     "n_contributing": meta["n_contributing"],
                     "contributing_methodologies": meta["contributing_methodologies"],
+                    "sector": meta.get("sector"),
+                    "sector_overrides_used": meta.get("sector_overrides_used", []),
                     "price": round(sig.price, 4),
                     "atr": round(sig.atr, 4),
                     "sentiment": sentiments_by_ticker.get(ticker),
