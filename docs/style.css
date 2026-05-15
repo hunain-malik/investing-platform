@@ -67,6 +67,25 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 3px; font-si
   gap: 12px;
   margin: 16px 0;
 }
+
+.advanced-filters {
+  margin: 4px 0 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.advanced-filters > summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.advanced-filters > summary:hover { background: var(--panel-2); }
+.advanced-filters[open] > summary {
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-2);
+}
+.advanced-filters > form { padding: 0 14px 14px; }
 .agent-field label {
   display: flex; flex-direction: column; gap: 4px;
   font-size: 0.85rem; color: var(--muted);

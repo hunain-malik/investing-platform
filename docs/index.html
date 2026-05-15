@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>investing-platform · scoreboard</title>
-<link rel="stylesheet" href="style.css?v=20260515h" />
+<link rel="stylesheet" href="style.css?v=20260515i" />
 </head>
 <body>
 <header class="topbar">
@@ -27,8 +27,8 @@
     <h2>Personal Agent <span class="muted small">— recommendations sized for your wallet</span></h2>
 
     <div class="strategy-tabs">
-      <button class="strategy-tab active" data-strategy="trading" data-horizons="60,120">📈 Trading <span class="muted small">(3–6 months)</span></button>
-      <button class="strategy-tab" data-strategy="swing" data-horizons="252,504">🔄 Swing / Position <span class="muted small">(1–2 years)</span></button>
+      <button class="strategy-tab active" data-strategy="trading" data-horizons="30,45,60,90,120">📈 Trading <span class="muted small">(1–6 months)</span></button>
+      <button class="strategy-tab" data-strategy="swing" data-horizons="180,252,504">🔄 Swing / Position <span class="muted small">(6mo – 2yr)</span></button>
       <button class="strategy-tab" data-strategy="longterm" data-horizons="1260">🏦 Long-term / Roth <span class="muted small">(5+ years)</span></button>
       <button class="strategy-tab" data-strategy="all" data-horizons="">⚙️ Custom (any horizon)</button>
     </div>
@@ -57,7 +57,7 @@
         <label>Max position (% of capital)<input type="number" id="agent-max-pos-pct" value="25" min="5" max="100" step="5" /></label>
       </div>
       <div class="agent-field">
-        <label>Horizon (how long to hold)<select id="agent-horizon" title="Number of trading days to hold the position. 60d ≈ 3 months, 252d ≈ 1 year, 1260d ≈ 5 years."></select></label>
+        <label>Horizon (how long to hold)<select id="agent-horizon" title="Number of trading days. Different horizons surface different stocks because per-pattern weights are tuned separately at each horizon. 30d ≈ 6 weeks, 90d ≈ 4.5 months, 252d ≈ 1 year, 1260d ≈ 5 years."></select></label>
       </div>
       <div class="agent-field">
         <label>Min confidence<select id="agent-min-conf">
@@ -98,7 +98,41 @@
       <div class="agent-field">
         <label>Ticker filter<input type="search" id="agent-ticker-filter" placeholder="e.g. AAPL, IBM" /></label>
       </div>
+      <!-- end-of-basic-form anchor —>
     </form>
+
+    <details class="advanced-filters">
+      <summary>Advanced filters <span class="muted small">— refine to your scenario</span></summary>
+      <form id="agent-advanced-form" class="agent-form">
+        <div class="agent-field">
+          <label>Investment style preset<select id="agent-style">
+            <option value="none">None (use other filters as-is)</option>
+            <option value="conservative">Conservative — large caps, low volatility, ≥3 month holds</option>
+            <option value="growth">Aggressive growth — higher volatility OK, mid horizon</option>
+            <option value="value">Value hunter — oversold names, longer holds</option>
+            <option value="momentum">Momentum — strong recent moves, shorter horizons</option>
+            <option value="small_account">Small account ($500-3000) — under $100/share for diversification</option>
+          </select></label>
+        </div>
+        <div class="agent-field">
+          <label>Min stock price ($)<input type="number" id="agent-min-price" value="0" min="0" step="1" /></label>
+        </div>
+        <div class="agent-field">
+          <label>Max stock price ($)<input type="number" id="agent-max-price" value="10000" min="0" step="1" /></label>
+        </div>
+        <div class="agent-field">
+          <label>Volatility tolerance<select id="agent-volatility">
+            <option value="any">Any volatility</option>
+            <option value="low">Low (ATR &lt; 2% of price — boring blue-chip)</option>
+            <option value="medium">Medium (ATR 2-5%)</option>
+            <option value="high">High (ATR &gt; 5% — meme / momentum)</option>
+          </select></label>
+        </div>
+        <div class="agent-field">
+          <label>Min pattern count<input type="number" id="agent-min-patterns" value="0" min="0" max="10" step="1" title="Only show stocks where at least N patterns fired (more patterns = more conviction)" /></label>
+        </div>
+      </form>
+    </details>
 
     <div id="agent-summary" class="agent-summary muted small">Adjust inputs above to get personalized recommendations.</div>
     <div id="agent-recommendations"></div>
@@ -466,6 +500,6 @@
     }
   });
 </script>
-<script src="app.js?v=20260515h"></script>
+<script src="app.js?v=20260515i"></script>
 </body>
 </html>

@@ -252,6 +252,8 @@ function setupAgent(signalsPayload) {
 
   document.getElementById("agent-form").addEventListener("input", renderAgent);
   document.getElementById("agent-form").addEventListener("change", renderAgent);
+  document.getElementById("agent-advanced-form")?.addEventListener("input", renderAgent);
+  document.getElementById("agent-advanced-form")?.addEventListener("change", renderAgent);
   document.getElementById("agent-mode").addEventListener("change", e => {
     document.getElementById("agent-portfolio-n-wrap").style.display = (e.target.value === "portfolio") ? "" : "none";
   });
@@ -279,7 +281,7 @@ function setupAgent(signalsPayload) {
 }
 
 function getAgentInputs() {
-  return {
+  const cfg = {
     capital: parseFloat(document.getElementById("agent-capital").value) || 0,
     riskPct: parseFloat(document.getElementById("agent-risk-pct").value) || 2,
     maxPosPct: parseFloat(document.getElementById("agent-max-pos-pct").value) || 25,
@@ -292,7 +294,25 @@ function getAgentInputs() {
     mode: document.getElementById("agent-mode").value,
     portfolioN: parseInt(document.getElementById("agent-portfolio-n").value) || 5,
     tickerFilter: document.getElementById("agent-ticker-filter").value.trim().toUpperCase(),
+    // Advanced filters
+    style: document.getElementById("agent-style")?.value || "none",
+    minPrice: parseFloat(document.getElementById("agent-min-price")?.value) || 0,
+    maxPrice: parseFloat(document.getElementById("agent-max-price")?.value) || 1e9,
+    volatility: document.getElementById("agent-volatility")?.value || "any",
+    minPatterns: parseInt(document.getElementById("agent-min-patterns")?.value) || 0,
   };
+  // Apply style preset overlays (gentle — only adjusts if user left defaults)
+  if (cfg.style === "conservative") {
+    if (cfg.volatility === "any") cfg.volatility = "low";
+    // prefer longer horizons; don't force one if user picked specifically
+  } else if (cfg.style === "growth") {
+    if (cfg.volatility === "any") cfg.volatility = "medium";
+  } else if (cfg.style === "momentum") {
+    if (cfg.volatility === "any") cfg.volatility = "high";
+  } else if (cfg.style === "small_account") {
+    if (cfg.maxPrice >= 1e9 || cfg.maxPrice >= 9999) cfg.maxPrice = 100;
+  }
+  return cfg;
 }
 
 function renderAgent() {
@@ -316,6 +336,27 @@ function renderAgent() {
   if (cfg.tickerFilter) {
     const tokens = cfg.tickerFilter.split(/[,\s]+/).filter(Boolean);
     candidates = candidates.filter(s => tokens.some(t => s.ticker.toUpperCase().startsWith(t)));
+  }
+  // Price range
+  if (cfg.minPrice > 0) candidates = candidates.filter(s => (s.price ?? 0) >= cfg.minPrice);
+  if (cfg.maxPrice < 1e9) candidates = candidates.filter(s => (s.price ?? 0) <= cfg.maxPrice);
+  // Volatility filter (ATR as % of price)
+  if (cfg.volatility !== "any") {
+    candidates = candidates.filter(s => {
+      if (!s.atr || !s.price) return true;
+      const atrPct = (s.atr / s.price) * 100;
+      if (cfg.volatility === "low") return atrPct < 2;
+      if (cfg.volatility === "medium") return atrPct >= 2 && atrPct < 5;
+      if (cfg.volatility === "high") return atrPct >= 5;
+      return true;
+    });
+  }
+  // Min pattern count (use n_fired or n_families/n_contributing)
+  if (cfg.minPatterns > 0) {
+    candidates = candidates.filter(s => {
+      const count = s.n_fired ?? s.n_families ?? s.n_contributing ?? 0;
+      return count >= cfg.minPatterns;
+    });
   }
 
   // Re-size each actionable candidate using the user's capital.

@@ -15,10 +15,15 @@ portfolio:
   options_allowed: true     # whether to consider options recommendations
 
 # Forward-looking prediction horizons (trading days).
-# 5d/10d/20d short-term, 60d/120d/252d quarter/half/full-year,
-# 504d=2y, 1260d=5y for long-term position trades. Each horizon has its
-# own per-pattern weights tuned independently from backtest accuracy.
-horizons_days: [5, 10, 20, 60, 120, 252, 504, 1260]
+# Spaced to give the agent more granularity across the Trading / Swing /
+# Long-term bands. Each horizon has its own per-pattern weights tuned
+# independently from backtest accuracy at THAT horizon, so different
+# horizons surface different stocks.
+#   short:      5, 10, 20 days  (noisy; rarely above coin flip)
+#   trading:    30, 45, 60, 90, 120 days  (3-6 month swing trades)
+#   swing:      180, 252, 504 days  (6mo - 2yr position trades)
+#   long-term:  1260 days  (5yr — Roth / buy-and-hold)
+horizons_days: [5, 10, 20, 30, 45, 60, 90, 120, 180, 252, 504, 1260]
 
 # Backtesting configuration
 backtest:
