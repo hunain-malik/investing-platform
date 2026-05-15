@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>investing-platform · scoreboard</title>
-<link rel="stylesheet" href="style.css?v=20260515o" />
+<link rel="stylesheet" href="style.css?v=20260515p" />
 </head>
 <body>
 <header class="topbar">
@@ -96,7 +96,12 @@
         <label>Number of positions<input type="number" id="agent-portfolio-n" value="5" min="1" max="50" step="1" /></label>
       </div>
       <div class="agent-field">
-        <label>Ticker filter<input type="search" id="agent-ticker-filter" placeholder="e.g. AAPL, IBM" /></label>
+        <label>Ticker search<input type="search" id="agent-ticker-filter" placeholder="e.g. AAPL, IBM" title="When you search a specific ticker, it'll be shown even if it doesn't match your other filters — with a note explaining the mismatch." /></label>
+      </div>
+      <div class="agent-field" style="display: flex; align-items: flex-end;">
+        <button type="button" id="agent-clear-btn" class="show-more-button" style="background: transparent; max-width: 180px;">
+          🗙 Clear all filters
+        </button>
       </div>
       <!-- end-of-basic-form anchor -->
     </form>
@@ -762,6 +767,6 @@
     }
   });
 </script>
-<script src="app.js?v=20260515o"></script>
+<script src="app.js?v=20260515p"></script>
 </body>
 </html>

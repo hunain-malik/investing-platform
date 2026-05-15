@@ -146,6 +146,26 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 3px; font-si
 .rec-card.no-signal { opacity: 0.55; padding: 8px 12px; }
 .rec-card.no-signal .rec-header { margin-bottom: 2px; }
 
+/* Filter-mismatch styling — surfaces ticker searches that don't fit current filters */
+.rec-card.rec-card-mismatch {
+  border-left: 3px solid var(--yellow);
+}
+.filter-miss-note {
+  background: rgba(210, 153, 34, 0.08);
+  border: 1px solid rgba(210, 153, 34, 0.3);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-top: 6px !important;
+}
+.filter-miss-note ul { color: var(--muted); }
+.filter-miss-note ul li { margin: 2px 0; }
+.filter-miss-note code {
+  background: rgba(210, 153, 34, 0.15);
+  color: var(--yellow);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
 .liveness { margin-top: 16px; }
 .liveness summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; }
 

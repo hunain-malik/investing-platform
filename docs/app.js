@@ -258,6 +258,50 @@ function setupAgent(signalsPayload) {
     document.getElementById("agent-portfolio-n-wrap").style.display = (e.target.value === "portfolio") ? "" : "none";
   });
 
+  // Clear all filters — reset to defaults, no preset, no preferences
+  document.getElementById("agent-clear-btn")?.addEventListener("click", () => {
+    const defaults = {
+      "agent-capital": "3000",
+      "agent-risk-pct": "2",
+      "agent-max-pos-pct": "25",
+      "agent-min-conf": "0.5",  // most permissive
+      "agent-direction": "any",
+      "agent-mode": "ranked",
+      "agent-portfolio-n": "5",
+      "agent-ticker-filter": "",
+      // Advanced filters
+      "agent-style": "none",
+      "agent-min-price": "0",
+      "agent-max-price": "10000",
+      "agent-volatility": "any",
+      "agent-min-patterns": "0",
+    };
+    for (const [id, value] of Object.entries(defaults)) {
+      const el = document.getElementById(id);
+      if (el) el.value = value;
+    }
+    // Checkboxes: leave options-allowed on, but uncheck the filtering checkboxes
+    const optsAllowed = document.getElementById("agent-options-allowed");
+    if (optsAllowed) optsAllowed.checked = true;
+    const skipEarnings = document.getElementById("agent-skip-earnings");
+    if (skipEarnings) skipEarnings.checked = false;  // most permissive
+    const hideNoSignal = document.getElementById("agent-hide-no-signal");
+    if (hideNoSignal) hideNoSignal.checked = false;
+    // Reset to first horizon (longest available)
+    const horizonSel = document.getElementById("agent-horizon");
+    if (horizonSel && horizonSel.options.length > 0) {
+      horizonSel.selectedIndex = horizonSel.options.length - 1;
+    }
+    // Reset strategy tab to "Custom (any horizon)"
+    document.querySelectorAll(".strategy-tab").forEach(t => t.classList.remove("active"));
+    document.querySelector('.strategy-tab[data-strategy="all"]')?.classList.add("active");
+    setText("strategy-description", STRATEGY_DESCRIPTIONS.all || "");
+    // Hide portfolio-n field since mode is back to ranked
+    const portWrap = document.getElementById("agent-portfolio-n-wrap");
+    if (portWrap) portWrap.style.display = "none";
+    renderAgent();
+  });
+
   // Strategy tab clicks
   for (const tab of document.querySelectorAll(".strategy-tab")) {
     tab.addEventListener("click", () => {
@@ -327,36 +371,54 @@ function renderAgent() {
     return;
   }
 
-  // Apply user filters; keep no_signal entries visible unless user filters direction
-  let candidates = allRecs.slice();
-  if (cfg.direction !== "any") candidates = candidates.filter(s => s.direction === cfg.direction);
-  if (cfg.minConf) candidates = candidates.filter(s => s._source === "no_signal" || s.confidence >= cfg.minConf);
-  if (cfg.skipEarnings) candidates = candidates.filter(s => !s.earnings_in_horizon);
-  if (cfg.hideNoSignal) candidates = candidates.filter(s => s._source !== "no_signal");
-  if (cfg.tickerFilter) {
-    const tokens = cfg.tickerFilter.split(/[,\s]+/).filter(Boolean);
-    candidates = candidates.filter(s => tokens.some(t => s.ticker.toUpperCase().startsWith(t)));
-  }
-  // Price range
-  if (cfg.minPrice > 0) candidates = candidates.filter(s => (s.price ?? 0) >= cfg.minPrice);
-  if (cfg.maxPrice < 1e9) candidates = candidates.filter(s => (s.price ?? 0) <= cfg.maxPrice);
-  // Volatility filter (ATR as % of price)
-  if (cfg.volatility !== "any") {
-    candidates = candidates.filter(s => {
-      if (!s.atr || !s.price) return true;
+  // Compute filter pass/fail for each candidate, but DON'T filter yet.
+  // When the user types a ticker filter, we want to surface that ticker
+  // even if it fails other filters — with a clear note on the card.
+  function _filterFails(s) {
+    const misses = [];
+    if (cfg.direction !== "any" && s.direction !== cfg.direction) {
+      misses.push(`direction ${s.direction.toUpperCase()} doesn't match your "${cfg.direction}" filter`);
+    }
+    if (cfg.minConf && s._source !== "no_signal" && s.confidence < cfg.minConf) {
+      misses.push(`confidence ${s.confidence.toFixed(2)} below your ${cfg.minConf} threshold`);
+    }
+    if (cfg.skipEarnings && s.earnings_in_horizon) {
+      misses.push(`earnings within horizon (filtered by Skip Earnings)`);
+    }
+    if (cfg.hideNoSignal && s._source === "no_signal") {
+      misses.push(`no actionable signal (filtered by Hide No-Signal)`);
+    }
+    if (cfg.minPrice > 0 && (s.price ?? 0) < cfg.minPrice) {
+      misses.push(`price ${fmtUsd(s.price)} below your $${cfg.minPrice} min`);
+    }
+    if (cfg.maxPrice < 1e9 && (s.price ?? 0) > cfg.maxPrice) {
+      misses.push(`price ${fmtUsd(s.price)} above your $${cfg.maxPrice} max`);
+    }
+    if (cfg.volatility !== "any" && s.atr && s.price) {
       const atrPct = (s.atr / s.price) * 100;
-      if (cfg.volatility === "low") return atrPct < 2;
-      if (cfg.volatility === "medium") return atrPct >= 2 && atrPct < 5;
-      if (cfg.volatility === "high") return atrPct >= 5;
-      return true;
-    });
-  }
-  // Min pattern count (use n_fired or n_families/n_contributing)
-  if (cfg.minPatterns > 0) {
-    candidates = candidates.filter(s => {
+      const ok = (cfg.volatility === "low" && atrPct < 2)
+        || (cfg.volatility === "medium" && atrPct >= 2 && atrPct < 5)
+        || (cfg.volatility === "high" && atrPct >= 5);
+      if (!ok) misses.push(`volatility ATR ${atrPct.toFixed(1)}% doesn't match your "${cfg.volatility}" filter`);
+    }
+    if (cfg.minPatterns > 0) {
       const count = s.n_fired ?? s.n_families ?? s.n_contributing ?? 0;
-      return count >= cfg.minPatterns;
-    });
+      if (count < cfg.minPatterns) misses.push(`only ${count} patterns fired (you require ≥ ${cfg.minPatterns})`);
+    }
+    return misses;
+  }
+
+  let candidates;
+  if (cfg.tickerFilter) {
+    // Ticker-search mode: user explicitly named tickers. Surface them
+    // regardless of other filters, with an annotation explaining any
+    // mismatches. This means "I want to see IBM" actually shows IBM.
+    const tokens = cfg.tickerFilter.split(/[,\s]+/).filter(Boolean).map(t => t.toUpperCase());
+    candidates = allRecs.filter(s => tokens.some(t => s.ticker.toUpperCase().startsWith(t)));
+    candidates.forEach(s => { s._filterMisses = _filterFails(s); });
+  } else {
+    // Normal filter mode: apply all filters, no annotations needed
+    candidates = allRecs.filter(s => _filterFails(s).length === 0);
   }
 
   // Re-size each actionable candidate using the user's capital.
@@ -609,8 +671,20 @@ function renderRecommendationCard(s, cfg, rank) {
     equityLine = `<div class="rec-line muted">No directional call.</div>`;
   }
 
+  // If the user searched this ticker but it fails some of their filters,
+  // surface a "doesn't match your filters" note so they understand why
+  // it wouldn't normally appear in their recommendation list.
+  const filterMissNote = (s._filterMisses && s._filterMisses.length > 0)
+    ? `<div class="rec-line muted small filter-miss-note">
+         <strong>Note:</strong> shown because you searched <code>${s.ticker}</code>, but it doesn't match your current filters:
+         <ul style="margin: 4px 0 0 18px; padding: 0;">
+           ${s._filterMisses.map(m => `<li>${m}</li>`).join("")}
+         </ul>
+       </div>`
+    : "";
+
   return `
-    <div class="rec-card">
+    <div class="rec-card ${s._filterMisses?.length > 0 ? 'rec-card-mismatch' : ''}">
       <div class="rec-header">
         ${rankBadge}
         <a href="#" class="rec-ticker ticker-link" data-ticker="${s.ticker}">${s.ticker}</a>
@@ -621,6 +695,7 @@ function renderRecommendationCard(s, cfg, rank) {
         ${sentChip}
         ${contradictionChip}
       </div>
+      ${filterMissNote}
       ${equityLine}
       ${optsLine}
       <div class="rec-line muted small">${isTentative ? "Pattern evidence" : "Voted in favor"}: ${contribs}</div>
