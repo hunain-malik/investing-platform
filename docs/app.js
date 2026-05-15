@@ -530,7 +530,24 @@ function renderRecommendationCard(s, cfg, rank) {
       <div class="rec-line">
         <strong>Equity (short):</strong> <strong>Short-sell ${fmtNum(sizing.shares)} shares</strong> @ ${fmtUsd(s.price)} · stop-loss ${fmtUsd(sizing.stop)} (buy-to-cover if price rises here) · position ${fmtUsd(sizing.posUsd)} (${(sizing.pctOfCapital * 100).toFixed(1)}% of capital) · max risk ${fmtUsd(sizing.riskUsd)}
       </div>
-      <div class="rec-line muted small">⚠ Shorting requires a margin-enabled brokerage account. Not allowed in IRAs/Roth IRAs. If you can't short, consider a put option (see below) or simply <em>avoid buying</em> this name until the bearish horizon resolves.</div>`;
+      <details class="rec-line muted small">
+        <summary>⚠ Don't own the shares? How short-selling actually works (click to expand)</summary>
+        <ul style="margin: 6px 0; padding-left: 18px;">
+          <li><strong>Your broker lends you the shares</strong> from their inventory or other margin-account clients' idle holdings.</li>
+          <li>You immediately <strong>sell them at market price</strong> — cash from the sale lands in your account.</li>
+          <li>Later you <strong>"cover"</strong> by buying the same number of shares back on the open market and returning them to the broker.</li>
+          <li><strong>Profit = sell price − buy-back price</strong>, so you profit when the stock falls.</li>
+          <li><strong>Requires a margin account.</strong> Not allowed in IRAs / Roth IRAs by law.</li>
+          <li><strong>Risk is unbounded</strong> — long position max loss is what you paid; short position max loss is theoretically infinite (stock could rise forever).</li>
+          <li><strong>Borrow fee</strong> applies — usually small for liquid large caps, can be 10-50%/yr on hard-to-borrow names.</li>
+        </ul>
+        <strong>Alternatives if you can't short:</strong>
+        <ul style="margin: 6px 0; padding-left: 18px;">
+          <li><strong>Buy a put option</strong> (see "Options alt" below if shown). Max loss = premium paid. Allowed in many IRAs.</li>
+          <li><strong>Inverse ETFs</strong> like SQQQ (3× inverse Nasdaq) or SPXU (3× inverse S&amp;P). No margin needed.</li>
+          <li><strong>Just don't buy this name right now.</strong> Passive, zero-cost way to "play" a bearish signal.</li>
+        </ul>
+      </details>`;
   } else {
     equityLine = `<div class="rec-line muted">No directional call.</div>`;
   }
