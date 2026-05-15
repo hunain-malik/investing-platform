@@ -2,18 +2,22 @@ name: daily-analysis
 
 on:
   schedule:
-    # Multiple runs per US market day so the dashboard reflects current prices,
-    # not just last close. Times are UTC; corresponds to:
-    #   14:30 UTC = market open (9:30 ET)
-    #   17:00 UTC = midday (12:00 ET)
-    #   19:30 UTC = pre-close (14:30 ET)
-    #   22:00 UTC = after close (17:00 ET) — primary analysis
-    # Intraday runs include partial daily bars; the after-close run is the
-    # authoritative one.
-    - cron: "30 14 * * 1-5"
-    - cron: "0 17 * * 1-5"
-    - cron: "30 19 * * 1-5"
-    - cron: "0 22 * * 1-5"
+    # Hourly during US market hours + after-close, every weekday.
+    # Math: 9 runs/day × ~8 min × 22 weekdays = ~1,584 min/month (well
+    # under the 2000-min free tier). Each run regenerates live signals
+    # and reruns the backtest, so the dashboard reflects current prices
+    # roughly every hour during the trading day.
+    #
+    # Times in UTC, US Eastern equivalents in comments:
+    - cron: "30 14 * * 1-5"  # 09:30 ET — market open
+    - cron: "30 15 * * 1-5"  # 10:30 ET
+    - cron: "30 16 * * 1-5"  # 11:30 ET
+    - cron: "30 17 * * 1-5"  # 12:30 ET (midday)
+    - cron: "30 18 * * 1-5"  # 13:30 ET
+    - cron: "30 19 * * 1-5"  # 14:30 ET
+    - cron: "30 20 * * 1-5"  # 15:30 ET (pre-close)
+    - cron: "0 22 * * 1-5"   # 17:00 ET — after-close primary analysis
+    - cron: "30 23 * * 1-5"  # 18:30 ET — after-hours sweep
   workflow_dispatch:  # allow manual runs from the Actions tab
 
 permissions:
