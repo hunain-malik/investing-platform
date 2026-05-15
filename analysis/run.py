@@ -38,6 +38,7 @@ from .backtest import (
 from .cross_validation import kfold_meta_accuracy
 from .data import fetch_history_cached
 from .earnings import days_until_earnings
+from .numerical_model import evaluate_numerical_model
 from .indicators import compute_all
 from .methodologies import (
     METHODOLOGIES,
@@ -198,6 +199,11 @@ def main() -> int:
 
     # K-fold cross-validated meta accuracy — the honest, out-of-sample number
     kfold_result = kfold_meta_accuracy(samples, weights, k=5)
+
+    # Numerical-model methodology: pure logistic regression on continuous features,
+    # K-fold evaluated. Tests if a mathematical model beats pattern recognition.
+    log.info("running numerical-model benchmark...")
+    numerical_result = evaluate_numerical_model(samples)
 
     # Per-ticker accuracy
     per_ticker_stats = aggregate_per_ticker(samples)
@@ -374,6 +380,7 @@ def main() -> int:
         "updated_at": _ts(),
         "n_samples": len(samples),
         "meta_kfold": kfold_result,
+        "numerical_model_kfold": numerical_result,
         "pruned": pruned,
         "methodologies": methodology_stats,
         "definitions": [

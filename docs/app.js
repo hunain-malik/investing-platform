@@ -431,6 +431,71 @@ function renderMethodologies(payload) {
     ? `${kfold.correct} correct / ${(kfold.signals_emitted ?? 0) - (kfold.correct ?? 0)} wrong of ${kfold.signals_emitted ?? 0} signals (k=${kfold.k}, ${kfold.n_samples} samples)`
     : (kfold.note || "—"));
 
+  // Numerical model side-by-side
+  const num = payload.numerical_model_kfold || {};
+  setText("numerical-accuracy", fmtPct(num.accuracy));
+  setText("numerical-counts", num.accuracy != null
+    ? `${num.correct} correct / ${(num.signals_emitted ?? 0) - (num.correct ?? 0)} wrong of ${num.signals_emitted ?? 0} signals`
+    : (num.note || "—"));
+
+  // K-fold horizon + regime breakouts (the user can't see these otherwise)
+  const khBody = document.querySelector("#kfold-horizon-table tbody");
+  if (khBody) {
+    khBody.innerHTML = "";
+    for (const [h, v] of Object.entries(kfold.by_horizon || {})) {
+      khBody.insertAdjacentHTML("beforeend", `<tr><td>${h}d</td><td>${v.signals}</td><td><strong>${fmtPct(v.accuracy)}</strong></td></tr>`);
+    }
+  }
+  const krBody = document.querySelector("#kfold-regime-table tbody");
+  if (krBody) {
+    krBody.innerHTML = "";
+    const order = ["bull", "bear", "choppy", "unknown"];
+    const regimes = kfold.by_regime || {};
+    for (const r of order.filter(x => x in regimes).concat(Object.keys(regimes).filter(x => !order.includes(x)))) {
+      const v = regimes[r];
+      const klass = r === "bull" ? "up" : r === "bear" ? "down" : "neutral";
+      krBody.insertAdjacentHTML("beforeend", `<tr><td>${tag(r, klass)}</td><td>${v.signals}</td><td><strong>${fmtPct(v.accuracy)}</strong></td></tr>`);
+    }
+  }
+
+  // Numerical model breakouts
+  const nhBody = document.querySelector("#numerical-horizon-table tbody");
+  if (nhBody) {
+    nhBody.innerHTML = "";
+    for (const [h, v] of Object.entries(num.by_horizon || {})) {
+      nhBody.insertAdjacentHTML("beforeend", `<tr><td>${h}d</td><td>${v.signals}</td><td><strong>${fmtPct(v.accuracy)}</strong></td></tr>`);
+    }
+  }
+  const nrBody = document.querySelector("#numerical-regime-table tbody");
+  if (nrBody) {
+    nrBody.innerHTML = "";
+    const order = ["bull", "bear", "choppy", "unknown"];
+    const regimes = num.by_regime || {};
+    for (const r of order.filter(x => x in regimes).concat(Object.keys(regimes).filter(x => !order.includes(x)))) {
+      const v = regimes[r];
+      const klass = r === "bull" ? "up" : r === "bear" ? "down" : "neutral";
+      nrBody.insertAdjacentHTML("beforeend", `<tr><td>${tag(r, klass)}</td><td>${v.signals}</td><td><strong>${fmtPct(v.accuracy)}</strong></td></tr>`);
+    }
+  }
+  const ncBody = document.querySelector("#numerical-coef-table tbody");
+  if (ncBody) {
+    ncBody.innerHTML = "";
+    const coefs = num.model_coefficients || {};
+    const sorted = Object.entries(coefs).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+    for (const [feat, c] of sorted) {
+      const dirText = c > 0 ? "↑ bullish driver" : "↓ bearish driver";
+      const klass = c > 0 ? "up" : "down";
+      ncBody.insertAdjacentHTML("beforeend", `<tr><td><code>${feat}</code></td><td>${c.toFixed(3)}</td><td>${tag(dirText, klass)}</td></tr>`);
+    }
+  }
+  const ncalBody = document.querySelector("#numerical-calibration-table tbody");
+  if (ncalBody) {
+    ncalBody.innerHTML = "";
+    for (const row of num.calibration || []) {
+      ncalBody.insertAdjacentHTML("beforeend", `<tr><td>${(row.confidence_lo * 100).toFixed(0)}–${(row.confidence_hi * 100).toFixed(0)}%</td><td>${row.n}</td><td>${fmtPct(row.accuracy)}</td></tr>`);
+    }
+  }
+
   const meta = payload.methodologies?.meta_ensemble || {};
   setText("insample-accuracy", fmtPct(meta.accuracy));
   setText("insample-counts", meta.accuracy != null

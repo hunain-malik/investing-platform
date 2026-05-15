@@ -43,7 +43,7 @@
         <label>Max position (% of capital)<input type="number" id="agent-max-pos-pct" value="25" min="5" max="100" step="5" /></label>
       </div>
       <div class="agent-field">
-        <label>Horizon<select id="agent-horizon"></select></label>
+        <label>Horizon (how long to hold)<select id="agent-horizon" title="Number of trading days to hold the position. 60d ≈ 3 months, 252d ≈ 1 year, 1260d ≈ 5 years."></select></label>
       </div>
       <div class="agent-field">
         <label>Min confidence<select id="agent-min-conf">
@@ -76,12 +76,7 @@
         </select></label>
       </div>
       <div class="agent-field" id="agent-portfolio-n-wrap" style="display:none">
-        <label>Portfolio size<select id="agent-portfolio-n">
-          <option value="3">3 positions</option>
-          <option value="5" selected>5 positions</option>
-          <option value="8">8 positions</option>
-          <option value="10">10 positions</option>
-        </select></label>
+        <label>Number of positions<input type="number" id="agent-portfolio-n" value="5" min="1" max="50" step="1" /></label>
       </div>
       <div class="agent-field">
         <label>Ticker filter<input type="search" id="agent-ticker-filter" placeholder="e.g. AAPL, IBM" /></label>
@@ -119,16 +114,64 @@
 
     <div class="kfold-banner">
       <div>
-        <div class="label">K-fold cross-validated meta accuracy <span class="muted small">(out-of-sample, k=5)</span></div>
+        <div class="label">Pattern-based meta-ensemble <span class="muted small">(K-fold, out-of-sample)</span></div>
         <div class="value-big" id="kfold-accuracy">—</div>
         <div class="sub" id="kfold-counts">—</div>
       </div>
       <div>
-        <div class="label muted small">In-sample meta (optimistic)</div>
+        <div class="label">Numerical model (logistic regression) <span class="muted small">(K-fold, out-of-sample)</span></div>
+        <div class="value-big" id="numerical-accuracy">—</div>
+        <div class="sub" id="numerical-counts">—</div>
+      </div>
+      <div>
+        <div class="label muted small">In-sample meta (optimistic, biased)</div>
         <div class="value-mid" id="insample-accuracy">—</div>
         <div class="sub" id="insample-counts">—</div>
       </div>
     </div>
+
+    <details class="detail-block">
+      <summary>K-fold meta accuracy broken out by regime and horizon</summary>
+      <div class="approach-grid">
+        <div class="approach-card">
+          <h3>By horizon</h3>
+          <div class="table-wrap" style="background:transparent;border:none"><table id="kfold-horizon-table"><thead><tr><th>Horizon</th><th>Signals</th><th>Accuracy</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="approach-card">
+          <h3>By regime</h3>
+          <div class="table-wrap" style="background:transparent;border:none"><table id="kfold-regime-table"><thead><tr><th>Regime</th><th>Signals</th><th>Accuracy</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="detail-block">
+      <summary>Numerical model details (logistic regression on continuous features)</summary>
+      <p class="muted small">
+        Tests whether a pure mathematical model beats pattern recognition. Uses 13 continuous features
+        (5d/20d/60d returns, RSI, MACD histogram, distance from each SMA, 20d volatility, ATR ratio,
+        volume z-score, Bollinger bandwidth, relative strength vs SPY) and predicts P(up) via logistic
+        regression. Evaluated with the same K-fold protocol as the pattern meta-ensemble so the two
+        are directly comparable.
+      </p>
+      <div class="approach-grid">
+        <div class="approach-card">
+          <h3>By horizon</h3>
+          <div class="table-wrap" style="background:transparent;border:none"><table id="numerical-horizon-table"><thead><tr><th>Horizon</th><th>Signals</th><th>Accuracy</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="approach-card">
+          <h3>By regime</h3>
+          <div class="table-wrap" style="background:transparent;border:none"><table id="numerical-regime-table"><thead><tr><th>Regime</th><th>Signals</th><th>Accuracy</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="approach-card">
+          <h3>Feature importances <span class="muted small">(model coefficients)</span></h3>
+          <div class="table-wrap" style="background:transparent;border:none"><table id="numerical-coef-table"><thead><tr><th>Feature</th><th>Coefficient</th><th>Direction</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="approach-card">
+          <h3>Calibration</h3>
+          <div class="table-wrap" style="background:transparent;border:none"><table id="numerical-calibration-table"><thead><tr><th>Confidence</th><th>n</th><th>Accuracy</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+    </details>
 
     <p class="muted small">
       The K-fold number is the honest expected hit rate. Each methodology row shows accuracy at
