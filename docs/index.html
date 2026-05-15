@@ -32,11 +32,10 @@
       <button class="strategy-tab" data-strategy="longterm" data-horizons="1260">🏦 Long-term / Roth <span class="muted small">(5+ years)</span></button>
       <button class="strategy-tab" data-strategy="all" data-horizons="">⚙️ Custom (any horizon)</button>
     </div>
-    <div class="source-toggle">
-      <span class="muted small">Signal source:</span>
-      <label><input type="radio" name="agent-source" value="consensus" checked /> Decorrelated families <span class="muted small">(≥3 independent signal types must agree)</span></label>
-      <label><input type="radio" name="agent-source" value="meta" /> Correlated meta-ensemble <span class="muted small">(less strict; older approach)</span></label>
-    </div>
+    <p class="muted small" style="margin: 4px 0 12px">
+      <strong>Source priority:</strong> Decorrelated family consensus → Numerical model (logistic regression) → All-ensemble fallback.
+      Each ticker shows the strongest available signal; tickers without any actionable signal show as "no signal today."
+    </p>
     <p class="muted small" id="strategy-description" style="margin: 4px 0 12px">
       Trading: shorter holds aiming for momentum-driven moves. Best for active accounts.
     </p>
@@ -129,15 +128,21 @@
 
     <div class="kfold-banner">
       <div>
-        <div class="label">Pattern-based meta-ensemble <span class="muted small">(K-fold, out-of-sample)</span></div>
-        <div class="value-big" id="kfold-accuracy">—</div>
-        <div class="sub" id="kfold-counts">—</div>
-        <div class="sub muted small" id="kfold-direction-split">—</div>
+        <div class="label">Decorrelated families <span class="muted small">(consensus, the recommendation source)</span></div>
+        <div class="value-big" id="families-accuracy">—</div>
+        <div class="sub" id="families-counts">—</div>
+        <div class="sub muted small" id="families-warning">—</div>
       </div>
       <div>
         <div class="label">Numerical model (logistic regression) <span class="muted small">(K-fold, out-of-sample)</span></div>
         <div class="value-big" id="numerical-accuracy">—</div>
         <div class="sub" id="numerical-counts">—</div>
+      </div>
+      <div>
+        <div class="label muted small">Correlated meta (reference)</div>
+        <div class="value-mid" id="kfold-accuracy">—</div>
+        <div class="sub muted small" id="kfold-counts">—</div>
+        <div class="sub muted small" id="kfold-direction-split">—</div>
       </div>
       <div>
         <div class="label muted small">In-sample meta (optimistic, biased)</div>

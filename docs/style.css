@@ -98,6 +98,24 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 3px; font-si
 .show-more { margin-top: 8px; }
 .show-more summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; padding: 8px 0; }
 
+.show-more-toggle { margin: 12px 0; }
+.show-more-button {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  width: 100%;
+  font-weight: 600;
+}
+.show-more-button:hover { background: rgba(88, 166, 255, 0.1); }
+
+.rec-card.no-signal { opacity: 0.55; padding: 8px 12px; }
+.rec-card.no-signal .rec-header { margin-bottom: 2px; }
+
 .liveness { margin-top: 16px; }
 .liveness summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; }
 

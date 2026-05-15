@@ -168,12 +168,8 @@ function setupAgent(signalsPayload) {
   _agent.meta_signals = signalsPayload?.meta_signals || [];
   _agent.consensus_signals = signalsPayload?.consensus_signals || [];
 
-  // Default to decorrelated consensus if available, else fall back to meta
-  if (_agent.consensus_signals.length === 0) _agent.source = "meta";
-
-  // Horizons available from current source
-  const source = _currentAgentSignals();
-  const horizons = [...new Set(source.map(s => s.horizon_days))].sort((a, b) => a - b);
+  // Horizons available from base all-ensemble signals (covers every ticker)
+  const horizons = [...new Set(_agent.signals.map(s => s.horizon_days))].sort((a, b) => a - b);
   _agent.horizons = horizons;
   const sel = document.getElementById("agent-horizon");
   sel.innerHTML = "";
@@ -195,21 +191,6 @@ function setupAgent(signalsPayload) {
   document.getElementById("agent-mode").addEventListener("change", e => {
     document.getElementById("agent-portfolio-n-wrap").style.display = (e.target.value === "portfolio") ? "" : "none";
   });
-
-  // Source radio (decorrelated families vs correlated meta)
-  for (const r of document.querySelectorAll('input[name="agent-source"]')) {
-    r.addEventListener("change", e => {
-      _agent.source = e.target.value;
-      // Repopulate horizon dropdown — sources may have different horizons
-      const source = _currentAgentSignals();
-      const horizons = [...new Set(source.map(s => s.horizon_days))].sort((a, b) => a - b);
-      const sel = document.getElementById("agent-horizon");
-      sel.innerHTML = "";
-      for (const h of horizons) sel.insertAdjacentHTML("beforeend", `<option value="${h}">${h}-day</option>`);
-      if (horizons.length > 0) sel.value = String(horizons[horizons.length - 1]);
-      renderAgent();
-    });
-  }
 
   // Strategy tab clicks
   for (const tab of document.querySelectorAll(".strategy-tab")) {
@@ -254,38 +235,44 @@ function renderAgent() {
   const container = document.getElementById("agent-recommendations");
   container.innerHTML = "";
 
-  const sourceSignals = _currentAgentSignals();
-  if (sourceSignals.length === 0) {
-    setText("agent-summary", `No signals fired today for the selected source. The decorrelated consensus needs ≥3 independent pattern families agreeing. Try switching to the correlated meta-ensemble (less strict) using the toggle above.`);
+  // Unified per-ticker view at the selected horizon
+  const allRecs = _buildUnifiedRecs(cfg.horizon);
+  if (allRecs.length === 0) {
+    setText("agent-summary", `No data available for ${cfg.horizon}d horizon. Try another horizon or wait for the next workflow run.`);
     return;
   }
 
-  // Diagnostics: how many at each filter step?
-  const totalAtHorizon = sourceSignals.filter(s => s.horizon_days === cfg.horizon).length;
-
-  let candidates = sourceSignals.filter(s => s.horizon_days === cfg.horizon);
+  // Apply user filters; keep no_signal entries visible unless user filters direction
+  let candidates = allRecs.slice();
   if (cfg.direction !== "any") candidates = candidates.filter(s => s.direction === cfg.direction);
-  if (cfg.minConf) candidates = candidates.filter(s => s.confidence >= cfg.minConf);
+  if (cfg.minConf) candidates = candidates.filter(s => s._source === "no_signal" || s.confidence >= cfg.minConf);
   if (cfg.skipEarnings) candidates = candidates.filter(s => !s.earnings_in_horizon);
   if (cfg.tickerFilter) {
     const tokens = cfg.tickerFilter.split(/[,\s]+/).filter(Boolean);
-    candidates = candidates.filter(s => tokens.some(t => s.ticker.startsWith(t)));
+    candidates = candidates.filter(s => tokens.some(t => s.ticker.toUpperCase().startsWith(t)));
   }
 
-  // Re-size each candidate using the user's capital
+  // Re-size each actionable candidate using the user's capital.
+  // no_signal entries skip sizing but are kept visible for searchability.
   let ranked = candidates.map(s => {
+    if (s._source === "no_signal") return { ...s, _sizing: null, _options: null };
     const sizing = sizePosition(s.direction, s.price, s.atr, s.confidence, cfg.capital, cfg.riskPct, cfg.maxPosPct);
     const opts = recommendOptions(s.direction, s.confidence, s.price, s.atr, s.horizon_days, cfg.optionsAllowed);
     return { ...s, _sizing: sizing, _options: opts };
-  }).filter(s => s._sizing !== null);
-
-  ranked.sort((a, b) => b.confidence - a.confidence);
+  });
+  // Actionable picks first (have sizing); no_signal entries after
+  ranked.sort((a, b) => {
+    const aHas = a._sizing != null ? 1 : 0;
+    const bHas = b._sizing != null ? 1 : 0;
+    if (aHas !== bHas) return bHas - aHas;
+    return (b.confidence || 0) - (a.confidence || 0);
+  });
 
   if (ranked.length === 0) {
-    setText("agent-summary",
-      `No recommendations match your filters (${totalAtHorizon} signals exist at ${cfg.horizon}d horizon, but none pass confidence ≥ ${cfg.minConf} + your other filters). Try lowering min confidence, switching horizon, or allowing both directions.`);
+    setText("agent-summary", `No tickers match your filters at ${cfg.horizon}d horizon. Try clearing the ticker filter or lowering min confidence.`);
     return;
   }
+  const actionableCount = ranked.filter(s => s._sizing != null).length;
 
   // Portfolio mode: pick top-N affordable, allocate slot capital each.
   if (cfg.mode === "portfolio") {
@@ -325,31 +312,62 @@ function renderAgent() {
 
   // Ranked mode (default)
   setText("agent-summary",
-    `Showing ${Math.min(ranked.length, 10)} of ${ranked.length} matching recommendations (sized for ${fmtUsd(cfg.capital)} capital, ${cfg.riskPct}% risk per trade).`);
+    `${actionableCount} actionable picks out of ${ranked.length} tickers analyzed at ${cfg.horizon}d horizon (sized for ${fmtUsd(cfg.capital)} capital, ${cfg.riskPct}% risk per trade). Tickers without actionable signals shown below as "no signal".`);
 
-  const top = ranked.slice(0, 10);
+  const INITIAL_VISIBLE = 10;
+  const top = ranked.slice(0, INITIAL_VISIBLE);
   for (const s of top) {
     container.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg));
   }
-  if (ranked.length > 10) {
+  if (ranked.length > INITIAL_VISIBLE) {
     container.insertAdjacentHTML("beforeend", `
-      <details class="show-more">
-        <summary>Show all ${ranked.length} recommendations</summary>
-        <div id="agent-recommendations-rest"></div>
-      </details>
+      <div class="show-more-toggle">
+        <button type="button" id="show-more-btn" class="show-more-button">
+          Show all ${ranked.length} tickers (${ranked.length - INITIAL_VISIBLE} more) ▾
+        </button>
+      </div>
+      <div id="agent-recommendations-rest" style="display:none"></div>
     `);
     const rest = document.getElementById("agent-recommendations-rest");
-    for (const s of ranked.slice(10)) rest.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg));
+    for (const s of ranked.slice(INITIAL_VISIBLE)) rest.insertAdjacentHTML("beforeend", renderRecommendationCard(s, cfg));
+    const btn = document.getElementById("show-more-btn");
+    btn.addEventListener("click", () => {
+      const isHidden = rest.style.display === "none";
+      rest.style.display = isHidden ? "" : "none";
+      btn.textContent = isHidden
+        ? `Hide extra ${ranked.length - INITIAL_VISIBLE} tickers ▴`
+        : `Show all ${ranked.length} tickers (${ranked.length - INITIAL_VISIBLE} more) ▾`;
+      // After hiding, jump back to the top of the recommendations
+      if (!isHidden) {
+        document.getElementById("agent").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
   }
 }
 
 function renderRecommendationCard(s, cfg) {
+  // no_signal entries get a dimmed, compact card
+  if (s._source === "no_signal") {
+    return `
+      <div class="rec-card no-signal">
+        <div class="rec-header">
+          <a href="#" class="rec-ticker ticker-link" data-ticker="${s.ticker}">${s.ticker}</a>
+          <span class="tag neutral">no signal today</span>
+          <span class="rec-meta muted">@ ${fmtUsd(s.price)} · ${s.horizon_days}d</span>
+        </div>
+        <div class="rec-line muted small">No methodology fired with sufficient confidence. Click ticker for full breakdown.</div>
+      </div>
+    `;
+  }
   const dClass = s.direction === "up" ? "up" : "down";
   const sizing = s._sizing;
   const opts = s._options;
+  const sourceBadge = s._source === "consensus"
+    ? tag("decorrelated", "confirm")
+    : (s._source === "meta" ? tag("correlated meta", "neutral") : "");
   // s.n_contributing (meta) vs s.n_families (consensus) — normalize for display
-  const nVoters = s.n_contributing ?? s.n_families ?? 0;
-  const voterType = s.n_families != null ? "families" : "methods";
+  const nVoters = s.n_families ?? s.n_contributing ?? 0;
+  const voterType = s.n_families != null && s.n_families > 0 ? "families" : "methods";
 
   const earningsWarn = s.earnings_in_days != null && s.earnings_in_days <= s.horizon_days
     ? `<span class="tag down" title="Earnings ${s.earnings_in_days}d away — event risk">⚠ earnings in ${s.earnings_in_days}d</span>`
@@ -417,6 +435,7 @@ function renderRecommendationCard(s, cfg) {
         <a href="#" class="rec-ticker ticker-link" data-ticker="${s.ticker}">${s.ticker}</a>
         <span class="tag ${dClass}">${s.direction.toUpperCase()}</span>
         <span class="rec-meta" title="Consensus: how strongly the contributing voters agree on direction. 0% = tied, 100% = unanimous. NOT a price change prediction.">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · consensus ${consensusPct}% · ${nVoters} ${voterType} agree</span>
+        ${sourceBadge}
         ${earningsWarn}
         ${sentChip}
         ${contradictionChip}
@@ -555,8 +574,24 @@ function renderMethodologies(payload) {
   const kfold = payload.meta_kfold || {};
   setText("kfold-accuracy", fmtPct(kfold.accuracy));
   setText("kfold-counts", kfold.accuracy != null
-    ? `${kfold.correct} correct / ${(kfold.signals_emitted ?? 0) - (kfold.correct ?? 0)} wrong of ${kfold.signals_emitted ?? 0} signals (k=${kfold.k}, ${kfold.n_samples} samples)`
+    ? `${kfold.correct} / ${kfold.signals_emitted ?? 0} signals`
     : (kfold.note || "—"));
+
+  // Decorrelated families banner (the actual recommendation source)
+  const families = (payload.methodologies || {}).consensus_families || {};
+  setText("families-accuracy", fmtPct(families.accuracy));
+  const famN = families.signals_emitted ?? 0;
+  setText("families-counts", families.accuracy != null
+    ? `${families.correct} correct / ${famN - (families.correct ?? 0)} wrong of ${famN} signals`
+    : "—");
+  // Stress-test caveat
+  if (famN > 0 && famN < 50) {
+    setText("families-warning", `⚠ Small sample (n=${famN}) — accuracy CI is wide. Not enough data to fully stress-test yet.`);
+  } else if (famN >= 50) {
+    setText("families-warning", `✓ n=${famN} — sample size sufficient for stable estimate.`);
+  } else {
+    setText("families-warning", "");
+  }
 
   // Bullish vs bearish K-fold split (derive from kfold direction breakdown if available;
   // else compute from regime aggregates as approximation)
