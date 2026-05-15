@@ -144,10 +144,11 @@
     <details class="explainer-block">
       <summary>What do these numbers mean? <span class="muted small">(read this first)</span></summary>
       <ul class="muted small">
-        <li><strong>Pattern meta-ensemble (K-fold)</strong> — combines multiple methodologies (trend-following, regime-filtered trend, etc.), drops any below 50% at this horizon, K-fold cross-validated so it's honest out-of-sample. <em>This is what to trust.</em></li>
-        <li><strong>Numerical model (K-fold)</strong> — pure logistic regression on continuous features (returns, RSI, MACD, SMA distances, volatility, etc.). No pattern recognition. Side-by-side benchmark.</li>
-        <li><strong>In-sample meta</strong> — same combiner but evaluated on training data. Optimistic and biased upward. We show it only so you can see how much K-fold corrects.</li>
-        <li><strong>All-patterns ensemble</strong> (in the Details section below) — naive baseline. Uses every fired pattern indiscriminately at every horizon. Has poor bearish accuracy because it includes noisy short horizons. Not what we recommend acting on.</li>
+        <li><strong>Pattern meta-ensemble (K-fold)</strong> — combines multiple methodologies (trend-following, regime-filtered trend, etc.), K-fold cross-validated out-of-sample. <em>Caveat: those methodologies share patterns so their votes are partially correlated.</em></li>
+        <li><strong>Numerical model (K-fold)</strong> — pure logistic regression on continuous features (returns, RSI, MACD, SMA distances, volatility, etc.). Independent of pattern recognition.</li>
+        <li><strong>Consensus families</strong> (in methodology table below) — decorrelated version: patterns grouped into 6 INDEPENDENT families (trend, momentum, volatility, volume, candlestick, relative strength). Each family casts ONE vote. Requires ≥3 families agreeing. This is the honest "how many independent things point this way" reading.</li>
+        <li><strong>In-sample meta</strong> — same combiner but evaluated on training data. Optimistic and biased upward.</li>
+        <li><strong>All-patterns ensemble</strong> (in Details below) — naive baseline. Uses every fired pattern at every horizon. Has poor bearish numbers because it includes noisy short horizons.</li>
       </ul>
     </details>
 

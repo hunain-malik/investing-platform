@@ -42,6 +42,7 @@ from .numerical_model import evaluate_numerical_model
 from .indicators import compute_all
 from .methodologies import (
     METHODOLOGIES,
+    aggregate_consensus_families,
     aggregate_meta_ensemble,
     aggregate_methodology_accuracy,
     evaluate_meta_live,
@@ -180,6 +181,10 @@ def main() -> int:
     methodology_stats["meta_ensemble"] = aggregate_meta_ensemble(
         samples, weights, method_acc_per_h,
     )
+    # Decorrelated family-based meta — patterns grouped into 6 independent
+    # families, each casts one vote. Addresses the correlated-methodology
+    # vote-inflation issue.
+    methodology_stats["consensus_families"] = aggregate_consensus_families(samples)
 
     # Auto-prune methodologies whose accuracy is below 0.5 at EVERY horizon
     # they had data for. These are net-harmful and shouldn't be acted on.

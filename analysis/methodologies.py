@@ -336,6 +336,99 @@ def aggregate_meta_ensemble(
     }
 
 
+def aggregate_consensus_families(samples) -> dict:
+    """Evaluate the decorrelated family-based meta on all samples.
+
+    First pass: compute per-(family, horizon) accuracy from samples.
+    Second pass: re-run families with those accuracy weights and aggregate
+    per-horizon, per-regime, and per-direction stats.
+    """
+    from .families import evaluate_consensus_families as _eval, FAMILIES, evaluate_family_vote
+
+    # Pass 1: compute per-family per-horizon accuracy
+    fam_stats: dict[str, dict[int, dict[str, int]]] = {}
+    for s in samples:
+        for fam in FAMILIES:
+            v = evaluate_family_vote(fam, s.pattern_directions)
+            if v is None:
+                continue
+            d, _ = v
+            if d not in ("up", "down"):
+                continue
+            cell = fam_stats.setdefault(fam.name, {}).setdefault(s.horizon_days, {"n": 0, "correct": 0})
+            cell["n"] += 1
+            if d == s.actual_label:
+                cell["correct"] += 1
+    fam_acc_per_h: dict[str, dict[int, float]] = {}
+    for name, hd in fam_stats.items():
+        fam_acc_per_h[name] = {}
+        for h, cell in hd.items():
+            if cell["n"] >= 5:
+                fam_acc_per_h[name][h] = cell["correct"] / cell["n"]
+
+    # Pass 2: run consensus using these weights
+    n_signal = 0
+    n_correct = 0
+    by_horizon: dict[int, dict[str, int]] = {}
+    by_regime: dict[str, dict[str, int]] = {}
+    by_direction: dict[str, dict[str, int]] = {}
+    family_contrib_count: dict[str, int] = {}
+    for s in samples:
+        weights_at_h = {f: fam_acc_per_h.get(f, {}).get(s.horizon_days, 0.5) for f in [fa.name for fa in FAMILIES]}
+        r = _eval(s.pattern_directions, family_accuracies_at_horizon=weights_at_h)
+        if r is None:
+            continue
+        if r["direction"] not in ("up", "down"):
+            continue
+        n_signal += 1
+        correct = (r["direction"] == s.actual_label)
+        if correct:
+            n_correct += 1
+        bh = by_horizon.setdefault(s.horizon_days, {"signals": 0, "correct": 0})
+        bh["signals"] += 1
+        if correct:
+            bh["correct"] += 1
+        br = by_regime.setdefault(s.regime, {"signals": 0, "correct": 0})
+        br["signals"] += 1
+        if correct:
+            br["correct"] += 1
+        bd = by_direction.setdefault(r["direction"], {"signals": 0, "correct": 0})
+        bd["signals"] += 1
+        if correct:
+            bd["correct"] += 1
+        for c in r["contributing_families"]:
+            family_contrib_count[c["family"]] = family_contrib_count.get(c["family"], 0) + 1
+
+    return {
+        "description": "DECORRELATED meta — patterns grouped into 6 independent families (trend, momentum, volatility, volume, candlestick, relative_strength), each family casts ONE vote. Requires >=3 families agreeing.",
+        "samples_applicable": len(samples),
+        "signals_emitted": n_signal,
+        "correct": n_correct,
+        "accuracy": round(n_correct / n_signal, 4) if n_signal else None,
+        "signal_rate": round(n_signal / len(samples), 4) if samples else None,
+        "by_horizon": {
+            h: {"signals": v["signals"], "correct": v["correct"],
+                "accuracy": round(v["correct"] / v["signals"], 4) if v["signals"] else None}
+            for h, v in sorted(by_horizon.items())
+        },
+        "by_regime": {
+            r: {"signals": v["signals"], "correct": v["correct"],
+                "accuracy": round(v["correct"] / v["signals"], 4) if v["signals"] else None}
+            for r, v in by_regime.items()
+        },
+        "by_direction": {
+            d: {"signals": v["signals"], "correct": v["correct"],
+                "accuracy": round(v["correct"] / v["signals"], 4) if v["signals"] else None}
+            for d, v in by_direction.items()
+        },
+        "family_accuracies_per_horizon": {
+            f: {str(h): round(a, 4) for h, a in acc.items()}
+            for f, acc in fam_acc_per_h.items()
+        },
+        "family_contribution_count": family_contrib_count,
+    }
+
+
 def aggregate_methodology_accuracy(
     samples,  # list[BacktestSample]
     weights_per_horizon,

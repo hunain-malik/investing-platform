@@ -611,8 +611,17 @@ function renderMethodologies(payload) {
     const byHText = Object.entries(byH)
       .map(([h, v]) => `<span class="muted">${h}d:</span>${fmtPct(v.accuracy)}<span class="muted">(${v.signals})</span>`)
       .join(" · ");
-    const klass = name === "meta_ensemble" ? "row-featured" : (stats.pruned ? "row-pruned" : "");
-    const badge = name === "meta_ensemble" ? ` ${tag("META", "up")}` : (stats.pruned ? ` ${tag("PRUNED", "down")}` : "");
+    let klass = "", badge = "";
+    if (name === "consensus_families") {
+      klass = "row-featured";
+      badge = ` ${tag("DECORRELATED", "confirm")}`;
+    } else if (name === "meta_ensemble") {
+      klass = "row-featured";
+      badge = ` ${tag("META (correlated)", "up")}`;
+    } else if (stats.pruned) {
+      klass = "row-pruned";
+      badge = ` ${tag("PRUNED", "down")}`;
+    }
     tbody.insertAdjacentHTML("beforeend", `
       <tr class="${klass}">
         <td><strong>${name}</strong>${badge}<br><span class="muted small">${stats.description || ""}</span></td>
