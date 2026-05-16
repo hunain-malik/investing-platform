@@ -277,6 +277,9 @@ function setupAgent(signalsPayload) {
   document.getElementById("agent-form").addEventListener("change", renderAgent);
   document.getElementById("agent-advanced-form")?.addEventListener("input", renderAgent);
   document.getElementById("agent-advanced-form")?.addEventListener("change", renderAgent);
+  // Halal checkboxes live outside both forms (in .halal-filter-block) — bind directly
+  document.getElementById("agent-halal-only")?.addEventListener("change", renderAgent);
+  document.getElementById("agent-halal-strict")?.addEventListener("change", renderAgent);
   document.getElementById("agent-mode").addEventListener("change", e => {
     document.getElementById("agent-portfolio-n-wrap").style.display = (e.target.value === "portfolio") ? "" : "none";
   });
@@ -428,6 +431,7 @@ function getAgentInputs() {
     volatility: document.getElementById("agent-volatility")?.value || "any",
     minPatterns: parseInt(document.getElementById("agent-min-patterns")?.value) || 0,
     halalOnly: document.getElementById("agent-halal-only")?.checked || false,
+    halalStrict: document.getElementById("agent-halal-strict")?.checked || false,
   };
   // Apply style preset overlays (gentle — only adjusts if user left defaults)
   if (cfg.style === "conservative") {
@@ -501,6 +505,9 @@ function renderAgent() {
       const status = _agent.halalStatus[s.ticker];
       if (status && status.compliant === false) {
         misses.push(`not Halal-compliant: ${status.exclusion_reason || "general exclusion"}`);
+      } else if (cfg.halalStrict && status && status.tier !== "etf_certified") {
+        // Strict mode: require ETF certification (SPUS or HLAL holding)
+        misses.push(`not held by SPUS or HLAL — strict mode requires Shariah ETF certification`);
       }
     }
     return misses;
@@ -738,6 +745,23 @@ function renderRecommendationCard(s, cfg, rank) {
   // methodologies. The meta/consensus tiers have explicit voters; the
   // all-ensemble doesn't, so we use pattern-fire count instead.
   const tentativeVoters = isTentative ? (s.n_fired ?? 0) : null;
+  // Halal / ETF-certification badge — visible when the Halal filter is on
+  // so the user can see at a glance which tickers are AAOIFI-screened by
+  // a certified Shariah board (SPUS / HLAL) vs only passing the coarse
+  // industry filter.
+  let halalBadge = "";
+  if (cfg.halalOnly) {
+    const hStat = _agent.halalStatus[s.ticker];
+    if (hStat) {
+      if (hStat.tier === "etf_certified") {
+        const etfs = [hStat.in_spus ? "SPUS" : null, hStat.in_hlal ? "HLAL" : null].filter(Boolean).join("+");
+        halalBadge = `<span class="tag confirm" title="Held by ${etfs} — AAOIFI-screened by certified Shariah board (full leverage + interest income + non-compliant revenue ratios applied).">🕌 ${etfs}</span>`;
+      } else if (hStat.tier === "industry_pass") {
+        halalBadge = `<span class="tag warn" title="Passes the general industry-exclusion filter but is NOT held by SPUS or HLAL. The ratio screens (debt-to-market-cap, interest income, non-compliant revenue) have not been verified for this ticker. Cross-check on Zoya before treating as compliant.">🕌 verify on Zoya</span>`;
+      }
+    }
+  }
+
   // Volatility match badge — shows whether this stock's volatility matches
   // the user's risk profile.
   let volBadge = "";
@@ -866,6 +890,7 @@ function renderRecommendationCard(s, cfg, rank) {
         <span class="rec-meta" title="${isTentative ? 'N patterns fired in the all-ensemble. Meta/consensus methodologies did not validate this — treat as a weaker signal.' : 'Consensus: how strongly the contributing voters agree on direction. 0% = tied, 100% = unanimous. NOT a price change prediction.'}">${s.horizon_days}d · conf ${s.confidence.toFixed(3)} · ${isTentative ? `${tentativeVoters} patterns fired (all-ensemble)` : `consensus ${consensusPct}% · ${nVoters} ${voterType} agree`}</span>
         ${sourceBadge}
         ${sectorBadge}
+        ${halalBadge}
         ${volBadge}
         ${earningsWarn}
         ${sentChip}

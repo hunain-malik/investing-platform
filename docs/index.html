@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>investing-platform · scoreboard</title>
-<link rel="stylesheet" href="style.css?v=20260515z" />
+<link rel="stylesheet" href="style.css?v=20260515aa" />
 </head>
 <body>
 <header class="topbar">
@@ -112,40 +112,39 @@
         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1;">
           <input type="checkbox" id="agent-halal-only" />
           <span><strong>Halal / Shariah-compliant only</strong>
-            <span class="muted small"> — excludes conventional banks, insurance, alcohol, tobacco, gambling, weapons</span>
+            <span class="muted small"> — also suppresses conventional options + flags short-selling</span>
           </span>
         </label>
         <details class="halal-disclosure">
           <summary class="muted small">Details + caveats</summary>
           <div class="muted small" style="margin-top: 8px;">
-            <p><strong>Excluded when filter is on:</strong></p>
+            <p><strong>Two-tier compliance system:</strong></p>
+            <ol style="padding-left: 20px;">
+              <li><strong>🕌 SPUS / HLAL (ETF-certified)</strong> — held by SP Funds S&amp;P 500 Sharia Exclusions ETF (SPUS) and/or Wahed FTSE USA Shariah ETF (HLAL). These are AAOIFI-screened by certified Shariah boards (IdealRatings for SPUS, FTSE Shariah methodology for HLAL) — full leverage + interest income + non-compliant revenue ratios applied. <strong>Highest confidence.</strong></li>
+              <li><strong>🕌 Verify on Zoya</strong> — passes my industry-exclusion filter but is NOT in either ETF. The ratio screens haven't been verified. Always cross-check on <a href="https://zoya.finance/" target="_blank" rel="noopener" style="color: var(--accent);">Zoya</a> before trading.</li>
+            </ol>
+            <p><strong>Excluded by default (industry filter):</strong></p>
             <ul style="padding-left: 20px;">
-              <li><strong>Conventional banks:</strong> JPM, BAC, WFC, C, GS, MS, USB, AXP, SCHW, etc. (interest-based deposits + lending = riba)</li>
-              <li><strong>Conventional insurance:</strong> AIG, MET, PRU, TRV, AFL, ALL, CB (interest-bearing reserves)</li>
-              <li><strong>Alcohol:</strong> BUD, STZ, DEO, TAP, SAM</li>
-              <li><strong>Tobacco:</strong> MO, PM</li>
-              <li><strong>Gambling / sports betting:</strong> WYNN, LVS, MGM, DKNG, PENN, CZR, FLUT</li>
-              <li><strong>Weapons manufacturers:</strong> LMT, RTX, NOC, GD (controversial — some scholars permit defensive)</li>
+              <li><strong>Conventional banks:</strong> JPM, BAC, WFC, C, GS, MS, USB, AXP, SCHW (interest-based = riba)</li>
+              <li><strong>Conventional insurance:</strong> AIG, MET, PRU, TRV, AFL, ALL, CB</li>
+              <li><strong>Alcohol:</strong> BUD, STZ, DEO, TAP, SAM &nbsp;<strong>·&nbsp; Tobacco:</strong> MO, PM</li>
+              <li><strong>Gambling:</strong> WYNN, LVS, MGM, DKNG, PENN, CZR, FLUT &nbsp;<strong>·&nbsp; Weapons:</strong> LMT, RTX, NOC, GD</li>
             </ul>
-            <p><strong>Important caveats — verify on a certified screener before trading:</strong></p>
+            <p><strong>Also affected when filter is on:</strong></p>
             <ul style="padding-left: 20px;">
-              <li>This is a <strong>general-consensus industry filter</strong>, not certified by any Shariah board.</li>
-              <li><strong>Recommended verification tool: <a href="https://zoya.finance/" target="_blank" rel="noopener" style="color: var(--accent);">Zoya</a></strong> — popular retail Shariah screener using AAOIFI standards with full financial ratio checks. Free tier covers most US stocks.</li>
-              <li>Alternative certified screeners: Dow Jones Islamic Market Index, S&amp;P Shariah, MSCI Islamic, IdealRatings, Refinitiv Islamic.</li>
-              <li><strong>What my filter MISSES that Zoya catches:</strong>
-                <ul style="padding-left: 20px; margin: 4px 0;">
-                  <li>Debt-to-market-cap &gt; 33% (excessive leverage).</li>
-                  <li>Interest income &gt; 5% of revenue (large treasury holdings earning yield).</li>
-                  <li>Non-compliant revenue &gt; 5% (hotels with alcohol service, mixed menus).</li>
-                  <li>Purification calculations on dividends.</li>
-                </ul>
-              </li>
-              <li><strong>Verify on Zoya before trading:</strong> NFLX/DIS/WBD, MAR/HLT, DPZ/MCD/YUM/SBUX, REITs, high-debt names (T, VZ, F, GM).</li>
-              <li>Payment networks (V, MA, PYPL, SQ) and fintech services (FIS, FISV) are NOT excluded — transaction-fee businesses. Zoya typically agrees.</li>
+              <li><strong>Conventional options suppressed</strong> — AAOIFI Sharia Standard 20 treats listed options (calls, puts, vertical spreads) as non-compliant (gharar + maysir).</li>
+              <li><strong>Short-selling flagged with a warning</strong> on DOWN signals — bay' al-ma'dum + interest-based margin borrow makes conventional shorts non-compliant in most rulings. Shown for transparency; recommendation is to avoid the position.</li>
             </ul>
+            <p><strong>Holdings refreshed nightly</strong> from SEC EDGAR N-PORT-P filings for both ETFs. Seed list (top 25 by weight as of 2026-05-15) is used if the SEC fetch fails.</p>
           </div>
         </details>
       </div>
+      <label class="halal-strict-toggle">
+        <input type="checkbox" id="agent-halal-strict" />
+        <span><strong>Strict mode</strong> — only show tickers held by SPUS or HLAL
+          <span class="muted small"> (skip the industry-pass tier; trust only the certified Shariah-ETF roster)</span>
+        </span>
+      </label>
     </div>
 
     <details class="advanced-filters">
@@ -920,6 +919,6 @@
     }
   });
 </script>
-<script src="app.js?v=20260515z"></script>
+<script src="app.js?v=20260515aa"></script>
 </body>
 </html>

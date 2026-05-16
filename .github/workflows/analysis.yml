@@ -47,6 +47,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Refresh Shariah ETF holdings (best-effort)
+        run: |
+          # Pull latest NPORT-P filings for SPUS + HLAL from SEC EDGAR.
+          # Non-fatal: if SEC throttles or the filings haven't been
+          # updated, the analysis still runs with the seed list.
+          python -m analysis.fetch_shariah_etf_holdings || echo "ETF holdings refresh failed — continuing with seed list"
+
       - name: Run analysis
         run: |
           python -m analysis.run

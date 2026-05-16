@@ -31,6 +31,8 @@ Use the `is_halal_compliant(ticker)` function or `filter_halal_tickers(...)`.
 
 from __future__ import annotations
 
+from .shariah_etfs import shariah_etf_tier, SPUS_HOLDINGS, HLAL_HOLDINGS
+
 # Conventional banks (interest-based deposits + lending)
 BANKS = frozenset({
     "JPM", "BAC", "WFC", "C", "GS", "MS", "USB", "PNC", "TFC", "COF",
@@ -116,13 +118,36 @@ def filter_halal_tickers(tickers: list[str]) -> tuple[list[str], dict[str, str]]
 
 # Export a serializable map for the frontend so the dashboard knows which
 # tickers are excluded and why, without having to call back into Python.
+#
+# Each entry combines two compliance signals:
+#  1. Industry exclusion (this module): general-consensus filter — coarse but
+#     covers tickers not held by any major Shariah ETF.
+#  2. Shariah ETF membership (shariah_etfs): SPUS / HLAL holdings — full
+#     AAOIFI screen by a certified Shariah board (gold standard for retail).
+#
+# tier semantics:
+#   - "etf_certified": held by SPUS and/or HLAL → highest confidence
+#   - "industry_pass": passes our industry filter but not in either ETF →
+#       verify on Zoya before treating as compliant
+#   - "excluded":      in our exclusion list (industry-haram)
 def halal_status_map(tickers: list[str]) -> dict[str, dict]:
     out = {}
     for t in tickers:
         t_up = t.upper()
         reason = exclusion_reason(t_up)
+        etf = shariah_etf_tier(t_up)
+        if reason is not None:
+            tier = "excluded"
+        elif etf["tier"] == "etf_certified":
+            tier = "etf_certified"
+        else:
+            tier = "industry_pass"
         out[t_up] = {
             "compliant": reason is None,
             "exclusion_reason": reason,
+            "tier": tier,
+            "in_spus": etf["in_spus"],
+            "in_hlal": etf["in_hlal"],
+            "etf_count": etf["etf_count"],
         }
     return out
