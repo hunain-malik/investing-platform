@@ -64,6 +64,50 @@ MIXED_OPERATIONS = frozenset({
     "BRK.B", "BRK-B", "BRK.A", "BRK-A",  # Berkshire Hathaway — GEICO + reinsurance
 })
 
+# Restaurants where pork is a regular / flagship menu item. Under standard
+# AAOIFI screening (SPUS/HLAL methodology), pork revenue below 5% of total
+# revenue is treated as incidental and the stock stays compliant. We take
+# the more conservative line that any business prominently featuring pork
+# in its menu shouldn't be in a Halal-only universe — that lines up with
+# the spirit of Halal investing for retail Muslims even if it diverges
+# from AAOIFI's revenue-threshold approach.
+#
+# NOT excluded: CMG (carnitas is one option among many proteins; SPUS
+# holds it) and SBUX (bacon-egg sandwiches are a small line item; SPUS
+# holds it). Wingstop (WING), Dutch Bros (BROS) — chicken-only / coffee,
+# no pork — kept.
+#
+# NOTE: Non-zabihah meat preparation (non-halal-slaughtered beef/chicken)
+# is NOT a separate exclusion criterion. AAOIFI / SPUS / HLAL don't screen
+# on it — that's a personal-consumption rule, not an investment-compliance
+# rule. Screening on it would put us out of line with every certified
+# Halal ETF.
+PORK_RESTAURANTS = frozenset({
+    "MCD",    # McDonald's — bacon, sausage, McRib
+    "JACK",   # Jack in the Box — bacon cheeseburgers, breakfast sausage
+    "WEN",    # Wendy's — Baconator and similar bacon-forward menu
+    "QSR",    # Restaurant Brands — BK bacon, Tim Hortons sausage
+    "YUM",    # Yum Brands — Pizza Hut pepperoni, KFC bacon
+    "DPZ",    # Domino's — pepperoni / sausage as flagship toppings
+})
+
+# Cruise lines — onboard casinos (gambling) + bar service (alcohol) account
+# for a material slice of revenue. Excluded by mainstream Halal screens.
+CRUISE_LINES = frozenset({
+    "CCL",    # Carnival
+    "RCL",    # Royal Caribbean
+    "NCLH",   # Norwegian Cruise Line
+})
+
+# Hotel chains with material bar / casino revenue. Marriott, Hilton, Hyatt
+# all operate hotel bars worldwide; Marriott also has casino properties.
+# Conservative exclusion. (Note: MGM is already excluded under GAMBLING.)
+HOTEL_OPERATORS = frozenset({
+    "MAR",    # Marriott
+    "HLT",    # Hilton
+    "H",      # Hyatt
+})
+
 # Crypto exchanges and Bitcoin miners. Shariah scholars are split on crypto
 # itself; the conservative consensus (echoed by SPUS/HLAL, which hold neither)
 # is to exclude crypto-exchange operators and pure-play miners until the
@@ -134,7 +178,8 @@ CONVENTIONAL_ETFS = frozenset({
 # Combine all exclusions
 ALL_EXCLUDED = (
     BANKS | INSURANCE | LENDING | MIXED_OPERATIONS | ALCOHOL |
-    TOBACCO | GAMBLING | WEAPONS | CRYPTO | CONVENTIONAL_ETFS
+    TOBACCO | GAMBLING | WEAPONS | CRYPTO | CONVENTIONAL_ETFS |
+    PORK_RESTAURANTS | CRUISE_LINES | HOTEL_OPERATORS
 )
 
 
@@ -166,6 +211,12 @@ def exclusion_reason(ticker: str) -> str | None:
         return "Crypto exchange / Bitcoin miner (Shariah compliance debated; not held by SPUS/HLAL)"
     if t in CONVENTIONAL_ETFS:
         return "Conventional ETF (bundles non-Shariah-screened constituents)"
+    if t in PORK_RESTAURANTS:
+        return "Restaurant with pork as flagship menu item (bacon/pepperoni/sausage)"
+    if t in CRUISE_LINES:
+        return "Cruise line (material onboard casino + bar revenue)"
+    if t in HOTEL_OPERATORS:
+        return "Hotel operator with material bar / casino revenue"
     return None
 
 
