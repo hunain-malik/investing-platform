@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Halal Investing Platform · Personal Agent</title>
-<link rel="stylesheet" href="style.css?v=20260515ac" />
+<link rel="stylesheet" href="style.css?v=20260515ad" />
 </head>
 <body>
 <header class="topbar">
@@ -121,12 +121,18 @@
               <li><strong>🕌 SPUS / HLAL (gold)</strong> — held by SP Funds S&amp;P 500 Sharia Exclusions ETF (SPUS, IdealRatings-screened) and/or Wahed FTSE USA Shariah ETF (HLAL, FTSE Shariah methodology). Both apply the full AAOIFI screen: industry exclusion + leverage (debt/market-cap &lt; 33%) + interest income (&lt; 5% of revenue) + non-compliant revenue (&lt; 5%) + purification calculations.</li>
               <li><strong>🕌 Verify on Zoya (silver)</strong> — passes our hand-curated industry-exclusion filter but isn't in either ETF. Ratio screens unverified — confirm on <a href="https://zoya.finance/" target="_blank" rel="noopener">Zoya</a> before trading. Especially worth verifying: NFLX, DIS, WBD, MAR, HLT, DPZ, MCD, YUM, SBUX, REITs, and high-debt names (T, VZ, F, GM).</li>
             </ol>
-            <p><strong>Industry exclusions (never appear in the universe):</strong></p>
+            <p><strong>Industry exclusions (never appear in the universe — ~130 tickers):</strong></p>
             <ul style="padding-left: 20px;">
-              <li>Conventional banks (JPM, BAC, WFC, GS, MS…), insurance (AIG, MET, PRU…), credit-card lenders (AXP, DFS, SYF)</li>
-              <li>Alcohol (BUD, STZ, DEO, TAP), tobacco (MO, PM, BTI)</li>
-              <li>Gambling (WYNN, LVS, MGM, DKNG, PENN, CZR), weapons (LMT, RTX, NOC, GD)</li>
+              <li><strong>Conventional banks / insurance / credit lenders:</strong> JPM, BAC, WFC, GS, MS, AIG, MET, AXP, DFS, SYF, LMND…</li>
+              <li><strong>Interest-based lending platforms:</strong> SOFI, AFRM, UPST, HOOD (margin trading core revenue)</li>
+              <li><strong>Mixed-operations conglomerates:</strong> BRK.B (Berkshire — material GEICO/reinsurance income; not in SPUS/HLAL)</li>
+              <li><strong>Alcohol / tobacco:</strong> BUD, STZ, DEO, TAP, MO, PM, BTI</li>
+              <li><strong>Gambling + gaming REITs:</strong> WYNN, LVS, MGM, DKNG, PENN, CZR, FLUT, <strong>VICI</strong> (owns Caesars Palace + MGM Grand)</li>
+              <li><strong>Weapons manufacturers:</strong> LMT, RTX, NOC, GD</li>
+              <li><strong>Crypto exchanges / Bitcoin miners (debated — conservative exclusion):</strong> COIN, MARA, RIOT, CLSK, WULF, HUT, BITF</li>
+              <li><strong>Conventional ETFs:</strong> all sector / broad-market / bond / leveraged / volatility / country ETFs bundle non-Shariah constituents — SPY, QQQ, XLF, TLT, SQQQ, etc. <strong>Exception:</strong> physically-backed precious metals (GLD, SLV) and gold-miner equity ETFs (GDX, GDXJ) are kept — gold/silver are Shariah-compliant under AAOIFI Sharia Standard 57.</li>
             </ul>
+            <p class="muted small"><strong>NOT excluded</strong> — payment networks (V, MA, PYPL), exchange operators (CME, ICE, NDAQ), financial-data providers (SPGI, MCO, MSCI), and asset managers (BLK). These are transaction-fee / subscription businesses with no material riba, and most are held by SPUS / HLAL.</p>
             <p><strong>What you won't see:</strong></p>
             <ul style="padding-left: 20px;">
               <li><strong>Options</strong> — calls, puts, vertical spreads suppressed (AAOIFI Sharia Standard 20: gharar + maysir).</li>
@@ -917,6 +923,6 @@
     }
   });
 </script>
-<script src="app.js?v=20260515ac"></script>
+<script src="app.js?v=20260515ad"></script>
 </body>
 </html>

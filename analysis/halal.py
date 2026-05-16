@@ -45,7 +45,33 @@ BANKS = frozenset({
 # Conventional insurance
 INSURANCE = frozenset({
     "AIG", "MET", "PRU", "TRV", "AFL", "ALL", "CB", "MMC", "AON",
-    "CINF", "PGR", "HIG", "L",
+    "CINF", "PGR", "HIG", "L", "LMND",
+})
+
+# Interest-based lending platforms (riba — pure interest spread businesses,
+# margin lending as core revenue, buy-now-pay-later financing).
+LENDING = frozenset({
+    "SOFI",   # consumer lending platform
+    "AFRM",   # buy-now-pay-later (interest-based financing)
+    "UPST",   # AI-driven loan origination
+    "HOOD",   # Robinhood — margin trading is core revenue, crypto exposure
+})
+
+# Mixed-operations conglomerates with material insurance / lending subsidiaries.
+# Most Halal screeners exclude these because the insurance / interest income
+# exceeds the 5% non-compliant revenue threshold. Neither SPUS nor HLAL holds them.
+MIXED_OPERATIONS = frozenset({
+    "BRK.B", "BRK-B", "BRK.A", "BRK-A",  # Berkshire Hathaway — GEICO + reinsurance
+})
+
+# Crypto exchanges and Bitcoin miners. Shariah scholars are split on crypto
+# itself; the conservative consensus (echoed by SPUS/HLAL, which hold neither)
+# is to exclude crypto-exchange operators and pure-play miners until the
+# fiqh debate settles. Mining infrastructure firms with broader compute/HPC
+# businesses (e.g., CORZ) may pass; pure miners listed here are excluded.
+CRYPTO = frozenset({
+    "COIN",                                       # Coinbase exchange
+    "MARA", "RIOT", "CLSK", "WULF", "HUT", "BITF",  # Bitcoin miners
 })
 
 # Alcohol
@@ -58,10 +84,11 @@ TOBACCO = frozenset({
     "MO", "PM", "BTI",
 })
 
-# Gambling / casinos / sports betting
+# Gambling / casinos / sports betting / gaming REITs
 GAMBLING = frozenset({
     "WYNN", "LVS", "MGM", "DKNG", "PENN", "CZR", "BYD", "FLUT",
     "FUBO",  # sports betting tilt
+    "VICI",  # Vici Properties — gaming/casino REIT (owns Caesars, MGM Grand)
 })
 
 # Weapons / defense (CONTROVERSIAL — many scholars permit defensive use;
@@ -76,8 +103,39 @@ WEAPONS = frozenset({
 #   FIS, FISV, GPN, JKHY — financial-tech services (acceptable per most screens)
 # These are NOT in our excluded list.
 
+# Conventional ETFs and funds. These bundle non-Shariah-screened constituents
+# (XLF holds banks; SPY holds banks + insurers; bond ETFs are pure riba;
+# leveraged ETFs use swaps = gharar; volatility ETFs are pure maysir). Only
+# physically-backed precious metal ETFs (GLD, SLV) and gold-miner equity
+# ETFs (GDX, GDXJ) survive — gold and silver are Shariah-compliant
+# stores of value (see AAOIFI Sharia Standard 57 on gold).
+CONVENTIONAL_ETFS = frozenset({
+    # Broad-market index funds (bundle haram constituents)
+    "SPY", "QQQ", "IWM", "DIA", "VTI", "VOO", "VEA", "VWO", "VXUS",
+    "EFA", "IEFA",
+    # Sector ETFs (not Shariah-screened; XLF includes banks)
+    "XLK", "XLF", "XLE", "XLV", "XLI", "XLY", "XLP", "XLU", "XLB",
+    "XLRE", "XLC",
+    # Thematic / industry ETFs
+    "SOXX", "SMH", "IGV", "HACK", "FINX", "IBB", "XBI", "IHI",
+    "ARKK", "ARKG", "ARKW", "ARKQ", "ARKF", "ARKX",
+    # Bond ETFs (interest-bearing = riba)
+    "TLT", "IEF", "SHY", "HYG", "LQD", "EMB", "TIP",
+    # Commodity-futures (gharar — futures structure, not physical backing)
+    "USO", "UNG", "DBA", "DBC",
+    # Volatility ETFs (maysir — pure speculation on VIX)
+    "UVXY", "VXX",
+    # Leveraged / inverse ETFs (swaps + financing = haram structure)
+    "SQQQ", "TQQQ", "SPXU", "UPRO",
+    # Single-country ETFs (not Shariah-screened)
+    "EWZ", "EWJ", "FXI", "MCHI", "INDA", "EWY", "EWG", "EWU", "EWC",
+})
+
 # Combine all exclusions
-ALL_EXCLUDED = BANKS | INSURANCE | ALCOHOL | TOBACCO | GAMBLING | WEAPONS
+ALL_EXCLUDED = (
+    BANKS | INSURANCE | LENDING | MIXED_OPERATIONS | ALCOHOL |
+    TOBACCO | GAMBLING | WEAPONS | CRYPTO | CONVENTIONAL_ETFS
+)
 
 
 def is_halal_compliant(ticker: str) -> bool:
@@ -89,17 +147,25 @@ def exclusion_reason(ticker: str) -> str | None:
     """Return the category that excludes a ticker, or None if it's compliant."""
     t = ticker.upper()
     if t in BANKS:
-        return "Conventional banking (interest-based deposits/lending)"
+        return "Conventional banking (interest-based deposits/lending = riba)"
     if t in INSURANCE:
-        return "Conventional insurance"
+        return "Conventional insurance (interest-bearing reserves)"
+    if t in LENDING:
+        return "Interest-based lending platform (riba)"
+    if t in MIXED_OPERATIONS:
+        return "Mixed-operations conglomerate (material insurance/interest income; not in SPUS/HLAL)"
     if t in ALCOHOL:
         return "Alcohol production/distribution"
     if t in TOBACCO:
         return "Tobacco industry"
     if t in GAMBLING:
-        return "Gambling / casinos / sports betting"
+        return "Gambling / casinos / sports betting / gaming REIT"
     if t in WEAPONS:
         return "Weapons manufacturer (controversial — some scholars permit defensive)"
+    if t in CRYPTO:
+        return "Crypto exchange / Bitcoin miner (Shariah compliance debated; not held by SPUS/HLAL)"
+    if t in CONVENTIONAL_ETFS:
+        return "Conventional ETF (bundles non-Shariah-screened constituents)"
     return None
 
 
