@@ -113,20 +113,92 @@ function sizePortfolioSlot(direction, entry, atr, slotCapital) {
   };
 }
 
-// Hardcoded fallback for the Halal compliance tier — mirrors
-// analysis/shariah_etfs.py top-25 seed. Used by strict mode when the
-// Python pipeline hasn't regenerated backtest.json yet (so halal_status
-// entries lack the new `tier` field).
+// Hardcoded fallbacks mirror analysis/halal.py + analysis/shariah_etfs.py
+// so the dashboard correctly filters AND tiers tickers BEFORE the nightly
+// Python pipeline regenerates backtest.json. Without these, expanding the
+// Python exclusion list leaves users staring at stale recommendations
+// (e.g., JACK still appearing as #1 after we excluded pork restaurants).
+//
+// MAINTENANCE: keep this in sync with analysis/halal.py when adding new
+// exclusion categories. Once the nightly run completes after a change,
+// backtest.json carries the authoritative halal_status and these
+// fallbacks become dormant (the function below prefers the JSON record).
 const _SHARIAH_ETF_FALLBACK = {
   spus: new Set(["NVDA","AAPL","MSFT","GOOGL","AVGO","TSLA","LLY","MU","XOM","AMD","JNJ","CSCO","ABBV","LRCX","PG","AMAT","ORCL","HD","GEV","MRK","TXN","LIN","KLAC","PEP","IBM"]),
   hlal: new Set(["AAPL","MSFT","GOOGL","AVGO","GOOG","META","TSLA","MU","LLY","AMD","XOM","JNJ","INTC","CSCO","LRCX","CVX","AMAT","PG","KO","GEV","TXN","MRK","KLAC","LIN","QCOM"]),
 };
 
+// Exclusion fallback — mirrors ALL_EXCLUDED in analysis/halal.py.
+// Marked with categories so we can surface a useful exclusion_reason
+// in the filter-miss tooltip when the Python data is stale.
+const _HALAL_EXCLUDE_CATEGORIES = {
+  "Conventional banking (interest-based deposits/lending = riba)": [
+    "JPM","BAC","WFC","C","GS","MS","USB","PNC","TFC","COF","FITB","MTB",
+    "HBAN","RF","KEY","CFG","ZION","SBNY","FRC","NTRS","STT","BK","AXP",
+    "DFS","SYF","SCHW",
+  ],
+  "Conventional insurance (interest-bearing reserves)": [
+    "AIG","MET","PRU","TRV","AFL","ALL","CB","MMC","AON","CINF","PGR",
+    "HIG","L","LMND",
+  ],
+  "Interest-based lending platform (riba)": ["SOFI","AFRM","UPST","HOOD"],
+  "Mixed-operations conglomerate (material insurance/interest income; not in SPUS/HLAL)": [
+    "BRK.B","BRK-B","BRK.A","BRK-A",
+  ],
+  "Alcohol production/distribution": ["BUD","STZ","DEO","TAP","SAM"],
+  "Tobacco industry": ["MO","PM","BTI"],
+  "Gambling / casinos / sports betting / gaming REIT": [
+    "WYNN","LVS","MGM","DKNG","PENN","CZR","BYD","FLUT","FUBO","VICI",
+  ],
+  "Weapons manufacturer (controversial — some scholars permit defensive)": [
+    "LMT","RTX","NOC","GD","HII","LDOS","TXT","TDG",
+  ],
+  "Crypto exchange / Bitcoin miner (Shariah compliance debated; not held by SPUS/HLAL)": [
+    "COIN","MARA","RIOT","CLSK","WULF","HUT","BITF",
+  ],
+  "Conventional ETF (bundles non-Shariah-screened constituents)": [
+    "SPY","QQQ","IWM","DIA","VTI","VOO","VEA","VWO","VXUS","EFA","IEFA",
+    "XLK","XLF","XLE","XLV","XLI","XLY","XLP","XLU","XLB","XLRE","XLC",
+    "SOXX","SMH","IGV","HACK","FINX","IBB","XBI","IHI",
+    "ARKK","ARKG","ARKW","ARKQ","ARKF","ARKX",
+    "TLT","IEF","SHY","HYG","LQD","EMB","TIP",
+    "USO","UNG","DBA","DBC","UVXY","VXX","SQQQ","TQQQ","SPXU","UPRO",
+    "EWZ","EWJ","FXI","MCHI","INDA","EWY","EWG","EWU","EWC",
+  ],
+  "Restaurant with pork as flagship menu item (bacon/pepperoni/sausage)": [
+    "MCD","JACK","WEN","QSR","YUM","DPZ",
+  ],
+  "Cruise line (material onboard casino + bar revenue)": ["CCL","RCL","NCLH"],
+  "Hotel operator with material bar / casino revenue": ["MAR","HLT","H"],
+};
+const _HALAL_EXCLUDE_REASON = (() => {
+  const m = new Map();
+  for (const [reason, tickers] of Object.entries(_HALAL_EXCLUDE_CATEGORIES)) {
+    for (const t of tickers) m.set(t, reason);
+  }
+  return m;
+})();
+
 function _shariahTierFor(ticker, statusRecord) {
-  // Prefer fresh data from backtest.json (Python-side halal_status)
-  if (statusRecord && statusRecord.tier) return statusRecord;
-  // Fallback when Python pipeline hasn't refreshed yet
   const t = (ticker || "").toUpperCase();
+  const localReason = _HALAL_EXCLUDE_REASON.get(t);
+  // Override stale "compliant: true" data when our local exclusion list
+  // says otherwise — the Python list is the source of truth, and the
+  // backtest.json copy lags it by one nightly cron.
+  if (localReason) {
+    return {
+      compliant: false,
+      exclusion_reason: localReason,
+      tier: "excluded",
+      in_spus: false,
+      in_hlal: false,
+      etf_count: 0,
+    };
+  }
+  // If the JSON record already carries the new schema and isn't shadowed
+  // by a local exclusion, trust it.
+  if (statusRecord && statusRecord.tier) return statusRecord;
+  // Otherwise derive the tier from local SPUS/HLAL membership.
   const inSpus = _SHARIAH_ETF_FALLBACK.spus.has(t);
   const inHlal = _SHARIAH_ETF_FALLBACK.hlal.has(t);
   const compliant = statusRecord ? statusRecord.compliant !== false : true;
