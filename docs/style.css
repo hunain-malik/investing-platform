@@ -27,7 +27,9 @@ body {
   border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 10;
 }
-.brand { font-weight: 700; font-size: 1.1rem; }
+.brand { font-weight: 700; font-size: 1.1rem; display: flex; flex-direction: column; line-height: 1.2; }
+.brand-title { font-size: 1.1rem; }
+.brand-tagline { font-size: 0.72rem; font-weight: 500; color: rgba(46, 160, 67, 0.95); margin-top: 2px; }
 .topbar nav { display: flex; gap: 16px; flex: 1; }
 .topbar nav a { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
 .topbar nav a:hover { color: var(--text); }
@@ -96,6 +98,21 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 3px; font-si
 }
 
 /* Halal filter sits prominently in the main agent box (not buried under Advanced) */
+/* Always-on Halal compliance banner (replaces toggle-based filter block) */
+.halal-banner {
+  margin: 12px 0 16px;
+  padding: 12px 16px;
+  background: rgba(46, 160, 67, 0.06);
+  border: 1px solid rgba(46, 160, 67, 0.3);
+  border-radius: 8px;
+}
+.halal-banner-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.halal-banner-text { flex: 1; }
+/* Legacy class kept in case anything still references it */
 .halal-filter-block {
   margin: 12px 0 16px;
   padding: 12px 16px;
@@ -103,6 +120,17 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 3px; font-si
   border: 1px solid rgba(46, 160, 67, 0.35);
   border-radius: 8px;
 }
+.zoya-link {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.78rem;
+  color: rgba(46, 160, 67, 0.95);
+  text-decoration: none;
+  border: 1px solid rgba(46, 160, 67, 0.4);
+  border-radius: 4px;
+  margin-left: 4px;
+}
+.zoya-link:hover { background: rgba(46, 160, 67, 0.1); }
 .halal-filter-header {
   display: flex;
   align-items: center;

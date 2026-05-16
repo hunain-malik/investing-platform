@@ -37,7 +37,7 @@ from .backtest import (
     run_batch,
     update_weights_per_horizon,
 )
-from .halal import halal_status_map
+from .halal import halal_status_map, filter_halal_tickers
 from .sectors import get_sectors
 from .cross_validation import kfold_meta_accuracy, kfold_meta_accuracy_sector_aware
 from .data import fetch_history_cached
@@ -139,9 +139,22 @@ def main() -> int:
     bt_cfg = config["backtest"]
     sig_cfg = config["signals"]
 
-    # Watchlist and backtest universe — fall back to universe.py defaults
-    watchlist_tickers = config.get("watchlist") or watchlist()
-    bt_universe = config.get("backtest_universe") or backtest_universe()
+    # Watchlist and backtest universe — fall back to universe.py defaults.
+    # PLATFORM IS HALAL-ONLY: prune the universe at ingestion so non-compliant
+    # tickers are never analyzed, never appear in backtest, predictions, or
+    # signals. This is the structural difference from the toggle-based
+    # filter we used to ship.
+    watchlist_tickers_raw = config.get("watchlist") or watchlist()
+    bt_universe_raw = config.get("backtest_universe") or backtest_universe()
+    watchlist_tickers, watchlist_excluded = filter_halal_tickers(watchlist_tickers_raw)
+    bt_universe, bt_excluded = filter_halal_tickers(bt_universe_raw)
+    if watchlist_excluded or bt_excluded:
+        log.info(
+            "Halal-only universe: pruned %d tickers (watchlist) and %d tickers (backtest universe). Examples: %s",
+            len(watchlist_excluded),
+            len(bt_excluded),
+            list(bt_excluded.items())[:5],
+        )
 
     # ---- 1. Resolve any open predictions whose horizon has elapsed --------
     predictions = load_predictions()

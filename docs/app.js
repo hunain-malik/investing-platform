@@ -277,8 +277,7 @@ function setupAgent(signalsPayload) {
   document.getElementById("agent-form").addEventListener("change", renderAgent);
   document.getElementById("agent-advanced-form")?.addEventListener("input", renderAgent);
   document.getElementById("agent-advanced-form")?.addEventListener("change", renderAgent);
-  // Halal checkboxes live outside both forms (in .halal-filter-block) — bind directly
-  document.getElementById("agent-halal-only")?.addEventListener("change", renderAgent);
+  // Halal strict-mode toggle lives outside both forms — bind directly
   document.getElementById("agent-halal-strict")?.addEventListener("change", renderAgent);
   document.getElementById("agent-mode").addEventListener("change", e => {
     document.getElementById("agent-portfolio-n-wrap").style.display = (e.target.value === "portfolio") ? "" : "none";
@@ -418,7 +417,8 @@ function getAgentInputs() {
     horizon: parseInt(document.getElementById("agent-horizon").value) || 60,
     minConf: parseFloat(document.getElementById("agent-min-conf").value) || 0.55,
     direction: document.getElementById("agent-direction").value,
-    optionsAllowed: document.getElementById("agent-options-allowed").checked,
+    // Halal-only platform — options never recommended (AAOIFI gharar/maysir)
+    optionsAllowed: false,
     skipEarnings: document.getElementById("agent-skip-earnings").checked,
     hideNoSignal: document.getElementById("agent-hide-no-signal").checked,
     mode: document.getElementById("agent-mode").value,
@@ -430,7 +430,8 @@ function getAgentInputs() {
     maxPrice: parseFloat(document.getElementById("agent-max-price")?.value) || 1e9,
     volatility: document.getElementById("agent-volatility")?.value || "any",
     minPatterns: parseInt(document.getElementById("agent-min-patterns")?.value) || 0,
-    halalOnly: document.getElementById("agent-halal-only")?.checked || false,
+    // Halal-only platform — filter is always on; strict mode (ETF-certified only) is opt-in
+    halalOnly: true,
     halalStrict: document.getElementById("agent-halal-strict")?.checked || false,
   };
   // Apply style preset overlays (gentle — only adjusts if user left defaults)
@@ -745,22 +746,22 @@ function renderRecommendationCard(s, cfg, rank) {
   // methodologies. The meta/consensus tiers have explicit voters; the
   // all-ensemble doesn't, so we use pattern-fire count instead.
   const tentativeVoters = isTentative ? (s.n_fired ?? 0) : null;
-  // Halal / ETF-certification badge — visible when the Halal filter is on
-  // so the user can see at a glance which tickers are AAOIFI-screened by
-  // a certified Shariah board (SPUS / HLAL) vs only passing the coarse
-  // industry filter.
+  // Halal / ETF-certification badge — always rendered (Halal-only platform).
+  // Gold tier (SPUS/HLAL holding) → green confirm; silver tier (industry-pass,
+  // ratios unverified) → yellow warn with "verify on Zoya" prompt.
   let halalBadge = "";
-  if (cfg.halalOnly) {
-    const hStat = _agent.halalStatus[s.ticker];
-    if (hStat) {
-      if (hStat.tier === "etf_certified") {
-        const etfs = [hStat.in_spus ? "SPUS" : null, hStat.in_hlal ? "HLAL" : null].filter(Boolean).join("+");
-        halalBadge = `<span class="tag confirm" title="Held by ${etfs} — AAOIFI-screened by certified Shariah board (full leverage + interest income + non-compliant revenue ratios applied).">🕌 ${etfs}</span>`;
-      } else if (hStat.tier === "industry_pass") {
-        halalBadge = `<span class="tag warn" title="Passes the general industry-exclusion filter but is NOT held by SPUS or HLAL. The ratio screens (debt-to-market-cap, interest income, non-compliant revenue) have not been verified for this ticker. Cross-check on Zoya before treating as compliant.">🕌 verify on Zoya</span>`;
-      }
+  const hStat = _agent.halalStatus[s.ticker];
+  if (hStat) {
+    if (hStat.tier === "etf_certified") {
+      const etfs = [hStat.in_spus ? "SPUS" : null, hStat.in_hlal ? "HLAL" : null].filter(Boolean).join("+");
+      halalBadge = `<span class="tag confirm" title="Held by ${etfs} — AAOIFI-screened by certified Shariah board (full leverage + interest income + non-compliant revenue ratios applied).">🕌 ${etfs}</span>`;
+    } else if (hStat.tier === "industry_pass") {
+      halalBadge = `<span class="tag warn" title="Passes the industry-exclusion filter but NOT held by SPUS or HLAL — ratio screens (debt/market-cap, interest income, non-compliant revenue) unverified. Cross-check on Zoya before treating as compliant.">🕌 verify on Zoya</span>`;
     }
   }
+  // Per-ticker Zoya deep-link — always shown so the user is one click away
+  // from authoritative AAOIFI verification.
+  const zoyaLink = `<a class="zoya-link" href="https://zoya.finance/" target="_blank" rel="noopener" title="Verify ${s.ticker} on Zoya (AAOIFI screening, ratios, purification %)">🔍 Zoya</a>`;
 
   // Volatility match badge — shows whether this stock's volatility matches
   // the user's risk profile.
@@ -795,6 +796,10 @@ function renderRecommendationCard(s, cfg, rank) {
     contribs = methodVoters.map(c => `<span class="pattern-chip" title="${c.methodology} fired ${c.direction.toUpperCase()} at confidence ${c.confidence}, weighted by ${(c.weight * 100).toFixed(0)}% (from accuracy ${(c.accuracy * 100).toFixed(1)}%)">${c.methodology} → ${c.direction.toUpperCase()}</span>`).join(" ");
   }
 
+  // Halal-only platform — options tactics never recommended. The opts var
+  // will always be null here (recommendOptions returns null when
+  // optionsAllowed=false, which is hardcoded in getAgentInputs). Kept the
+  // dead branch wired through but it never executes for users.
   let optsLine = "";
   if (opts && opts.strategy === "none") {
     optsLine = `<div class="rec-line muted">Options: <em>not recommended</em> — ${opts.skipReason}.</div>`;
@@ -829,42 +834,32 @@ function renderRecommendationCard(s, cfg, rank) {
   const contradictionChip = sentimentContradictionChip(s.direction, s.sentiment);
   // Equity recommendation depends on direction:
   // - UP   -> long entry (buy shares, sell at target / stop below)
-  // - DOWN -> short entry (sell-to-open, requires margin account; stop above)
+  // - DOWN -> bearish signal reframed as "avoid the position / wait for reversal"
+  //          (Halal-only platform: conventional short-selling is non-compliant per
+  //           AAOIFI — bay' al-ma'dum + interest-based margin borrow.)
   let equityLine;
   if (s.direction === "up") {
+    // Add a dividend-purification reminder line for any long position.
+    // Mainstream Shariah rulings call for ~5% purification on dividend income
+    // from any stock that earns a small amount of non-compliant revenue.
     equityLine = `
       <div class="rec-line">
         <strong>Equity (long):</strong> <strong>Buy ${fmtNum(sizing.shares)} shares</strong> @ ${fmtUsd(s.price)} · stop-loss ${fmtUsd(sizing.stop)} · position ${fmtUsd(sizing.posUsd)} (${(sizing.pctOfCapital * 100).toFixed(1)}% of capital) · max risk ${fmtUsd(sizing.riskUsd)}
+      </div>
+      <div class="rec-line muted small" style="font-size: 0.82rem; margin-top: 2px;">
+        💧 <strong>Dividend purification:</strong> if this stock pays dividends, allocate ~5% (or the exact ratio from <a href="https://zoya.finance/" target="_blank" rel="noopener">Zoya</a>) to charity to remove non-compliant income.
       </div>`;
   } else if (s.direction === "down") {
-    const halalShortCaveat = cfg.halalOnly
-      ? `<div class="rec-line muted small" style="background: rgba(46, 160, 67, 0.06); border-left: 3px solid rgba(46, 160, 67, 0.5); padding: 6px 10px; margin: 4px 0;">
-           🕌 <strong>Halal-mode note:</strong> conventional short-selling is also widely considered non-compliant per AAOIFI (bay' al-ma'dum — selling what you don't own — plus interest-based margin borrow fees). The Halal-friendly move on a bearish signal is usually to <strong>simply avoid the position</strong>, not to short it. Below is shown for transparency only.
-         </div>`
-      : "";
     equityLine = `
-      ${halalShortCaveat}
-      <div class="rec-line">
-        <strong>Equity (short):</strong> <strong>Short-sell ${fmtNum(sizing.shares)} shares</strong> @ ${fmtUsd(s.price)} · stop-loss ${fmtUsd(sizing.stop)} (buy-to-cover if price rises here) · position ${fmtUsd(sizing.posUsd)} (${(sizing.pctOfCapital * 100).toFixed(1)}% of capital) · max risk ${fmtUsd(sizing.riskUsd)}
-      </div>
-      <details class="rec-line muted small">
-        <summary>⚠ Don't own the shares? How short-selling actually works (click to expand)</summary>
-        <ul style="margin: 6px 0; padding-left: 18px;">
-          <li><strong>Your broker lends you the shares</strong> from their inventory or other margin-account clients' idle holdings.</li>
-          <li>You immediately <strong>sell them at market price</strong> — cash from the sale lands in your account.</li>
-          <li>Later you <strong>"cover"</strong> by buying the same number of shares back on the open market and returning them to the broker.</li>
-          <li><strong>Profit = sell price − buy-back price</strong>, so you profit when the stock falls.</li>
-          <li><strong>Requires a margin account.</strong> Not allowed in IRAs / Roth IRAs by law.</li>
-          <li><strong>Risk is unbounded</strong> — long position max loss is what you paid; short position max loss is theoretically infinite (stock could rise forever).</li>
-          <li><strong>Borrow fee</strong> applies — usually small for liquid large caps, can be 10-50%/yr on hard-to-borrow names.</li>
+      <div class="rec-line bearish-halal-guidance" style="background: rgba(46, 160, 67, 0.06); border-left: 3px solid rgba(46, 160, 67, 0.5); padding: 8px 12px; margin: 4px 0;">
+        🕌 <strong>Bearish signal — Halal-compliant action:</strong>
+        <ul style="margin: 6px 0 0 0; padding-left: 20px;">
+          <li><strong>If you already own this stock:</strong> consider trimming or exiting the long position.</li>
+          <li><strong>If you don't own it:</strong> avoid initiating a new long position; wait for the trend to reverse before re-entering.</li>
+          <li><strong>What to NOT do:</strong> shorting (bay' al-ma'dum + interest-based margin = non-compliant per AAOIFI) and buying puts (gharar + maysir) are both ruled out. Inverse ETFs like SQQQ also rely on swaps + financing — generally not compliant either.</li>
+          <li><strong>Halal hedging alternatives:</strong> rotate capital into Shariah-compliant defensive sectors (utilities aren't broadly compliant; healthcare staples like JNJ, MRK historically compliant), increase cash position, or add Sukuk-based exposure via <a href="https://www.spfunds.com/spsk" target="_blank" rel="noopener">SPSK</a> (Shariah Sukuk ETF).</li>
         </ul>
-        <strong>Alternatives if you can't short:</strong>
-        <ul style="margin: 6px 0; padding-left: 18px;">
-          <li><strong>Buy a put option</strong> (see "Options alt" below if shown). Max loss = premium paid. Allowed in many IRAs.</li>
-          <li><strong>Inverse ETFs</strong> like SQQQ (3× inverse Nasdaq) or SPXU (3× inverse S&amp;P). No margin needed.</li>
-          <li><strong>Just don't buy this name right now.</strong> Passive, zero-cost way to "play" a bearish signal.</li>
-        </ul>
-      </details>`;
+      </div>`;
   } else {
     equityLine = `<div class="rec-line muted">No directional call.</div>`;
   }
@@ -891,6 +886,7 @@ function renderRecommendationCard(s, cfg, rank) {
         ${sourceBadge}
         ${sectorBadge}
         ${halalBadge}
+        ${zoyaLink}
         ${volBadge}
         ${earningsWarn}
         ${sentChip}
