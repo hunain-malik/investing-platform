@@ -113,6 +113,37 @@ function sizePortfolioSlot(direction, entry, atr, slotCapital) {
   };
 }
 
+// Hardcoded fallback for the Halal compliance tier — mirrors
+// analysis/shariah_etfs.py top-25 seed. Used by strict mode when the
+// Python pipeline hasn't regenerated backtest.json yet (so halal_status
+// entries lack the new `tier` field).
+const _SHARIAH_ETF_FALLBACK = {
+  spus: new Set(["NVDA","AAPL","MSFT","GOOGL","AVGO","TSLA","LLY","MU","XOM","AMD","JNJ","CSCO","ABBV","LRCX","PG","AMAT","ORCL","HD","GEV","MRK","TXN","LIN","KLAC","PEP","IBM"]),
+  hlal: new Set(["AAPL","MSFT","GOOGL","AVGO","GOOG","META","TSLA","MU","LLY","AMD","XOM","JNJ","INTC","CSCO","LRCX","CVX","AMAT","PG","KO","GEV","TXN","MRK","KLAC","LIN","QCOM"]),
+};
+
+function _shariahTierFor(ticker, statusRecord) {
+  // Prefer fresh data from backtest.json (Python-side halal_status)
+  if (statusRecord && statusRecord.tier) return statusRecord;
+  // Fallback when Python pipeline hasn't refreshed yet
+  const t = (ticker || "").toUpperCase();
+  const inSpus = _SHARIAH_ETF_FALLBACK.spus.has(t);
+  const inHlal = _SHARIAH_ETF_FALLBACK.hlal.has(t);
+  const compliant = statusRecord ? statusRecord.compliant !== false : true;
+  let tier;
+  if (!compliant) tier = "excluded";
+  else if (inSpus || inHlal) tier = "etf_certified";
+  else tier = "industry_pass";
+  return {
+    compliant,
+    exclusion_reason: statusRecord ? statusRecord.exclusion_reason : null,
+    tier,
+    in_spus: inSpus,
+    in_hlal: inHlal,
+    etf_count: (inSpus ? 1 : 0) + (inHlal ? 1 : 0),
+  };
+}
+
 // Mirror of analysis/options.py heuristic
 function recommendOptions(direction, confidence, spot, atr, horizon, allowed, halalOnly) {
   if (!allowed || (direction !== "up" && direction !== "down")) return null;
@@ -501,13 +532,14 @@ function renderAgent() {
         misses.push(`sector "${s.sector}" not in your selected sectors`);
       }
     }
-    // Halal filter
-    if (cfg.halalOnly) {
-      const status = _agent.halalStatus[s.ticker];
-      if (status && status.compliant === false) {
+    // Halal filter — always on (Halal-only platform).
+    // Use _shariahTierFor() so strict mode keeps working even before the
+    // Python pipeline regenerates backtest.json with the new schema.
+    {
+      const status = _shariahTierFor(s.ticker, _agent.halalStatus[s.ticker]);
+      if (status.compliant === false) {
         misses.push(`not Halal-compliant: ${status.exclusion_reason || "general exclusion"}`);
-      } else if (cfg.halalStrict && status && status.tier !== "etf_certified") {
-        // Strict mode: require ETF certification (SPUS or HLAL holding)
+      } else if (cfg.halalStrict && status.tier !== "etf_certified") {
         misses.push(`not held by SPUS or HLAL — strict mode requires Shariah ETF certification`);
       }
     }
@@ -749,15 +781,15 @@ function renderRecommendationCard(s, cfg, rank) {
   // Halal / ETF-certification badge — always rendered (Halal-only platform).
   // Gold tier (SPUS/HLAL holding) → green confirm; silver tier (industry-pass,
   // ratios unverified) → yellow warn with "verify on Zoya" prompt.
+  // Uses _shariahTierFor() so badges show correctly even before Python
+  // pipeline regenerates backtest.json with the new tier schema.
   let halalBadge = "";
-  const hStat = _agent.halalStatus[s.ticker];
-  if (hStat) {
-    if (hStat.tier === "etf_certified") {
-      const etfs = [hStat.in_spus ? "SPUS" : null, hStat.in_hlal ? "HLAL" : null].filter(Boolean).join("+");
-      halalBadge = `<span class="tag confirm" title="Held by ${etfs} — AAOIFI-screened by certified Shariah board (full leverage + interest income + non-compliant revenue ratios applied).">🕌 ${etfs}</span>`;
-    } else if (hStat.tier === "industry_pass") {
-      halalBadge = `<span class="tag warn" title="Passes the industry-exclusion filter but NOT held by SPUS or HLAL — ratio screens (debt/market-cap, interest income, non-compliant revenue) unverified. Cross-check on Zoya before treating as compliant.">🕌 verify on Zoya</span>`;
-    }
+  const hStat = _shariahTierFor(s.ticker, _agent.halalStatus[s.ticker]);
+  if (hStat.tier === "etf_certified") {
+    const etfs = [hStat.in_spus ? "SPUS" : null, hStat.in_hlal ? "HLAL" : null].filter(Boolean).join("+");
+    halalBadge = `<span class="tag confirm" title="Held by ${etfs} — AAOIFI-screened by certified Shariah board (full leverage + interest income + non-compliant revenue ratios applied).">🕌 ${etfs}</span>`;
+  } else if (hStat.tier === "industry_pass") {
+    halalBadge = `<span class="tag warn" title="Passes the industry-exclusion filter but NOT held by SPUS or HLAL — ratio screens (debt/market-cap, interest income, non-compliant revenue) unverified. Cross-check on Zoya before treating as compliant.">🕌 verify on Zoya</span>`;
   }
   // Per-ticker Zoya deep-link — always shown so the user is one click away
   // from authoritative AAOIFI verification.
@@ -839,26 +871,17 @@ function renderRecommendationCard(s, cfg, rank) {
   //           AAOIFI — bay' al-ma'dum + interest-based margin borrow.)
   let equityLine;
   if (s.direction === "up") {
-    // Add a dividend-purification reminder line for any long position.
-    // Mainstream Shariah rulings call for ~5% purification on dividend income
-    // from any stock that earns a small amount of non-compliant revenue.
     equityLine = `
       <div class="rec-line">
         <strong>Equity (long):</strong> <strong>Buy ${fmtNum(sizing.shares)} shares</strong> @ ${fmtUsd(s.price)} · stop-loss ${fmtUsd(sizing.stop)} · position ${fmtUsd(sizing.posUsd)} (${(sizing.pctOfCapital * 100).toFixed(1)}% of capital) · max risk ${fmtUsd(sizing.riskUsd)}
-      </div>
-      <div class="rec-line muted small" style="font-size: 0.82rem; margin-top: 2px;">
-        💧 <strong>Dividend purification:</strong> if this stock pays dividends, allocate ~5% (or the exact ratio from <a href="https://zoya.finance/" target="_blank" rel="noopener">Zoya</a>) to charity to remove non-compliant income.
       </div>`;
   } else if (s.direction === "down") {
+    // Halal-only: short-selling, puts, and swap-based inverse ETFs are all
+    // ruled out. The actionable Halal move on a bearish signal is to
+    // trim/exit longs and stay out — a short, no-jargon prompt.
     equityLine = `
-      <div class="rec-line bearish-halal-guidance" style="background: rgba(46, 160, 67, 0.06); border-left: 3px solid rgba(46, 160, 67, 0.5); padding: 8px 12px; margin: 4px 0;">
-        🕌 <strong>Bearish signal — Halal-compliant action:</strong>
-        <ul style="margin: 6px 0 0 0; padding-left: 20px;">
-          <li><strong>If you already own this stock:</strong> consider trimming or exiting the long position.</li>
-          <li><strong>If you don't own it:</strong> avoid initiating a new long position; wait for the trend to reverse before re-entering.</li>
-          <li><strong>What to NOT do:</strong> shorting (bay' al-ma'dum + interest-based margin = non-compliant per AAOIFI) and buying puts (gharar + maysir) are both ruled out. Inverse ETFs like SQQQ also rely on swaps + financing — generally not compliant either.</li>
-          <li><strong>Halal hedging alternatives:</strong> rotate capital into Shariah-compliant defensive sectors (utilities aren't broadly compliant; healthcare staples like JNJ, MRK historically compliant), increase cash position, or add Sukuk-based exposure via <a href="https://www.spfunds.com/spsk" target="_blank" rel="noopener">SPSK</a> (Shariah Sukuk ETF).</li>
-        </ul>
+      <div class="rec-line" style="background: rgba(46, 160, 67, 0.05); border-left: 3px solid rgba(46, 160, 67, 0.5); padding: 8px 12px;">
+        <strong>🕌 Bearish — what to do:</strong> if you hold ${s.ticker}, consider trimming or exiting; if you don't, stay out until the trend flips. Shorts, puts, and inverse ETFs aren't Halal-compliant alternatives.
       </div>`;
   } else {
     equityLine = `<div class="rec-line muted">No directional call.</div>`;
