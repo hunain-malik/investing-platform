@@ -1,356 +1,361 @@
 {
-  "updated_at": "2026-05-26T22:06:18Z",
+  "updated_at": "2026-05-26T23:05:26Z",
   "n_samples": 3000,
   "meta_kfold": {
     "k": 5,
     "n_samples": 3000,
-    "signals_emitted": 981,
-    "correct": 642,
-    "accuracy": 0.6544,
-    "signal_rate": 0.327,
+    "signals_emitted": 1046,
+    "correct": 656,
+    "accuracy": 0.6272,
+    "signal_rate": 0.3487,
     "by_horizon": {
+      "20": {
+        "signals": 15,
+        "correct": 8,
+        "accuracy": 0.5333
+      },
       "30": {
-        "signals": 1,
-        "correct": 1,
-        "accuracy": 1.0
+        "signals": 60,
+        "correct": 21,
+        "accuracy": 0.35
       },
       "45": {
-        "signals": 1,
-        "correct": 1,
-        "accuracy": 1.0
+        "signals": 98,
+        "correct": 57,
+        "accuracy": 0.5816
       },
       "60": {
-        "signals": 43,
-        "correct": 20,
-        "accuracy": 0.4651
+        "signals": 70,
+        "correct": 36,
+        "accuracy": 0.5143
       },
       "90": {
-        "signals": 156,
-        "correct": 101,
-        "accuracy": 0.6474
+        "signals": 38,
+        "correct": 20,
+        "accuracy": 0.5263
       },
       "120": {
-        "signals": 148,
-        "correct": 98,
-        "accuracy": 0.6622
+        "signals": 114,
+        "correct": 64,
+        "accuracy": 0.5614
       },
       "180": {
-        "signals": 161,
-        "correct": 97,
-        "accuracy": 0.6025
+        "signals": 178,
+        "correct": 122,
+        "accuracy": 0.6854
       },
       "252": {
-        "signals": 138,
-        "correct": 87,
-        "accuracy": 0.6304
+        "signals": 156,
+        "correct": 99,
+        "accuracy": 0.6346
       },
       "504": {
-        "signals": 144,
-        "correct": 94,
-        "accuracy": 0.6528
+        "signals": 164,
+        "correct": 116,
+        "accuracy": 0.7073
       },
       "1260": {
-        "signals": 189,
-        "correct": 143,
-        "accuracy": 0.7566
+        "signals": 153,
+        "correct": 113,
+        "accuracy": 0.7386
       }
     },
     "by_regime": {
       "bull": {
-        "signals": 617,
+        "signals": 665,
         "correct": 369,
-        "accuracy": 0.5981
+        "accuracy": 0.5549
       },
       "unknown": {
-        "signals": 267,
-        "correct": 199,
-        "accuracy": 0.7453
-      },
-      "choppy": {
-        "signals": 65,
-        "correct": 52,
-        "accuracy": 0.8
+        "signals": 258,
+        "correct": 195,
+        "accuracy": 0.7558
       },
       "bear": {
-        "signals": 32,
+        "signals": 38,
         "correct": 22,
-        "accuracy": 0.6875
+        "accuracy": 0.5789
+      },
+      "choppy": {
+        "signals": 85,
+        "correct": 70,
+        "accuracy": 0.8235
       }
     },
     "by_direction": {
-      "down": {
-        "signals": 173,
-        "correct": 52,
-        "accuracy": 0.3006
-      },
       "up": {
-        "signals": 808,
-        "correct": 590,
-        "accuracy": 0.7302
+        "signals": 878,
+        "correct": 608,
+        "accuracy": 0.6925
+      },
+      "down": {
+        "signals": 168,
+        "correct": 48,
+        "accuracy": 0.2857
       }
     }
   },
   "meta_kfold_sector_aware": {
     "k": 5,
     "n_samples": 3000,
-    "signals_emitted": 1216,
-    "correct": 710,
-    "accuracy": 0.5839,
-    "signal_rate": 0.4053,
+    "signals_emitted": 1227,
+    "correct": 724,
+    "accuracy": 0.5901,
+    "signal_rate": 0.409,
     "by_horizon": {
-      "10": {
-        "signals": 91,
-        "correct": 47,
-        "accuracy": 0.5165
-      },
-      "180": {
-        "signals": 98,
-        "correct": 64,
-        "accuracy": 0.6531
-      },
-      "20": {
-        "signals": 89,
-        "correct": 38,
-        "accuracy": 0.427
-      },
       "252": {
-        "signals": 98,
-        "correct": 64,
-        "accuracy": 0.6531
+        "signals": 109,
+        "correct": 75,
+        "accuracy": 0.6881
       },
-      "45": {
-        "signals": 121,
-        "correct": 57,
-        "accuracy": 0.4711
-      },
-      "90": {
-        "signals": 92,
-        "correct": 60,
-        "accuracy": 0.6522
-      },
-      "30": {
-        "signals": 115,
-        "correct": 61,
-        "accuracy": 0.5304
-      },
-      "5": {
-        "signals": 103,
+      "10": {
+        "signals": 76,
         "correct": 38,
-        "accuracy": 0.3689
-      },
-      "504": {
-        "signals": 92,
-        "correct": 63,
-        "accuracy": 0.6848
-      },
-      "1260": {
-        "signals": 126,
-        "correct": 98,
-        "accuracy": 0.7778
+        "accuracy": 0.5
       },
       "60": {
-        "signals": 95,
-        "correct": 52,
-        "accuracy": 0.5474
+        "signals": 97,
+        "correct": 57,
+        "accuracy": 0.5876
+      },
+      "90": {
+        "signals": 97,
+        "correct": 49,
+        "accuracy": 0.5052
+      },
+      "180": {
+        "signals": 122,
+        "correct": 86,
+        "accuracy": 0.7049
+      },
+      "1260": {
+        "signals": 106,
+        "correct": 78,
+        "accuracy": 0.7358
+      },
+      "45": {
+        "signals": 112,
+        "correct": 65,
+        "accuracy": 0.5804
+      },
+      "30": {
+        "signals": 89,
+        "correct": 44,
+        "accuracy": 0.4944
       },
       "120": {
-        "signals": 96,
-        "correct": 68,
-        "accuracy": 0.7083
+        "signals": 102,
+        "correct": 63,
+        "accuracy": 0.6176
+      },
+      "20": {
+        "signals": 105,
+        "correct": 54,
+        "accuracy": 0.5143
+      },
+      "504": {
+        "signals": 107,
+        "correct": 74,
+        "accuracy": 0.6916
+      },
+      "5": {
+        "signals": 105,
+        "correct": 41,
+        "accuracy": 0.3905
       }
     },
     "by_regime": {
       "bull": {
-        "signals": 771,
-        "correct": 439,
-        "accuracy": 0.5694
-      },
-      "choppy": {
-        "signals": 87,
-        "correct": 56,
-        "accuracy": 0.6437
-      },
-      "bear": {
-        "signals": 41,
-        "correct": 27,
-        "accuracy": 0.6585
+        "signals": 823,
+        "correct": 455,
+        "accuracy": 0.5529
       },
       "unknown": {
-        "signals": 317,
-        "correct": 188,
-        "accuracy": 0.5931
+        "signals": 267,
+        "correct": 172,
+        "accuracy": 0.6442
+      },
+      "choppy": {
+        "signals": 100,
+        "correct": 72,
+        "accuracy": 0.72
+      },
+      "bear": {
+        "signals": 37,
+        "correct": 25,
+        "accuracy": 0.6757
       }
     },
     "by_direction": {
       "up": {
-        "signals": 1039,
-        "correct": 655,
-        "accuracy": 0.6304
+        "signals": 1047,
+        "correct": 654,
+        "accuracy": 0.6246
       },
       "down": {
-        "signals": 177,
-        "correct": 55,
-        "accuracy": 0.3107
+        "signals": 180,
+        "correct": 70,
+        "accuracy": 0.3889
       }
     },
     "by_sector": {
-      "Consumer Cyclical": {
-        "signals": 29,
-        "correct": 13,
-        "accuracy": 0.4483
+      "Communication Services": {
+        "signals": 32,
+        "correct": 15,
+        "accuracy": 0.4688
       },
       "Real Estate": {
-        "signals": 134,
-        "correct": 88,
-        "accuracy": 0.6567
+        "signals": 43,
+        "correct": 21,
+        "accuracy": 0.4884
       },
-      "EQUITY": {
-        "signals": 11,
-        "correct": 9,
-        "accuracy": 0.8182
-      },
-      "Communication Services": {
-        "signals": 144,
-        "correct": 87,
-        "accuracy": 0.6042
-      },
-      "Consumer Defensive": {
-        "signals": 87,
-        "correct": 60,
-        "accuracy": 0.6897
-      },
-      "Industrials": {
-        "signals": 229,
-        "correct": 140,
-        "accuracy": 0.6114
-      },
-      "Technology": {
-        "signals": 336,
-        "correct": 187,
-        "accuracy": 0.5565
-      },
-      "Healthcare": {
-        "signals": 97,
-        "correct": 54,
-        "accuracy": 0.5567
+      "Consumer Cyclical": {
+        "signals": 148,
+        "correct": 81,
+        "accuracy": 0.5473
       },
       "Basic Materials": {
-        "signals": 72,
-        "correct": 40,
-        "accuracy": 0.5556
+        "signals": 156,
+        "correct": 102,
+        "accuracy": 0.6538
       },
-      "Financial Services": {
-        "signals": 39,
-        "correct": 20,
-        "accuracy": 0.5128
+      "Industrials": {
+        "signals": 154,
+        "correct": 85,
+        "accuracy": 0.5519
       },
       "Energy": {
-        "signals": 31,
-        "correct": 11,
-        "accuracy": 0.3548
+        "signals": 37,
+        "correct": 17,
+        "accuracy": 0.4595
       },
-      "Utilities": {
-        "signals": 6,
-        "correct": 1,
-        "accuracy": 0.1667
+      "Technology": {
+        "signals": 438,
+        "correct": 277,
+        "accuracy": 0.6324
+      },
+      "Consumer Defensive": {
+        "signals": 33,
+        "correct": 20,
+        "accuracy": 0.6061
+      },
+      "Financial Services": {
+        "signals": 78,
+        "correct": 44,
+        "accuracy": 0.5641
       },
       "ETF / Fund": {
-        "signals": 1,
-        "correct": 0,
-        "accuracy": 0.0
+        "signals": 8,
+        "correct": 5,
+        "accuracy": 0.625
+      },
+      "Utilities": {
+        "signals": 4,
+        "correct": 2,
+        "accuracy": 0.5
+      },
+      "EQUITY": {
+        "signals": 7,
+        "correct": 5,
+        "accuracy": 0.7143
+      },
+      "Healthcare": {
+        "signals": 89,
+        "correct": 50,
+        "accuracy": 0.5618
       }
     },
     "method": "sector_aware"
   },
   "numerical_model_kfold": {
     "k": 5,
-    "n_samples": 2763,
-    "signals_emitted": 2730,
-    "correct": 1923,
-    "accuracy": 0.7044,
-    "signal_rate": 0.9881,
+    "n_samples": 2789,
+    "signals_emitted": 2725,
+    "correct": 1857,
+    "accuracy": 0.6815,
+    "signal_rate": 0.9771,
     "by_horizon": {
       "5": {
-        "signals": 206,
-        "correct": 121,
-        "accuracy": 0.5874
+        "signals": 185,
+        "correct": 99,
+        "accuracy": 0.5351
       },
       "10": {
-        "signals": 185,
-        "correct": 117,
-        "accuracy": 0.6324
+        "signals": 195,
+        "correct": 127,
+        "accuracy": 0.6513
       },
       "20": {
-        "signals": 205,
-        "correct": 116,
-        "accuracy": 0.5659
+        "signals": 222,
+        "correct": 121,
+        "accuracy": 0.545
       },
       "30": {
-        "signals": 231,
-        "correct": 161,
-        "accuracy": 0.697
+        "signals": 213,
+        "correct": 130,
+        "accuracy": 0.6103
       },
       "45": {
-        "signals": 270,
-        "correct": 174,
-        "accuracy": 0.6444
+        "signals": 243,
+        "correct": 155,
+        "accuracy": 0.6379
       },
       "60": {
-        "signals": 216,
-        "correct": 151,
-        "accuracy": 0.6991
+        "signals": 213,
+        "correct": 136,
+        "accuracy": 0.6385
       },
       "90": {
-        "signals": 217,
-        "correct": 153,
-        "accuracy": 0.7051
+        "signals": 222,
+        "correct": 131,
+        "accuracy": 0.5901
       },
       "120": {
-        "signals": 221,
-        "correct": 161,
-        "accuracy": 0.7285
+        "signals": 234,
+        "correct": 174,
+        "accuracy": 0.7436
       },
       "180": {
-        "signals": 245,
-        "correct": 179,
-        "accuracy": 0.7306
+        "signals": 267,
+        "correct": 209,
+        "accuracy": 0.7828
       },
       "252": {
-        "signals": 247,
-        "correct": 185,
-        "accuracy": 0.749
+        "signals": 243,
+        "correct": 184,
+        "accuracy": 0.7572
       },
       "504": {
-        "signals": 219,
-        "correct": 173,
-        "accuracy": 0.79
+        "signals": 239,
+        "correct": 184,
+        "accuracy": 0.7699
       },
       "1260": {
-        "signals": 268,
-        "correct": 232,
-        "accuracy": 0.8657
+        "signals": 249,
+        "correct": 207,
+        "accuracy": 0.8313
       }
     },
     "by_regime": {
-      "bull": {
-        "signals": 1328,
-        "correct": 902,
-        "accuracy": 0.6792
-      },
       "unknown": {
-        "signals": 1023,
-        "correct": 725,
-        "accuracy": 0.7087
+        "signals": 987,
+        "correct": 714,
+        "accuracy": 0.7234
       },
-      "choppy": {
-        "signals": 295,
-        "correct": 224,
-        "accuracy": 0.7593
+      "bull": {
+        "signals": 1369,
+        "correct": 869,
+        "accuracy": 0.6348
       },
       "bear": {
-        "signals": 84,
-        "correct": 72,
-        "accuracy": 0.8571
+        "signals": 80,
+        "correct": 71,
+        "accuracy": 0.8875
+      },
+      "choppy": {
+        "signals": 289,
+        "correct": 203,
+        "accuracy": 0.7024
       }
     },
     "calibration": [
@@ -364,48 +369,48 @@
       {
         "confidence_lo": 0.1,
         "confidence_hi": 0.2,
-        "n": 68,
-        "correct": 37,
-        "accuracy": 0.5441
+        "n": 108,
+        "correct": 64,
+        "accuracy": 0.5926
       },
       {
         "confidence_lo": 0.2,
         "confidence_hi": 0.3,
-        "n": 207,
-        "correct": 137,
-        "accuracy": 0.6618
+        "n": 345,
+        "correct": 236,
+        "accuracy": 0.6841
       },
       {
         "confidence_lo": 0.3,
         "confidence_hi": 0.5,
-        "n": 2059,
-        "correct": 1457,
-        "accuracy": 0.7076
+        "n": 2157,
+        "correct": 1468,
+        "accuracy": 0.6806
       },
       {
         "confidence_lo": 0.5,
         "confidence_hi": 1.01,
-        "n": 396,
-        "correct": 292,
-        "accuracy": 0.7374
+        "n": 115,
+        "correct": 89,
+        "accuracy": 0.7739
       }
     ],
     "model_coefficients": {
-      "ret_5d": 0.1153,
-      "ret_20d": -0.2952,
-      "ret_60d": 0.1222,
-      "rsi_14": -0.0201,
-      "macd_hist_norm": 0.024,
-      "dist_sma_20": -0.104,
-      "dist_sma_50": 0.1384,
-      "dist_sma_200": -0.3043,
-      "vol_20d": 0.2096,
-      "atr_ratio": -0.249,
-      "vol_z_20": -0.0543,
-      "bb_bandwidth": 0.0627,
-      "rel_strength_20": 0.1842
+      "ret_5d": -0.1459,
+      "ret_20d": 0.0194,
+      "ret_60d": -0.1169,
+      "rsi_14": -0.0087,
+      "macd_hist_norm": -0.1988,
+      "dist_sma_20": 0.1341,
+      "dist_sma_50": 0.0748,
+      "dist_sma_200": -0.0821,
+      "vol_20d": 0.2638,
+      "atr_ratio": -0.2865,
+      "vol_z_20": -0.0446,
+      "bb_bandwidth": -0.038,
+      "rel_strength_20": 0.0811
     },
-    "model_intercept": 0.8763,
+    "model_intercept": 0.7594,
     "feature_names": [
       "ret_5d",
       "ret_20d",
@@ -432,70 +437,70 @@
     "all": {
       "description": "All patterns combined \u2014 baseline ensemble",
       "samples_applicable": 3000,
-      "signals_emitted": 2673,
-      "correct": 1384,
-      "accuracy": 0.5178,
-      "signal_rate": 0.891,
+      "signals_emitted": 2696,
+      "correct": 1411,
+      "accuracy": 0.5234,
+      "signal_rate": 0.8987,
       "by_horizon": {
         "5": {
-          "signals": 232,
-          "correct": 92,
-          "accuracy": 0.3966
+          "signals": 224,
+          "correct": 85,
+          "accuracy": 0.3795
         },
         "10": {
-          "signals": 202,
-          "correct": 93,
-          "accuracy": 0.4604
+          "signals": 210,
+          "correct": 91,
+          "accuracy": 0.4333
         },
         "20": {
-          "signals": 219,
-          "correct": 95,
-          "accuracy": 0.4338
+          "signals": 237,
+          "correct": 117,
+          "accuracy": 0.4937
         },
         "30": {
-          "signals": 236,
-          "correct": 110,
-          "accuracy": 0.4661
+          "signals": 201,
+          "correct": 99,
+          "accuracy": 0.4925
         },
         "45": {
-          "signals": 261,
-          "correct": 120,
-          "accuracy": 0.4598
+          "signals": 241,
+          "correct": 129,
+          "accuracy": 0.5353
         },
         "60": {
-          "signals": 220,
-          "correct": 114,
-          "accuracy": 0.5182
+          "signals": 207,
+          "correct": 101,
+          "accuracy": 0.4879
         },
         "90": {
-          "signals": 212,
-          "correct": 125,
-          "accuracy": 0.5896
+          "signals": 217,
+          "correct": 107,
+          "accuracy": 0.4931
         },
         "120": {
-          "signals": 207,
-          "correct": 124,
-          "accuracy": 0.599
+          "signals": 222,
+          "correct": 114,
+          "accuracy": 0.5135
         },
         "180": {
-          "signals": 228,
-          "correct": 124,
-          "accuracy": 0.5439
+          "signals": 259,
+          "correct": 154,
+          "accuracy": 0.5946
         },
         "252": {
-          "signals": 222,
-          "correct": 118,
-          "accuracy": 0.5315
+          "signals": 225,
+          "correct": 124,
+          "accuracy": 0.5511
         },
         "504": {
-          "signals": 198,
-          "correct": 109,
-          "accuracy": 0.5505
+          "signals": 227,
+          "correct": 141,
+          "accuracy": 0.6211
         },
         "1260": {
-          "signals": 236,
-          "correct": 160,
-          "accuracy": 0.678
+          "signals": 226,
+          "correct": 149,
+          "accuracy": 0.6593
         }
       },
       "pruned": false
@@ -503,70 +508,70 @@
     "trend_following": {
       "description": "SMA/MACD/Ichimoku crossovers + multi-timeframe alignment + relative strength",
       "samples_applicable": 3000,
-      "signals_emitted": 2386,
-      "correct": 1241,
-      "accuracy": 0.5201,
-      "signal_rate": 0.7953,
+      "signals_emitted": 2392,
+      "correct": 1255,
+      "accuracy": 0.5247,
+      "signal_rate": 0.7973,
       "by_horizon": {
         "5": {
-          "signals": 214,
-          "correct": 87,
-          "accuracy": 0.4065
+          "signals": 201,
+          "correct": 82,
+          "accuracy": 0.408
         },
         "10": {
-          "signals": 175,
-          "correct": 79,
-          "accuracy": 0.4514
+          "signals": 185,
+          "correct": 83,
+          "accuracy": 0.4486
         },
         "20": {
-          "signals": 195,
-          "correct": 87,
-          "accuracy": 0.4462
+          "signals": 206,
+          "correct": 99,
+          "accuracy": 0.4806
         },
         "30": {
-          "signals": 222,
-          "correct": 104,
-          "accuracy": 0.4685
+          "signals": 182,
+          "correct": 92,
+          "accuracy": 0.5055
         },
         "45": {
-          "signals": 234,
-          "correct": 108,
-          "accuracy": 0.4615
+          "signals": 211,
+          "correct": 104,
+          "accuracy": 0.4929
         },
         "60": {
-          "signals": 192,
-          "correct": 91,
-          "accuracy": 0.474
+          "signals": 189,
+          "correct": 98,
+          "accuracy": 0.5185
         },
         "90": {
-          "signals": 182,
-          "correct": 106,
-          "accuracy": 0.5824
+          "signals": 190,
+          "correct": 95,
+          "accuracy": 0.5
         },
         "120": {
-          "signals": 184,
-          "correct": 108,
-          "accuracy": 0.587
+          "signals": 200,
+          "correct": 101,
+          "accuracy": 0.505
         },
         "180": {
-          "signals": 198,
-          "correct": 109,
-          "accuracy": 0.5505
+          "signals": 223,
+          "correct": 129,
+          "accuracy": 0.5785
         },
         "252": {
-          "signals": 199,
-          "correct": 115,
-          "accuracy": 0.5779
+          "signals": 196,
+          "correct": 119,
+          "accuracy": 0.6071
         },
         "504": {
-          "signals": 178,
-          "correct": 104,
-          "accuracy": 0.5843
+          "signals": 205,
+          "correct": 130,
+          "accuracy": 0.6341
         },
         "1260": {
-          "signals": 213,
-          "correct": 143,
-          "accuracy": 0.6714
+          "signals": 204,
+          "correct": 123,
+          "accuracy": 0.6029
         }
       },
       "pruned": false
@@ -574,70 +579,70 @@
     "mean_reversion": {
       "description": "RSI/Stochastic extremes, Bollinger squeezes, doji at S/R, volume dry-up/dry-top",
       "samples_applicable": 3000,
-      "signals_emitted": 1434,
-      "correct": 593,
-      "accuracy": 0.4135,
-      "signal_rate": 0.478,
+      "signals_emitted": 1467,
+      "correct": 610,
+      "accuracy": 0.4158,
+      "signal_rate": 0.489,
       "by_horizon": {
         "5": {
-          "signals": 117,
-          "correct": 51,
-          "accuracy": 0.4359
+          "signals": 126,
+          "correct": 42,
+          "accuracy": 0.3333
         },
         "10": {
-          "signals": 105,
-          "correct": 39,
-          "accuracy": 0.3714
+          "signals": 122,
+          "correct": 48,
+          "accuracy": 0.3934
         },
         "20": {
-          "signals": 117,
-          "correct": 44,
-          "accuracy": 0.3761
+          "signals": 122,
+          "correct": 51,
+          "accuracy": 0.418
         },
         "30": {
-          "signals": 121,
-          "correct": 45,
-          "accuracy": 0.3719
+          "signals": 113,
+          "correct": 54,
+          "accuracy": 0.4779
         },
         "45": {
-          "signals": 133,
-          "correct": 56,
-          "accuracy": 0.4211
+          "signals": 119,
+          "correct": 55,
+          "accuracy": 0.4622
         },
         "60": {
-          "signals": 132,
-          "correct": 61,
-          "accuracy": 0.4621
+          "signals": 110,
+          "correct": 43,
+          "accuracy": 0.3909
         },
         "90": {
-          "signals": 110,
-          "correct": 50,
-          "accuracy": 0.4545
+          "signals": 126,
+          "correct": 58,
+          "accuracy": 0.4603
         },
         "120": {
-          "signals": 114,
-          "correct": 51,
-          "accuracy": 0.4474
+          "signals": 120,
+          "correct": 52,
+          "accuracy": 0.4333
         },
         "180": {
-          "signals": 130,
-          "correct": 58,
-          "accuracy": 0.4462
+          "signals": 159,
+          "correct": 71,
+          "accuracy": 0.4465
         },
         "252": {
-          "signals": 109,
-          "correct": 45,
-          "accuracy": 0.4128
+          "signals": 113,
+          "correct": 41,
+          "accuracy": 0.3628
         },
         "504": {
-          "signals": 119,
-          "correct": 46,
-          "accuracy": 0.3866
+          "signals": 111,
+          "correct": 43,
+          "accuracy": 0.3874
         },
         "1260": {
-          "signals": 127,
-          "correct": 47,
-          "accuracy": 0.3701
+          "signals": 126,
+          "correct": 52,
+          "accuracy": 0.4127
         }
       },
       "pruned": true
@@ -645,70 +650,70 @@
     "candlestick_only": {
       "description": "Only candlestick patterns \u2014 wick/body shape signals",
       "samples_applicable": 3000,
-      "signals_emitted": 304,
-      "correct": 127,
-      "accuracy": 0.4178,
-      "signal_rate": 0.1013,
+      "signals_emitted": 326,
+      "correct": 152,
+      "accuracy": 0.4663,
+      "signal_rate": 0.1087,
       "by_horizon": {
         "5": {
-          "signals": 28,
-          "correct": 6,
-          "accuracy": 0.2143
+          "signals": 26,
+          "correct": 11,
+          "accuracy": 0.4231
         },
         "10": {
-          "signals": 24,
+          "signals": 32,
           "correct": 13,
-          "accuracy": 0.5417
+          "accuracy": 0.4062
         },
         "20": {
+          "signals": 28,
+          "correct": 11,
+          "accuracy": 0.3929
+        },
+        "30": {
+          "signals": 20,
+          "correct": 9,
+          "accuracy": 0.45
+        },
+        "45": {
+          "signals": 27,
+          "correct": 19,
+          "accuracy": 0.7037
+        },
+        "60": {
           "signals": 24,
           "correct": 10,
           "accuracy": 0.4167
         },
-        "30": {
-          "signals": 22,
-          "correct": 6,
-          "accuracy": 0.2727
-        },
-        "45": {
-          "signals": 28,
-          "correct": 13,
-          "accuracy": 0.4643
-        },
-        "60": {
-          "signals": 26,
-          "correct": 12,
-          "accuracy": 0.4615
-        },
         "90": {
-          "signals": 28,
+          "signals": 30,
           "correct": 12,
-          "accuracy": 0.4286
+          "accuracy": 0.4
         },
         "120": {
-          "signals": 26,
+          "signals": 25,
           "correct": 13,
-          "accuracy": 0.5
+          "accuracy": 0.52
         },
         "180": {
-          "signals": 21,
-          "correct": 12,
-          "accuracy": 0.5714
+          "signals": 35,
+          "correct": 16,
+          "accuracy": 0.4571
         },
         "252": {
-          "signals": 25,
-          "correct": 7,
-          "accuracy": 0.28
+          "signals": 26,
+          "correct": 15,
+          "accuracy": 0.5769
         },
         "504": {
-          "signals": 25,
-          "correct": 12,
-          "accuracy": 0.48
+          "signals": 23,
+          "correct": 10,
+          "accuracy": 0.4348
         },
         "1260": {
-          "signals": 27,
-          "correct": 11,
-          "accuracy": 0.4074
+          "signals": 30,
+          "correct": 13,
+          "accuracy": 0.4333
         }
       },
       "pruned": false
@@ -716,70 +721,70 @@
     "volume_driven": {
       "description": "Volume-based conviction patterns (breakouts and dry-ups)",
       "samples_applicable": 3000,
-      "signals_emitted": 914,
-      "correct": 355,
-      "accuracy": 0.3884,
-      "signal_rate": 0.3047,
+      "signals_emitted": 947,
+      "correct": 376,
+      "accuracy": 0.397,
+      "signal_rate": 0.3157,
       "by_horizon": {
         "5": {
-          "signals": 73,
-          "correct": 37,
-          "accuracy": 0.5068
+          "signals": 84,
+          "correct": 24,
+          "accuracy": 0.2857
         },
         "10": {
-          "signals": 72,
-          "correct": 27,
-          "accuracy": 0.375
+          "signals": 62,
+          "correct": 19,
+          "accuracy": 0.3065
         },
         "20": {
-          "signals": 65,
-          "correct": 26,
-          "accuracy": 0.4
+          "signals": 79,
+          "correct": 29,
+          "accuracy": 0.3671
         },
         "30": {
-          "signals": 81,
-          "correct": 31,
-          "accuracy": 0.3827
+          "signals": 74,
+          "correct": 35,
+          "accuracy": 0.473
         },
         "45": {
-          "signals": 77,
-          "correct": 33,
-          "accuracy": 0.4286
+          "signals": 70,
+          "correct": 34,
+          "accuracy": 0.4857
         },
         "60": {
-          "signals": 91,
-          "correct": 39,
-          "accuracy": 0.4286
+          "signals": 74,
+          "correct": 29,
+          "accuracy": 0.3919
         },
         "90": {
-          "signals": 73,
-          "correct": 26,
-          "accuracy": 0.3562
+          "signals": 90,
+          "correct": 45,
+          "accuracy": 0.5
         },
         "120": {
-          "signals": 76,
-          "correct": 30,
-          "accuracy": 0.3947
+          "signals": 78,
+          "correct": 35,
+          "accuracy": 0.4487
         },
         "180": {
-          "signals": 76,
-          "correct": 25,
-          "accuracy": 0.3289
+          "signals": 96,
+          "correct": 39,
+          "accuracy": 0.4062
         },
         "252": {
-          "signals": 74,
-          "correct": 30,
-          "accuracy": 0.4054
+          "signals": 81,
+          "correct": 28,
+          "accuracy": 0.3457
         },
         "504": {
-          "signals": 73,
-          "correct": 28,
-          "accuracy": 0.3836
+          "signals": 80,
+          "correct": 30,
+          "accuracy": 0.375
         },
         "1260": {
-          "signals": 83,
-          "correct": 23,
-          "accuracy": 0.2771
+          "signals": 79,
+          "correct": 29,
+          "accuracy": 0.3671
         }
       },
       "pruned": false
@@ -787,141 +792,141 @@
     "high_confidence": {
       "description": "All patterns but only count signals with confidence >= 0.75",
       "samples_applicable": 3000,
-      "signals_emitted": 240,
-      "correct": 164,
-      "accuracy": 0.6833,
-      "signal_rate": 0.08,
+      "signals_emitted": 290,
+      "correct": 192,
+      "accuracy": 0.6621,
+      "signal_rate": 0.0967,
       "by_horizon": {
         "5": {
-          "signals": 7,
-          "correct": 3,
+          "signals": 14,
+          "correct": 6,
           "accuracy": 0.4286
         },
         "10": {
-          "signals": 4,
-          "correct": 2,
-          "accuracy": 0.5
-        },
-        "20": {
-          "signals": 7,
-          "correct": 3,
-          "accuracy": 0.4286
-        },
-        "30": {
-          "signals": 10,
-          "correct": 6,
-          "accuracy": 0.6
-        },
-        "45": {
           "signals": 11,
           "correct": 6,
           "accuracy": 0.5455
         },
+        "20": {
+          "signals": 11,
+          "correct": 7,
+          "accuracy": 0.6364
+        },
+        "30": {
+          "signals": 12,
+          "correct": 7,
+          "accuracy": 0.5833
+        },
+        "45": {
+          "signals": 9,
+          "correct": 7,
+          "accuracy": 0.7778
+        },
         "60": {
-          "signals": 18,
-          "correct": 10,
-          "accuracy": 0.5556
-        },
-        "90": {
-          "signals": 31,
-          "correct": 21,
-          "accuracy": 0.6774
-        },
-        "120": {
-          "signals": 20,
-          "correct": 14,
-          "accuracy": 0.7
-        },
-        "180": {
-          "signals": 35,
-          "correct": 26,
-          "accuracy": 0.7429
-        },
-        "252": {
-          "signals": 20,
-          "correct": 15,
-          "accuracy": 0.75
-        },
-        "504": {
           "signals": 29,
           "correct": 20,
           "accuracy": 0.6897
         },
+        "90": {
+          "signals": 30,
+          "correct": 16,
+          "accuracy": 0.5333
+        },
+        "120": {
+          "signals": 29,
+          "correct": 16,
+          "accuracy": 0.5517
+        },
+        "180": {
+          "signals": 36,
+          "correct": 25,
+          "accuracy": 0.6944
+        },
+        "252": {
+          "signals": 30,
+          "correct": 24,
+          "accuracy": 0.8
+        },
+        "504": {
+          "signals": 33,
+          "correct": 22,
+          "accuracy": 0.6667
+        },
         "1260": {
-          "signals": 48,
-          "correct": 38,
-          "accuracy": 0.7917
+          "signals": 46,
+          "correct": 36,
+          "accuracy": 0.7826
         }
       },
       "pruned": false
     },
     "trend_in_trending_regime": {
       "description": "Trend-following patterns, but only when the market is in a clear bull or bear regime",
-      "samples_applicable": 1556,
-      "signals_emitted": 1362,
-      "correct": 711,
-      "accuracy": 0.522,
-      "signal_rate": 0.8753,
+      "samples_applicable": 1604,
+      "signals_emitted": 1427,
+      "correct": 724,
+      "accuracy": 0.5074,
+      "signal_rate": 0.8897,
       "by_horizon": {
         "5": {
-          "signals": 118,
-          "correct": 49,
-          "accuracy": 0.4153
+          "signals": 111,
+          "correct": 51,
+          "accuracy": 0.4595
         },
         "10": {
-          "signals": 104,
-          "correct": 54,
-          "accuracy": 0.5192
+          "signals": 107,
+          "correct": 43,
+          "accuracy": 0.4019
         },
         "20": {
-          "signals": 115,
-          "correct": 44,
-          "accuracy": 0.3826
+          "signals": 131,
+          "correct": 65,
+          "accuracy": 0.4962
         },
         "30": {
-          "signals": 118,
-          "correct": 58,
-          "accuracy": 0.4915
+          "signals": 109,
+          "correct": 51,
+          "accuracy": 0.4679
         },
         "45": {
-          "signals": 134,
-          "correct": 68,
-          "accuracy": 0.5075
+          "signals": 135,
+          "correct": 64,
+          "accuracy": 0.4741
         },
         "60": {
-          "signals": 109,
-          "correct": 49,
-          "accuracy": 0.4495
+          "signals": 105,
+          "correct": 54,
+          "accuracy": 0.5143
         },
         "90": {
-          "signals": 109,
-          "correct": 70,
-          "accuracy": 0.6422
+          "signals": 117,
+          "correct": 56,
+          "accuracy": 0.4786
         },
         "120": {
-          "signals": 94,
-          "correct": 55,
-          "accuracy": 0.5851
+          "signals": 126,
+          "correct": 62,
+          "accuracy": 0.4921
         },
         "180": {
-          "signals": 119,
-          "correct": 70,
-          "accuracy": 0.5882
+          "signals": 132,
+          "correct": 78,
+          "accuracy": 0.5909
         },
         "252": {
-          "signals": 112,
-          "correct": 60,
-          "accuracy": 0.5357
+          "signals": 117,
+          "correct": 68,
+          "accuracy": 0.5812
         },
         "504": {
-          "signals": 105,
-          "correct": 58,
-          "accuracy": 0.5524
+          "signals": 122,
+          "correct": 73,
+          "accuracy": 0.5984
         },
         "1260": {
-          "signals": 125,
-          "correct": 76,
-          "accuracy": 0.608
+          "signals": 115,
+          "correct": 59,
+          "accuracy": 0.513
         }
       },
       "pruned": false
@@ -929,337 +934,359 @@
     "meta_ensemble": {
       "description": "Holistic meta-ensemble: stacked vote across sub-methodologies, weighted by each sub-method's backtest accuracy",
       "samples_applicable": 3000,
-      "signals_emitted": 964,
-      "correct": 643,
-      "accuracy": 0.667,
-      "signal_rate": 0.3213,
+      "signals_emitted": 900,
+      "correct": 603,
+      "accuracy": 0.67,
+      "signal_rate": 0.3,
       "by_horizon": {
-        "10": {
-          "signals": 1,
-          "correct": 1,
-          "accuracy": 1.0
+        "30": {
+          "signals": 7,
+          "correct": 4,
+          "accuracy": 0.5714
         },
         "45": {
-          "signals": 3,
-          "correct": 3,
-          "accuracy": 1.0
+          "signals": 15,
+          "correct": 13,
+          "accuracy": 0.8667
         },
         "60": {
-          "signals": 16,
-          "correct": 10,
-          "accuracy": 0.625
+          "signals": 75,
+          "correct": 43,
+          "accuracy": 0.5733
         },
         "90": {
-          "signals": 154,
-          "correct": 100,
-          "accuracy": 0.6494
+          "signals": 28,
+          "correct": 16,
+          "accuracy": 0.5714
         },
         "120": {
-          "signals": 149,
-          "correct": 99,
-          "accuracy": 0.6644
+          "signals": 118,
+          "correct": 77,
+          "accuracy": 0.6525
         },
         "180": {
-          "signals": 161,
-          "correct": 99,
-          "accuracy": 0.6149
+          "signals": 177,
+          "correct": 121,
+          "accuracy": 0.6836
         },
         "252": {
-          "signals": 148,
-          "correct": 95,
-          "accuracy": 0.6419
+          "signals": 158,
+          "correct": 101,
+          "accuracy": 0.6392
         },
         "504": {
-          "signals": 143,
-          "correct": 93,
-          "accuracy": 0.6503
+          "signals": 163,
+          "correct": 115,
+          "accuracy": 0.7055
         },
         "1260": {
-          "signals": 189,
-          "correct": 143,
-          "accuracy": 0.7566
+          "signals": 159,
+          "correct": 113,
+          "accuracy": 0.7107
         }
       },
       "by_regime": {
+        "choppy": {
+          "signals": 72,
+          "correct": 66,
+          "accuracy": 0.9167
+        },
         "bull": {
-          "signals": 605,
-          "correct": 371,
-          "accuracy": 0.6132
+          "signals": 581,
+          "correct": 348,
+          "accuracy": 0.599
         },
         "unknown": {
-          "signals": 268,
-          "correct": 202,
-          "accuracy": 0.7537
-        },
-        "choppy": {
-          "signals": 59,
-          "correct": 48,
-          "accuracy": 0.8136
+          "signals": 214,
+          "correct": 167,
+          "accuracy": 0.7804
         },
         "bear": {
-          "signals": 32,
+          "signals": 33,
           "correct": 22,
-          "accuracy": 0.6875
+          "accuracy": 0.6667
         }
       },
       "methodology_contribution_count": {
-        "all": 960,
-        "trend_following": 925,
-        "trend_in_trending_regime": 621,
-        "high_confidence": 202,
-        "candlestick_only": 28
+        "all": 790,
+        "trend_following": 872,
+        "candlestick_only": 41,
+        "trend_in_trending_regime": 502,
+        "high_confidence": 240,
+        "volume_driven": 8
       },
       "sub_methodology_accuracies_used": {
         "all": {
-          "5": 0.3966,
-          "10": 0.4604,
-          "20": 0.4338,
-          "30": 0.4661,
-          "45": 0.4598,
-          "60": 0.5182,
-          "90": 0.5896,
-          "120": 0.599,
-          "180": 0.5439,
-          "252": 0.5315,
-          "504": 0.5505,
-          "1260": 0.678
+          "5": 0.3795,
+          "10": 0.4333,
+          "20": 0.4937,
+          "30": 0.4925,
+          "45": 0.5353,
+          "60": 0.4879,
+          "90": 0.4931,
+          "120": 0.5135,
+          "180": 0.5946,
+          "252": 0.5511,
+          "504": 0.6211,
+          "1260": 0.6593
         },
         "trend_following": {
-          "5": 0.4065,
-          "10": 0.4514,
-          "20": 0.4462,
-          "30": 0.4685,
-          "45": 0.4615,
-          "60": 0.474,
-          "90": 0.5824,
-          "120": 0.587,
-          "180": 0.5505,
-          "252": 0.5779,
-          "504": 0.5843,
-          "1260": 0.6714
+          "5": 0.408,
+          "10": 0.4486,
+          "20": 0.4806,
+          "30": 0.5055,
+          "45": 0.4929,
+          "60": 0.5185,
+          "90": 0.5,
+          "120": 0.505,
+          "180": 0.5785,
+          "252": 0.6071,
+          "504": 0.6341,
+          "1260": 0.6029
         },
         "mean_reversion": {
-          "5": 0.4359,
-          "10": 0.3714,
-          "20": 0.3761,
-          "30": 0.3719,
-          "45": 0.4211,
-          "60": 0.4621,
-          "90": 0.4545,
-          "120": 0.4474,
-          "180": 0.4462,
-          "252": 0.4128,
-          "504": 0.3866,
-          "1260": 0.3701
+          "5": 0.3333,
+          "10": 0.3934,
+          "20": 0.418,
+          "30": 0.4779,
+          "45": 0.4622,
+          "60": 0.3909,
+          "90": 0.4603,
+          "120": 0.4333,
+          "180": 0.4465,
+          "252": 0.3628,
+          "504": 0.3874,
+          "1260": 0.4127
         },
         "candlestick_only": {
-          "5": 0.2143,
-          "10": 0.5417,
-          "20": 0.4167,
-          "30": 0.2727,
-          "45": 0.4643,
-          "60": 0.4615,
-          "90": 0.4286,
-          "120": 0.5,
-          "180": 0.5714,
-          "252": 0.28,
-          "504": 0.48,
-          "1260": 0.4074
+          "5": 0.4231,
+          "10": 0.4062,
+          "20": 0.3929,
+          "30": 0.45,
+          "45": 0.7037,
+          "60": 0.4167,
+          "90": 0.4,
+          "120": 0.52,
+          "180": 0.4571,
+          "252": 0.5769,
+          "504": 0.4348,
+          "1260": 0.4333
         },
         "volume_driven": {
-          "5": 0.5068,
-          "10": 0.375,
-          "20": 0.4,
-          "30": 0.3827,
-          "45": 0.4286,
-          "60": 0.4286,
-          "90": 0.3562,
-          "120": 0.3947,
-          "180": 0.3289,
-          "252": 0.4054,
-          "504": 0.3836,
-          "1260": 0.2771
+          "5": 0.2857,
+          "10": 0.3065,
+          "20": 0.3671,
+          "30": 0.473,
+          "45": 0.4857,
+          "60": 0.3919,
+          "90": 0.5,
+          "120": 0.4487,
+          "180": 0.4062,
+          "252": 0.3457,
+          "504": 0.375,
+          "1260": 0.3671
         },
         "high_confidence": {
           "5": 0.4286,
-          "10": 0.5,
-          "20": 0.4286,
-          "30": 0.6,
-          "45": 0.5455,
-          "60": 0.5556,
-          "90": 0.6774,
-          "120": 0.7,
-          "180": 0.7429,
-          "252": 0.75,
-          "504": 0.6897,
-          "1260": 0.7917
+          "10": 0.5455,
+          "20": 0.6364,
+          "30": 0.5833,
+          "45": 0.7778,
+          "60": 0.6897,
+          "90": 0.5333,
+          "120": 0.5517,
+          "180": 0.6944,
+          "252": 0.8,
+          "504": 0.6667,
+          "1260": 0.7826
         },
         "trend_in_trending_regime": {
-          "5": 0.4153,
-          "10": 0.5192,
-          "20": 0.3826,
-          "30": 0.4915,
-          "45": 0.5075,
-          "60": 0.4495,
-          "90": 0.6422,
-          "120": 0.5851,
-          "180": 0.5882,
-          "252": 0.5357,
-          "504": 0.5524,
-          "1260": 0.608
+          "5": 0.4595,
+          "10": 0.4019,
+          "20": 0.4962,
+          "30": 0.4679,
+          "45": 0.4741,
+          "60": 0.5143,
+          "90": 0.4786,
+          "120": 0.4921,
+          "180": 0.5909,
+          "252": 0.5812,
+          "504": 0.5984,
+          "1260": 0.513
         }
       }
     },
     "consensus_families": {
       "description": "DECORRELATED meta \u2014 patterns grouped into 6 independent families (trend, momentum, volatility, volume, candlestick, relative_strength), each family casts ONE vote. Requires >=3 families agreeing.",
       "samples_applicable": 3000,
-      "signals_emitted": 254,
-      "correct": 158,
-      "accuracy": 0.622,
-      "signal_rate": 0.0847,
+      "signals_emitted": 323,
+      "correct": 192,
+      "accuracy": 0.5944,
+      "signal_rate": 0.1077,
       "by_horizon": {
-        "60": {
-          "signals": 2,
-          "correct": 2,
+        "20": {
+          "signals": 1,
+          "correct": 1,
           "accuracy": 1.0
         },
-        "90": {
-          "signals": 77,
-          "correct": 49,
-          "accuracy": 0.6364
-        },
-        "180": {
-          "signals": 103,
-          "correct": 64,
-          "accuracy": 0.6214
-        },
-        "504": {
-          "signals": 3,
-          "correct": 1,
-          "accuracy": 0.3333
-        },
-        "1260": {
-          "signals": 69,
-          "correct": 42,
-          "accuracy": 0.6087
-        }
-      },
-      "by_regime": {
-        "bull": {
-          "signals": 176,
-          "correct": 111,
-          "accuracy": 0.6307
-        },
-        "unknown": {
+        "45": {
           "signals": 49,
           "correct": 31,
           "accuracy": 0.6327
         },
+        "60": {
+          "signals": 64,
+          "correct": 39,
+          "accuracy": 0.6094
+        },
+        "90": {
+          "signals": 5,
+          "correct": 2,
+          "accuracy": 0.4
+        },
+        "120": {
+          "signals": 3,
+          "correct": 1,
+          "accuracy": 0.3333
+        },
+        "180": {
+          "signals": 2,
+          "correct": 2,
+          "accuracy": 1.0
+        },
+        "252": {
+          "signals": 50,
+          "correct": 30,
+          "accuracy": 0.6
+        },
+        "504": {
+          "signals": 77,
+          "correct": 45,
+          "accuracy": 0.5844
+        },
+        "1260": {
+          "signals": 72,
+          "correct": 41,
+          "accuracy": 0.5694
+        }
+      },
+      "by_regime": {
+        "unknown": {
+          "signals": 46,
+          "correct": 26,
+          "accuracy": 0.5652
+        },
         "choppy": {
-          "signals": 19,
-          "correct": 10,
-          "accuracy": 0.5263
+          "signals": 35,
+          "correct": 19,
+          "accuracy": 0.5429
+        },
+        "bull": {
+          "signals": 229,
+          "correct": 140,
+          "accuracy": 0.6114
         },
         "bear": {
-          "signals": 10,
-          "correct": 6,
-          "accuracy": 0.6
+          "signals": 13,
+          "correct": 7,
+          "accuracy": 0.5385
         }
       },
       "by_direction": {
         "up": {
-          "signals": 176,
-          "correct": 136,
-          "accuracy": 0.7727
+          "signals": 210,
+          "correct": 153,
+          "accuracy": 0.7286
         },
         "down": {
-          "signals": 78,
-          "correct": 22,
-          "accuracy": 0.2821
+          "signals": 113,
+          "correct": 39,
+          "accuracy": 0.3451
         }
       },
       "family_accuracies_per_horizon": {
-        "relative_strength": {
-          "5": 0.4146,
-          "45": 0.4338,
-          "180": 0.5126,
-          "90": 0.5895,
-          "30": 0.4922,
-          "60": 0.4483,
-          "1260": 0.5806,
-          "10": 0.434,
-          "252": 0.42,
-          "120": 0.4854,
-          "20": 0.4123,
-          "504": 0.4423
-        },
         "trend": {
-          "5": 0.3801,
-          "1260": 0.6601,
-          "180": 0.5845,
-          "252": 0.6438,
-          "30": 0.4682,
-          "60": 0.5177,
-          "10": 0.4762,
-          "90": 0.594,
-          "45": 0.4615,
-          "120": 0.6015,
-          "20": 0.4336,
-          "504": 0.6131
-        },
-        "momentum": {
-          "45": 0.4028,
-          "1260": 0.4051,
-          "10": 0.3542,
-          "30": 0.3226,
-          "252": 0.4068,
-          "120": 0.4737,
-          "5": 0.386,
-          "60": 0.4706,
-          "180": 0.5375,
-          "90": 0.537,
-          "504": 0.4237,
-          "20": 0.3151
+          "5": 0.4,
+          "252": 0.594,
+          "20": 0.5099,
+          "90": 0.5,
+          "45": 0.5034,
+          "1260": 0.609,
+          "10": 0.4685,
+          "60": 0.5,
+          "120": 0.518,
+          "504": 0.6424,
+          "180": 0.6012,
+          "30": 0.5211
         },
         "volume": {
-          "180": 0.3289,
-          "90": 0.3562,
-          "60": 0.4286,
-          "1260": 0.2771,
-          "120": 0.3867,
-          "20": 0.4,
-          "5": 0.5068,
-          "30": 0.3875,
-          "10": 0.375,
-          "252": 0.4054,
-          "45": 0.4286,
-          "504": 0.3836
+          "5": 0.2857,
+          "1260": 0.3671,
+          "180": 0.4062,
+          "252": 0.3375,
+          "90": 0.5,
+          "45": 0.4783,
+          "10": 0.3065,
+          "60": 0.3836,
+          "120": 0.4487,
+          "20": 0.3671,
+          "504": 0.375,
+          "30": 0.473
         },
         "candlestick": {
-          "1260": 0.4074,
-          "90": 0.4286,
-          "180": 0.5714,
-          "45": 0.4643,
-          "5": 0.2143,
-          "20": 0.4167,
-          "252": 0.28,
-          "504": 0.48,
-          "30": 0.2857,
-          "120": 0.48,
-          "10": 0.5417,
-          "60": 0.4615
+          "1260": 0.4333,
+          "252": 0.6,
+          "20": 0.3929,
+          "180": 0.4571,
+          "10": 0.4062,
+          "90": 0.4,
+          "60": 0.4167,
+          "45": 0.7037,
+          "5": 0.4231,
+          "120": 0.52,
+          "504": 0.4348,
+          "30": 0.45
+        },
+        "relative_strength": {
+          "1260": 0.5133,
+          "252": 0.5833,
+          "20": 0.4603,
+          "90": 0.4952,
+          "60": 0.5288,
+          "5": 0.3738,
+          "504": 0.5476,
+          "180": 0.4646,
+          "45": 0.4961,
+          "10": 0.4019,
+          "120": 0.4336,
+          "30": 0.4466
+        },
+        "momentum": {
+          "5": 0.3788,
+          "252": 0.381,
+          "1260": 0.4762,
+          "10": 0.4203,
+          "60": 0.34,
+          "90": 0.3898,
+          "180": 0.4643,
+          "504": 0.3818,
+          "45": 0.5303,
+          "30": 0.4754,
+          "20": 0.4262,
+          "120": 0.4462
         },
         "volatility": {
-          "45": 0.5714,
-          "90": 0.6
+          "10": 0.4286,
+          "5": 0.2
         }
       },
       "family_contribution_count": {
-        "trend": 227,
-        "relative_strength": 202,
-        "momentum": 93,
-        "volatility": 9,
-        "candlestick": 6
+        "trend": 319,
+        "relative_strength": 257,
+        "momentum": 36,
+        "candlestick": 27,
+        "volume": 5,
+        "volatility": 13
       },
       "pruned": false
     }
